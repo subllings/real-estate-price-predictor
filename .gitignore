@@ -1,0 +1,73 @@
+# === Virtual environment ===
+.venv/
+env/
+venv/
+
+# === Python bytecode & cache ===
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# === VS Code settings ===
+.vscode/
+
+# === Test coverage and reports ===
+.coverage
+htmlcov/
+.cache/
+pytest_cache/
+coverage.xml
+
+# === Jupyter & notebooks (if any) ===
+.ipynb_checkpoints/
+
+# === Logs and temporary files ===
+*.log
+*.tmp
+*.bak
+*.swp
+.DS_Store
+
+# === Environment files (optional) ===
+.env
+.env.*
+
+# === Compiled or package artifacts ===
+dist/
+build/
+*.egg-info/
+
+# === IDE specific files ===
+.idea/  
+
+# === Miscellaneous ===
+*.orig
+
+# === Docker files ===
+docker-compose.override.yml 
+
+# === MacOS specific files ===
+.AppleDouble
+
+# === Windows specific files ===
+Thumbs.db
+
+# === Python packaging ===
+*.egg
+
+# === PyInstaller ===
+*.spec
+
+# === Coverage reports ===
+.coverage.*
+
+# === Pytest cache ===
+.cache/
+
+
+# === docs-pdoc ===
+docs-pdoc/
+
+
+

@@ -1,0 +1,19 @@
+# Core ML & preprocessing
+pandas==2.2.2
+scikit-learn==1.4.2
+joblib==1.4.2
+lightgbm==4.3.0
+xgboost==2.0.3
+
+# API
+fastapi==0.111.0
+uvicorn==0.29.0
+
+# Tracking & experiment management
+mlflow==2.12.1
+
+# Utilities
+tqdm==4.66.4
+pyyaml==6.0.1
+
+lightgbm==4.3.0
