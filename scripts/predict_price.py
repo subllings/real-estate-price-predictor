@@ -60,6 +60,11 @@ class PricePredictor:
 
 
 if __name__ == "__main__":
+    import os
+
+    base_path = "local_models"
+
+    # Base sample input
     sample = {
         "surface": 120,
         "rooms": 3,
@@ -82,11 +87,39 @@ if __name__ == "__main__":
         "bedrooms": 3
     }
 
-    models = ["rf", "lr", "dgbm"]
-    for model_type in models:
-        print(f"\n>>> Predicting with model: {model_type.upper()}")
-        model_path = f"local_models/{model_type}/immovlan_real_estate_{model_type}.pkl"
-        preproc_path = f"local_models/{model_type}/immovlan_real_estate_{model_type}_preprocessor.pkl"
-        predictor = PricePredictor(model_path=model_path, preprocessor_path=preproc_path)
-        predicted_price = predictor.predict(sample)
-        print(f">>> Predicted price from input ({model_type.upper()}): €{predicted_price:,.0f}")
+    # Extend sample with zimmo-compatible columns
+    expected_columns = {
+        'year built': sample.get("year_built", 2000),
+        'bedroom': sample.get("bedrooms", 3),
+        'bathroom': sample.get("bathrooms", 1),
+        'living area(m²)': sample.get("surface", 120),
+        'mobiscore': 7.5,
+        'ground area(m²)': sample.get("surface", 150),
+        'EPC(kWh/m²)': sample.get("epc", 200),
+        'garage': 1 if sample.get("has_garden", False) else 0
+    }
+    sample.update(expected_columns)
+
+
+
+    for model_type in os.listdir(base_path):
+        model_dir = os.path.join(base_path, model_type)
+        if not os.path.isdir(model_dir):
+            continue
+
+        for filename in os.listdir(model_dir):
+            if filename.endswith(".pkl") and "preprocessor" not in filename:
+                model_path = os.path.join(model_dir, filename)
+
+                # Try to find matching preprocessor
+                preproc_name = filename.replace(".pkl", "_preprocessor.pkl")
+                preproc_path = os.path.join(model_dir, preproc_name)
+                preproc_path = preproc_path if os.path.exists(preproc_path) else None
+
+                print(f"\n>>> Predicting with model file: {filename}")
+                try:
+                    predictor = PricePredictor(model_path=model_path, preprocessor_path=preproc_path)
+                    predicted_price = predictor.predict(sample)
+                    print(f">>> Predicted price: €{predicted_price:,.0f}")
+                except Exception as e:
+                    print(f">>> ERROR: Prediction failed for {filename} – {e}")

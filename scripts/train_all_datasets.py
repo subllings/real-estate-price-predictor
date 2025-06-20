@@ -59,8 +59,6 @@ class DatasetTrainer:
         return df
 
 
-
-
     def train_all(self):
         for filename in os.listdir(self.data_dir):
             if not filename.endswith(".csv"):
@@ -105,7 +103,7 @@ class DatasetTrainer:
                 X = X.loc[y.index]
 
                 # Launch training for each model type
-                print(f"[INFO] Training models for dataset: {dataset_name}...")
+                print(f"\n[INFO] Training models for dataset: {dataset_name}...")
                 self._train_models_for_dataset(dataset_name, X, y)
 
 
@@ -151,7 +149,7 @@ class DatasetTrainer:
                 preproc_path = os.path.join(model_subdir, f"{dataset_name}_{model_type}_preprocessor.pkl")
                 joblib.dump(preprocessor, preproc_path)
 
-                print(f"[OK] {model_type} trained and saved for {dataset_name}")
+                print(f"[OK] {model_type} trained and saved for {dataset_name}\n")
 
             except Exception as e:
                 print(f"[ERROR] Failed to train {model_type} for {dataset_name}: {str(e)}")
