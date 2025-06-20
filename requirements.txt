@@ -3,6 +3,10 @@ pandas>=2.2.2
 matplotlib>=3.7.1
 seaborn>=0.12.2
 ipython>=8.21.0
+missingno==0.5.2  # For visualizing missing values (bar, matrix, dendrogram)
+
+# Install ipykernel compatible with Python 3.12+ to enable Jupyter notebook support in this virtual environment
+ipykernel>=6.29
 
 
 # Core ML & preprocessing
