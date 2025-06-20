@@ -1,8 +1,28 @@
+# Prerequisites
 
-# Real Estate Price Predictor
+Make sure **Python 3.12.10** is installed.
+
+- [Download Python 3.12.10](https://www.python.org/downloads/release/python-31210/)
+- Add Python to your system `PATH`
+
+> ⚠️ This project is validated under Python 3.12.10. Other versions may result in compatibility issues.
+
+# Real Estate Data Analysis & Price Predictor
 
 A modular and extensible project for predicting real estate prices across multiple cities and model types.  
 Compatible with both **local environments** and **Databricks** (MLflow, DBFS, Delta).
+
+
+
+## Environment Setup
+
+Use the virtual environment to manage dependencies cleanly:
+
+```bash
+chmod +x setup-env.sh
+./setup-env.sh
+```
+
 
 ##  Project Structure
 
@@ -67,3 +87,10 @@ real-estate-price-predictor/
 - Compatible with local `.csv` files and Databricks tables
 - Easy model comparison and export (`.pkl` or MLflow)
 - Optional API via FastAPI for inference
+
+
+# 2. Data Analysis
+
+
+
+# 3. Model training
