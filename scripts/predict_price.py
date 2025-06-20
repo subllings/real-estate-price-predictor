@@ -4,6 +4,24 @@ import os
 
 
 class PricePredictor:
+    """
+    PricePredictor is a class for loading a trained machine learning model and an optional preprocessor to predict real estate prices.
+    Attributes:
+      model (object): The loaded machine learning model with a 'predict' method.
+      preprocessor (object, optional): The loaded preprocessor for transforming input data before prediction.
+    Methods:
+      __init__(model_path: str, preprocessor_path: str = None):
+        Initializes the PricePredictor by loading the model and optional preprocessor from the specified file paths.
+        Raises FileNotFoundError if the model or preprocessor file does not exist.
+        Raises TypeError if the loaded model does not have a 'predict' method.
+      predict(input_data: dict) -> float:
+        Predicts the price based on the provided input data.
+        Args:
+          input_data (dict): A dictionary of feature names and values for prediction.
+        Returns:
+          float: The predicted price.
+        Prints the predicted price in a formatted string.
+    """
     def __init__(self, model_path: str, preprocessor_path: str = None):
         if not os.path.exists(model_path):
             raise FileNotFoundError(f"Model not found: {model_path}")
@@ -19,6 +37,18 @@ class PricePredictor:
             self.preprocessor = joblib.load(preprocessor_path)
 
     def predict(self, input_data: dict) -> float:
+        """
+        Predicts the price based on the provided input data.
+
+        Args:
+          input_data (dict): A dictionary containing the input features required by the model.
+
+        Returns:
+          float: The predicted price.
+
+        Side Effects:
+          Prints the predicted price in a formatted string to the console.
+        """
         df = pd.DataFrame([input_data])
         if self.preprocessor:
             df = self.preprocessor.transform(df)

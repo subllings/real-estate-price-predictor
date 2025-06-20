@@ -25,7 +25,7 @@ real-estate-price-predictor/
 │   ├── __init__.py                  # Makes this a Python package
 │   ├── base_model.py                # Abstract base class for model interfaces
 │   ├── rf_model.py                  # Random Forest implementation
-│   ├── lgbm_model.py                # LightGBM implementation
+│   ├── lgbm_model.py                # LightGBM implementation (Distributed Gradient Boosting Machine)
 │   ├── lr_model.py                  # Linear Regression implementation
 │   └── model_factory.py             # Factory to retrieve the correct model class
 │
@@ -61,7 +61,7 @@ real-estate-price-predictor/
 └── setup-env.sh                     # Script to initialize virtual environment
 ```
 
-## ✅ Features
+## Features
 - Modular architecture with reusable model classes (OOP)
 - Supports multiple cities, datasets, and model types
 - Compatible with local `.csv` files and Databricks tables
