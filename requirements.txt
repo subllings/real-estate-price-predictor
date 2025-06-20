@@ -5,18 +5,6 @@ seaborn>=0.12.2
 ipython>=8.21.0
 
 
-# Compatibilité avec selenium-wire (éviter _saferef bug)
-blinker==1.4
-
-setuptools==68.2.2
-
-# Data analysis and visualization
-pandas>=2.2.2
-matplotlib>=3.7.1
-seaborn>=0.12.2
-ipython>=8.21.0
-
-
 # Core ML & preprocessing
 #pandas==2.2.2
 scikit-learn==1.4.2
