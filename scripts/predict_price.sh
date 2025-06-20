@@ -1,9 +1,8 @@
 #!/bin/bash
 
-# Make this file executable: chmod +x train_all_datasets.sh
-# Run it with: ./train_all_datasets.sh
-# from root directory: chmod +x scripts/train_all_datasets.sh && ./scripts/train_all_datasets.sh
-
+# Make this file executable: chmod +x predict_price.sh
+# Run it with: ./predict_price.sh
+# From root directory: chmod +x scripts/predict_price.sh && ./scripts/predict_price.sh
 
 clear
 
@@ -39,13 +38,9 @@ print_error() {
 print_blue "Activating virtual environment..."
 source .venv/Scripts/activate || print_error "Failed to activate virtual environment. Is it created?"
 
-# === Clean previous models ===
-print_blue "Cleaning old trained models..."
-rm -f local_models/*/*.pkl || print_error "Failed to clean old model files."
-
-# === Run the training script ===
-print_blue "Launching dataset-wide training for all models..."
-PYTHONPATH=. python scripts/train_all_datasets.py || print_error "Training failed."
+# === Run the prediction script ===
+print_blue "Predicting price from sample input..."
+PYTHONPATH=. python scripts/predict_price.py || print_error "Prediction failed."
 
 # === Done ===
-print_green "All models trained successfully for all datasets."
+print_green "Prediction completed successfully."

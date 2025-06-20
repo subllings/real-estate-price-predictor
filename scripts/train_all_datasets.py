@@ -1,10 +1,12 @@
 import os
 import pandas as pd
-from ml_models.model_factory import ModelFactory
-from utils.column_mapper import load_column_mapping, standardize_columns
 import joblib
 from sklearn.metrics import r2_score
+from sklearn.compose import ColumnTransformer
+from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
+from ml_models.model_factory import ModelFactory
+from utils.column_mapper import load_column_mapping, standardize_columns
 
 
 
@@ -117,23 +119,42 @@ class DatasetTrainer:
         for model_type in self.model_types:
             try:
                 model = ModelFactory.create(model_type)
-                model.fit(X, y)
 
-                # Score sur le jeu complet (pas idéal, mais rapide)
-                y_pred = model.predict(X)
+                # Identify column types
+                categorical_cols = X.select_dtypes(include=["object"]).columns.tolist()
+                numeric_cols = X.select_dtypes(include=["int64", "float64"]).columns.tolist()
+
+                # Build preprocessor
+                preprocessor = ColumnTransformer(transformers=[
+                    ("num", StandardScaler(), numeric_cols),
+                    ("cat", OneHotEncoder(handle_unknown="ignore"), categorical_cols)
+                ])
+
+                # Fit and transform the features
+                X_preprocessed = preprocessor.fit_transform(X)
+
+                # Fit the model on preprocessed data
+                model.fit(X_preprocessed, y)
+
+                # Score on training set
+                y_pred = model.predict(X_preprocessed)
                 r2 = r2_score(y, y_pred)
                 print(f"[SCORE] {model_type} on {dataset_name}: R² = {r2:.3f}")
 
                 # Save model
                 model_subdir = os.path.join(self.model_dir, model_type)
                 os.makedirs(model_subdir, exist_ok=True)
-                joblib.dump(model, os.path.join(model_subdir, f"{dataset_name}_{model_type}.pkl"))
+                model_path = os.path.join(model_subdir, f"{dataset_name}_{model_type}.pkl")
+                joblib.dump(model, model_path)
+
+                # Save preprocessor
+                preproc_path = os.path.join(model_subdir, f"{dataset_name}_{model_type}_preprocessor.pkl")
+                joblib.dump(preprocessor, preproc_path)
 
                 print(f"[OK] {model_type} trained and saved for {dataset_name}")
 
             except Exception as e:
                 print(f"[ERROR] Failed to train {model_type} for {dataset_name}: {str(e)}")
-
 
 if __name__ == "__main__":
     print(">>> Launching dataset-wide training for all models...")
