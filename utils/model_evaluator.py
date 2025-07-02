@@ -10,6 +10,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import shap
 from IPython.display import display, HTML
+import numpy as np
 
 
 
@@ -42,40 +43,34 @@ class ModelEvaluator:
         self.model_name = model_name
         self.timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         self.records = []
+        self.output_path = f"results/eval_results_{self.timestamp}.csv"
 
-    def evaluate(self, y_true, y_pred):
-        """
-        Evaluates regression model predictions using MAE, RMSE, and R² metrics.
+    @staticmethod
+    def root_mean_squared_error(y_true, y_pred):
+        return np.sqrt(np.mean((y_true - y_pred) ** 2))
 
-        Args:
-          y_true (array-like): True target values.
-          y_pred (array-like): Predicted target values by the model.
-
-        Returns:
-          tuple: A tuple containing:
-            - mae (float): Mean Absolute Error of the predictions.
-            - rmse (float): Root Mean Squared Error of the predictions.
-            - r2 (float): R² (coefficient of determination) score of the predictions.
-
-        Side Effects:
-          - Prints the evaluation results.
-          - Appends the evaluation metrics and metadata to the `records` attribute.
-        """
+    def evaluate(self, y_true, y_pred, dataset_type=""):
         mae = mean_absolute_error(y_true, y_pred)
-        rmse = root_mean_squared_error(y_true, y_pred)
+        rmse = self.root_mean_squared_error(y_true, y_pred)  
         r2 = r2_score(y_true, y_pred)
-        self._print_results(mae, rmse, r2)
+        
         self.records.append({
             "timestamp": self.timestamp,
             "model": self.model_name,
+            "dataset_type": dataset_type,  
             "mae": round(mae, 2),
             "rmse": round(rmse, 2),
             "r2": round(r2, 4)
         })
+        self._print_results(mae, rmse, r2, dataset_type)
+        
         return mae, rmse, r2
 
+
+
+    """
     def save_to_csv(self):
-        """
+        
         Saves the evaluation records to a CSV file.
 
         Converts the list of records stored in `self.records` into a pandas DataFrame
@@ -83,10 +78,11 @@ class ModelEvaluator:
         The CSV file will not include the DataFrame index.
 
         Prints the path to the saved results upon completion.
-        """
+        
         df = pd.DataFrame(self.records)
         df.to_csv(self.output_path, index=False)
         print(f"\nResults saved to: {self.output_path}")
+        """
 
     def compare_models(self):
         """
@@ -106,19 +102,22 @@ class ModelEvaluator:
         df.loc[best_idx, "best"] = "✓"
         return df
 
-    def _print_results(self, mae, rmse, r2):
+    def _print_results(self, mae, rmse, r2, dataset_type=""):
         """
         Prints the evaluation metrics for the model in a formatted manner.
 
         Args:
-          mae (float): Mean Absolute Error of the model predictions.
-          rmse (float): Root Mean Squared Error of the model predictions.
-          r2 (float): R-squared (coefficient of determination) of the model predictions.
+        mae (float): Mean Absolute Error of the model predictions.
+        rmse (float): Root Mean Squared Error of the model predictions.
+        r2 (float): R-squared (coefficient of determination) of the model predictions.
 
         Outputs:
-          Prints the model name and the provided evaluation metrics (MAE, RMSE, R²) to the console.
+        Prints the model name and the provided evaluation metrics (MAE, RMSE, R²) to the console.
         """
-        print(f"Evaluation – {self.model_name}")
+        label = self.model_name or "Model Evaluation"
+        if dataset_type:
+            label += f" ({dataset_type})"
+        print(f"Evaluation – {label}")
         print(f"  MAE:  {mae:,.2f} €")
         print(f"  RMSE: {rmse:,.2f} €")
         print(f"  R²:   {r2:.4f}")

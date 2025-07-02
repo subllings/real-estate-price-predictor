@@ -95,3 +95,6 @@ saved_models/
 # Ignore experiment logs
 logs/
 *.log
+
+// App frontend
+app/frontend/node_modules/

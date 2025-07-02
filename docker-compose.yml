@@ -1,0 +1,26 @@
+version: "3.8"
+services:
+  backend:
+    build:
+      context: ./app/backend
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./app/backend:/app
+    env_file:
+      - .env 
+    command: uvicorn main:app --host ${HOST} --port 8000 --reload
+
+  frontend:
+    build:
+      context: ./app/frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./app/frontend:/app
+    stdin_open: true
+    tty: true
+    env_file:
+      - .env 
