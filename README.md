@@ -146,63 +146,183 @@ real-estate-price-predictor/
 └── setup-env.sh                     # Script to initialize virtual environment
 ```
 
-# SQLite Integration & Model/Cleaning Logging with Cecil
 
-To enable reproducible tracking of both **model performance metrics** and **data cleaning decisions**, this project uses a centralized **SQLite database** managed by the internal class `Cecil`.
+#  Real Estate Price Prediction API
 
-## Location
+## What does the API do?
 
-- **Database file**: `database/metrics.db`
-- Automatically created if it does not exist.
+- Loads two trained **CatBoost** models (`.pkl`) at startup:
+  - `catboost_optuna_all_*.pkl`: trained with **all engineered features**
+  - `catboost_optuna_top30_*.pkl`: trained with **top 30 features only**
+- Provides two **POST endpoints** to make predictions based on input data
+- Returns the predicted price as a JSON response
 
-## What Cecil Logs
+## Models Used
 
-The class `Cecil` is responsible for logging:
+Both models were trained using **CatBoost** with **Optuna hyperparameter tuning** and saved using `joblib`.
 
-| Type                    | Description                                                                 |
-|-------------------------|-----------------------------------------------------------------------------|
-| `model_metrics`         | Model name, dataset, algorithm, MAE, RMSE, R<sup>2</sup>, features used, timestamp     |
-| `data_cleaning_log`     | Version name, rules applied (e.g., price cap, filters), row counts, date     |
-| `pipeline_run` (TBD)    | Full pipeline metadata (duration, success/fail, user/system info)           |
+These models are located in:
 
-## Usage
+```
+app/backend/models/pkl/
+├── catboost_optuna_all_{date_time}.pkl
+└── catboost_optuna_top30_{date_time}.pkl
+```
 
-The database is automatically updated by notebooks/scripts like:
+## Run the API
 
-- `010_data_load_clean.ipynb` → Logs cleaning decisions
-- `070_evaluation.ipynb` → Logs MAE, RMSE, R<sup>2</sup> per model
-- `080_export_model.ipynb` → Can log exported models and versions
-- All interactions go through the `Cecil` class under `utils/cecil.py` (recommended)
+From the root of the project, start the FastAPI server using:
 
-You can easily query logged entries via Python:
+```bash
+./run_api.sh
+```
 
-```python
-import sqlite3
-conn = sqlite3.connect("database/metrics.db")
-pd.read_sql("SELECT * FROM model_metrics", conn)
+## API Endpoints
 
+### Swagger UI
 
+You can explore and test the API interactively via Swagger:  
+`http://localhost:8000/docs`
 
+## Test the API with Postman
 
+### What we can do with Postman:
+- Send **POST**, **GET**, etc. requests to your FastAPI endpoints
+- Easily test `/predict_all` or `/predict_top30`
+- View the **JSON response** returned by the real estate model
+- Manage **headers**, **authentication**, and **JSON bodies** effortlessly
+- Save request collections for future testing
 
-
-
-
-
-## Features
-- Modular architecture with reusable model classes (OOP)
-- Supports multiple cities, datasets, and model types
-- Compatible with local `.csv` files and Databricks tables
-- Easy model comparison and export (`.pkl` or MLflow)
-- Optional API via FastAPI for inference
-
-
-# 2. Data Analysis
+### Installation
+Download here: [https://www.postman.com/downloads/](https://www.postman.com/downloads/)
 
 
+### Example test in Postman (for `/predict_top30`)
 
-# 3. Model training
+1. Open **Postman**  
+2. Select request type: `POST`  
+3. URL: `http://localhost:8000/predict_top30`  
+4. Go to the `Headers` tab and add:
+   - **Key**: `Content-Type`  
+   - **Value**: `application/json`  
+5. Go to the `Body` tab:
+   - Choose `raw` and select `JSON` as the format
+   - Paste the following example payload (simplified):
 
 
-![picture 0](images/a2b25867ed7b3e42fc0ceacc68656e03fd009a21e5ee5e8add10e78a494023b3.png)  
-![picture 1](images/a2b25867ed7b3e42fc0ceacc68656e03fd009a21e5ee5e8add10e78a494023b3.png)  
+```json
+{
+  "habitableSurface": 120,
+  "bathroomCount": 2,
+  "postCode": 1000,
+  "toiletCount": 2,
+  "buildingConstructionYear": 2005,
+  "locality_Knokke_Heist": 0,
+  "building_age": 19,
+  "surface_per_room": 30,
+  "facedeCount": 2,
+  "kitchenType_HYPER_EQUIPPED": 1,
+  "buildingCondition_AS_NEW": 0,
+  "province_West_Flanders": 0,
+  "subtype_VILLA": 0,
+  "subtype_HOUSE": 1,
+  "province_Hainaut": 0,
+  "room_count": 4,
+  "bedroomCount": 3,
+  "buildingCondition_TO_RENOVATE": 0,
+  "epcScore_B": 1,
+  "hasTerrace": 1,
+  "subtype_PENTHOUSE": 0,
+  "epcScore_C": 0,
+  "buildingCondition_GOOD": 1,
+  "heatingType_nan": 0,
+  "hasLivingRoom": 1,
+  "locality_Ixelles": 0,
+  "kitchenType_INSTALLED": 0,
+  "epcScore_A": 0,
+  "epcScore_F": 0,
+  "locality_Gent": 0
+}
+```
+![picture 3](images/5d7f4edacdfa4c64ebf0a6d7428dc61a77620ade0f33538b594b9a652fd2b0ae.png)  
+![alt text](image.png) 
+
+
+### Example test in Postman (for `/predict_all`)
+
+```json
+{
+  "bedroomCount": 3,
+  "bathroomCount": 2,
+  "postCode": 1050,
+  "habitableSurface": 100,
+  "buildingConstructionYear": 2000,
+  "facedeCount": 2,
+  "toiletCount": 2,
+  "room_count": 5,
+  "surface_per_room": 20,
+  "building_age": 24,
+  "type_APARTMENT": 1,
+  "type_HOUSE": 0,
+  "subtype_APARTMENT": 1,
+  "subtype_APARTMENT_BLOCK": 0,
+  "subtype_DUPLEX": 0,
+  "subtype_GROUND_FLOOR": 0,
+  "subtype_HOUSE": 0,
+  "subtype_MIXED_USE_BUILDING": 0,
+  "subtype_PENTHOUSE": 0,
+  "subtype_TOWN_HOUSE": 0,
+  "subtype_VILLA": 0,
+  "province_Antwerp": 0,
+  "province_Brussels": 1,
+  "province_East_Flanders": 0,
+  "province_Flemish_Brabant": 0,
+  "province_Hainaut": 0,
+  "province_Limburg": 0,
+  "province_Liège": 0,
+  "province_Luxembourg": 0,
+  "province_Namur": 0,
+  "province_Walloon_Brabant": 0,
+  "province_West_Flanders": 0,
+  "locality_Anderlecht": 0,
+  "locality_Antwerpen": 0,
+  "locality_Bruxelles": 1,
+  "locality_Gent": 0,
+  "locality_Ixelles": 0,
+  "locality_Knokke_Heist": 0,
+  "locality_Liège": 0,
+  "locality_Uccle": 0,
+  "buildingCondition_AS_NEW": 0,
+  "buildingCondition_GOOD": 1,
+  "buildingCondition_JUST_RENOVATED": 0,
+  "buildingCondition_TO_BE_DONE_UP": 0,
+  "buildingCondition_TO_RENOVATE": 0,
+  "buildingCondition_nan": 0,
+  "floodZoneType_NON_FLOOD_ZONE": 1,
+  "floodZoneType_POSSIBLE_FLOOD_ZONE": 0,
+  "floodZoneType_RECOGNIZED_FLOOD_ZONE": 0,
+  "floodZoneType_nan": 0,
+  "heatingType_ELECTRIC": 0,
+  "heatingType_FUELOIL": 0,
+  "heatingType_GAS": 1,
+  "heatingType_PELLET": 0,
+  "heatingType_nan": 0,
+  "kitchenType_HYPER_EQUIPPED": 1,
+  "kitchenType_INSTALLED": 0,
+  "kitchenType_NOT_INSTALLED": 0,
+  "kitchenType_SEMI_EQUIPPED": 0,
+  "kitchenType_USA_HYPER_EQUIPPED": 0,
+  "kitchenType_USA_INSTALLED": 0,
+  "kitchenType_nan": 0,
+  "epcScore_A": 0,
+  "epcScore_A_": 0,
+  "epcScore_B": 1,
+  "epcScore_C": 0,
+  "epcScore_D": 0,
+  "epcScore_E": 0,
+  "epcScore_F": 0,
+  "epcScore_G": 0,
+  "hasLivingRoom": 1,
+  "hasTerrace": 1
+}
+```

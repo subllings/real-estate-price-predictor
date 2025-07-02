@@ -3,6 +3,7 @@ from pydantic import BaseModel
 import joblib
 import pandas as pd
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel, Field
 
 # Initialize FastAPI app
 app = FastAPI()
@@ -110,13 +111,13 @@ class InputDataTop30(BaseModel):
     postCode: float
     toiletCount: float
     buildingConstructionYear: float
-    locality_Knokke_Heist: float
+    locality_Knokke_Heist: float = Field(..., alias="locality_Knokke-Heist")
     building_age: float
     surface_per_room: float
     facedeCount: float
     kitchenType_HYPER_EQUIPPED: float
     buildingCondition_AS_NEW: float
-    province_West_Flanders: float
+    province_West_Flanders: float = Field(..., alias="province_West Flanders")
     subtype_VILLA: float
     subtype_HOUSE: float
     province_Hainaut: float
@@ -136,11 +137,14 @@ class InputDataTop30(BaseModel):
     epcScore_F: float
     locality_Gent: float
 
+    class Config:
+        allow_population_by_field_name = True
+
 # Endpoint for full feature model
 @app.post("/predict_all")
 def predict_all(data: InputDataAll):
     try:
-        input_df = pd.DataFrame([data.dict()])
+        input_df = pd.DataFrame([data.dict(by_alias=True)])
         prediction = model_all.predict(input_df)
         return {"prediction": float(prediction[0])}
     except Exception as e:
@@ -150,8 +154,13 @@ def predict_all(data: InputDataAll):
 @app.post("/predict_top30")
 def predict_top30(data: InputDataTop30):
     try:
-        input_df = pd.DataFrame([data.dict()])
+        input_df = pd.DataFrame([data.dict(by_alias=True)])
         prediction = model_top30.predict(input_df)
         return {"prediction": float(prediction[0])}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+@app.get("/")
+def read_root():
+    return {"message": "Real estate price predictor API is up and running"}
+

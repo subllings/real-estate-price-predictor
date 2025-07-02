@@ -2,6 +2,7 @@
 
 # Make this file executable: chmod +x launch_containers_app.sh
 # Run it with: ./launch_containers_app.sh
+      
 
 clear
 
