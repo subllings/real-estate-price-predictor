@@ -536,15 +536,23 @@ It allows users to input features of a real estate property (e.g., *habitable su
 
 #### Left Box – "Prediction using all features"
 
-- **Estimated Price (&euro;):** `351,146`
+- **Estimated Price (&euro;):** `351 146`
 - This prediction is made using the **full feature set** available in the training dataset (e.g., `type`, `locality`, `surface`, `kitchenType`, `EPC`, etc.)
+- This model can capture complex interactions and patterns, potentially leading to higher accuracy.
+- However, it may also suffer from overfitting, especially if noisy or redundant features are included.
 
 #### Right Box – "Prediction using top 30 features"
 
-- **Estimated Price (&euro;):** `337,674`
+- **Estimated Price (&euro;):** `337 674`
 - This model only uses the **top 30 features**, identified by feature importance (e.g., via `RandomForest`).
 
 ![picture 18](images/c3579e1eee122293dd26c0edbca2fa660468e9cfb8bacacefd2515f62a63e4d5.png)  
+
+- Irrelevant or low-impact features have been removed to improve generalization.
+- This model is:
+  - Faster and simpler
+  - Less prone to overfitting
+  - Slightly less accurate in some edge cases due to reduced information
 
 ### What Happens in the Background
 
