@@ -146,6 +146,181 @@ real-estate-price-predictor/
 └── setup-env.sh                     # Script to initialize virtual environment
 ```
 
+# Real Estate Price Prediction Pipeline (CatBoost, XGBoost, Linear Models)
+
+## Overview
+
+This repository presents a complete end-to-end machine learning pipeline for real estate price prediction, built on the following stages:
+
+- Data cleaning and visualization  
+- Feature engineering and preprocessing  
+- Model training (Linear, Random Forest, XGBoost, CatBoost)  
+- Hyperparameter tuning with Optuna  
+- Evaluation and metrics analysis  
+- Inference on new data  
+
+It follows a modular, reusable, and testable design to ensure robustness, interpretability, and deployment readiness.
+
+## Folder Structure
+
+```
+notebooks/
+│ ├── 000_prestudy_model_comparison.ipynb
+│ ├── 010_data_load_clean.ipynb
+│ ├── 020_visualization_clean_for_ml.ipynb
+│ ├── 030_preprocessing.ipynb
+│ ├── 040_train_baseline_model.ipynb
+│ ├── 050_tune_xgboost.ipynb
+│ ├── 060_tune_catboost.ipynb
+│ ├── 070_evaluation.ipynb
+│ ├── 080_inference.ipynb
+```
+
+## Models Used
+
+Both models were trained using **CatBoost** with **Optuna hyperparameter tuning** and saved using `joblib`.
+
+These models are located in:
+
+```
+app/backend/models/pkl/
+├── catboost_optuna_all_{date_time}.pkl
+└── catboost_optuna_top30_{date_time}.pkl<sup>2</sup>
+```
+
+## Model Exploration and Tuning
+### Models Compared
+- Linear Regression
+- Polynomial Regression (Degree 2)
+- Random Forest
+- XGBoost (baseline and tuned with Optuna)
+- CatBoost (baseline and tuned with Optuna)
+Each model was evaluated and compared using cross-validation.
+
+![picture 25](images/fea43579b4664eee8619edf4aa20e5922fbba531d1685e3270b55f3b5cd5507a.png)  
+
+
+ Train/Test Strategy & Feature Selection
+
+## Train/Test Strategy
+
+We followed a consistent train/test approach across all models to ensure fair evaluation and comparability:
+
+- **Train/Test Split (80/20)** was applied for all models.  
+  80% of the data was used for training, and 20% was held out as the final test set.
+
+- For **XGBoost** and **CatBoost**, **5-Fold Cross Validation** was performed on the training set to tune hyperparameters (no separate validation set).
+
+- The **test set remained untouched** during training and tuning. It was only used for final model evaluation.
+
+- In **test/debug mode**, we reduced:
+  - The number of folds (e.g., from 5 to 2),
+  - The size of the training data sample,  
+  → to **speed up Optuna hyperparameter tuning** without compromising the logic.
+
+## Feature Selection Strategy
+
+We applied a two-step strategy to reduce feature dimensionality and increase model interpretability:
+
+- The initial feature set was **reduced by removing low-variance features**, using a **Variance Threshold** method. These features did not contribute meaningful information.
+
+- We then selected the **top 30 features** using **Random Forest feature importance**, which ranked variables based on their predictive power.
+
+- All models were trained and evaluated using two configurations:
+  - **Full reduced feature set** (after removing low-variance features)
+  - **Top 30 features only** (subset selected via importance)
+
+### Why Two Feature Sets?
+
+- To compare model robustness across feature subsets.
+- To assess whether a smaller, more meaningful subset could maintain similar performance.
+- To prioritize **model simplicity, speed, and generalization**.
+
+# Model Benchmark Results – Interpretation & Insights
+
+## Overview
+
+This table presents a comprehensive comparison of several regression models trained on real estate data. The evaluation is based on:
+
+- **Train/Test performance metrics**: MAE (Mean Absolute Error), RMSE (Root Mean Squared Error), R<sup>2</sup>
+- **Generalization gap (r2_gap)**: Difference between training and testing R<sup>2</sup> scores
+- **Diagnostic labels**: Qualitative interpretation of generalization (from "Excellent" to "Strong overfitting")
+- **Number of features**: Indicates model complexity and dimensionality
+
+
+## Top Performing Models
+
+### Rank 1: CatBoost + Optuna CV (All Features – Post-Split Evaluation)
+- **MAE Test**: 61.2 k&euro;
+- **R<sup>2</sup> Test**: 0.809
+- **r2_gap**: 0.109 → *Moderate Overfitting*
+- **Features**: 72
+- **Interpretation**:  
+  This model offers the best balance between accuracy and robustness. Although the `r2_gap` is not negligible, it remains within acceptable bounds. The post-split evaluation approach reinforces reliability, avoiding test leakage. This is our **reference model**.
+
+### Rank 2–3: CatBoost + Optuna CV (Top RF Features)
+- Slightly lower R<sup>2</sup> test scores (0.803 and 0.799), with fewer features (30–71), and **lower overfitting**.  
+- **Conclusion**: These models are more efficient (lighter input set), and maintain excellent performance – ideal for production scenarios prioritizing **speed** and **interpretability**.
+
+
+## Generalization Trade-Off
+
+Models in ranks **4 to 8** (XGBoost + Optuna variants) exhibit:
+
+- **Good generalization** (r2_gap ~0.07–0.08)
+- Slightly **lower test R<sup>2</sup> scores** (0.79–0.80)
+- A more balanced bias-variance tradeoff
+- **Top 30 features** are often sufficient, showcasing strong performance with simpler input spaces.
+
+> These XGBoost models offer valuable alternatives when CatBoost is not preferred, or when early stopping (ES) improves convergence speed.
+
+
+## Strong Generalizers
+
+- **Rank 9–10**: Vanilla CatBoost with no Optuna tuning
+  - **Zero r2_gap**, meaning training and test performances are identical.
+  - However, **test R<sup>2</sup> remains below 0.79**, which limits predictive power.
+  - **Use Case**: When stability/generalization outweigh accuracy.
+
+- **Rank 16**: Linear Regression (All Features – CV 5-Fold)
+  - Also shows **excellent generalization** with near-zero r2_gap.
+  - Yet, accuracy is significantly lower (R<sup>2</sup> test = 0.670), suggesting **underfitting** and limited non-linearity capture.
+
+
+## Overfitting & Model Limitations
+
+- **Rank 13: Random Forest (All Features)**:
+  - Very high training R<sup>2</sup> (0.965), but test R<sup>2</sup> = 0.764.
+  - **r2_gap = 0.20 → Strong Overfitting**
+  - Model fails to generalize despite high training accuracy.
+
+- **Ranks 11–12**: XGBoost CV (All Features, Top RF)
+  - Slight improvement in accuracy (test R<sup>2</sup> ~0.77), but still shows **moderate overfitting**.
+  - Suggests fine-tuning alone isn't enough to control variance.
+
+
+## Final Recommendations
+
+| Use Case                            | Recommended Model                                             |
+|------------------------------------|---------------------------------------------------------------|
+| **Best overall performance**       | CatBoost + Optuna CV (All Features – Post-Split)             |
+| **Lightweight, interpretable**     | CatBoost + Optuna CV (Top 30 Features)                       |
+| **Robust generalization**          | CatBoost without tuning OR XGBoost + Early Stopping          |
+| **Baseline comparison**            | Linear Regression (Degree 1 or 2)                            |
+| **Avoid due to overfitting**       | Random Forest, overly complex untuned models                 |
+
+---
+
+## Final Note
+
+Model selection is not only about best performance (R<sup>2</sup> or RMSE), but also about **generalization**, **feature simplicity**, and **robustness under change**.  
+This benchmark highlights the value of **Optuna-tuned CatBoost**, but also warns against blindly trusting overly optimistic training metrics.
+
+
+
+
+![picture 24](images/243ec15ace97058c9b3f73e1709713138c40bdbd2500d004f68c138061d73085.png)  
+
 
 #  Real Estate Price Prediction API
 
@@ -157,25 +332,21 @@ real-estate-price-predictor/
 - Provides two **POST endpoints** to make predictions based on input data
 - Returns the predicted price as a JSON response
 
-## Models Used
 
-Both models were trained using **CatBoost** with **Optuna hyperparameter tuning** and saved using `joblib`.
+![picture 20](images/a69ce899d8f76b55db16743378982afebf698ea7959a7e9bcb3e8b26d7738aad.png)  
 
-These models are located in:
 
-```
-app/backend/models/pkl/
-├── catboost_optuna_all_{date_time}.pkl
-└── catboost_optuna_top30_{date_time}.pkl
-```
-
-## Run the API
+## Run the API explostion the model for real estate price prediction
 
 From the root of the project, start the FastAPI server using:
 
 ```bash
-./run_api.sh
+./run-backend-api.sh
 ```
+![picture 8](images/bf7e7368d79b9763f7a79ff3bbf229611185a3e4d29261ee1db947f785893fcb.png)  
+
+![picture 19](images/7e67547cd145550f5be1dc4cf75c6c87cff632dc4eae18bf3db371f96dde58e0.png)  
+
 
 ## API Endpoints
 
@@ -183,6 +354,13 @@ From the root of the project, start the FastAPI server using:
 
 You can explore and test the API interactively via Swagger:  
 `http://localhost:8000/docs`
+
+![picture 9](images/ed2823cb8e611ae4f8733ee1ebd2e88937eeb245a8906d91fce868ad1d3d80b1.png)  
+
+![picture 12](images/ba612a39c2510021ab52ff7bd333c5ba334e062dd6a747a7ef5e7bf2711b542b.png)  
+
+
+
 
 ## Test the API with Postman
 
@@ -246,6 +424,8 @@ Download here: [https://www.postman.com/downloads/](https://www.postman.com/down
 ```
 ![picture 3](images/5d7f4edacdfa4c64ebf0a6d7428dc61a77620ade0f33538b594b9a652fd2b0ae.png)  
 ![alt text](image.png) 
+
+![picture 10](images/ba612a39c2510021ab52ff7bd333c5ba334e062dd6a747a7ef5e7bf2711b542b.png)  
 
 
 ### Example test in Postman (for `/predict_all`)
@@ -326,3 +506,123 @@ Download here: [https://www.postman.com/downloads/](https://www.postman.com/down
   "hasTerrace": 1
 }
 ```
+
+# Streamlit Frontend – Feature Input Interface
+
+## How to Launch the Frontend
+
+The frontend is a Streamlit app located in the `app/frontend-streamlit/` directory.
+
+We provide a convenient script to launch the frontend:
+
+```bash
+chmod +x run-frontend-streamlit.sh
+./run-frontend-streamlit.sh
+```
+### Purpose of the Interface
+
+It allows users to input features of a real estate property (e.g., *habitable surface*) and get two predictions:
+
+- One using **all available features**
+- One using only the **top 30 most important features** (selected by feature importance ranking
+
+![picture 15](images/bb53fee0ef13f327990330a4493b02a33c519c814d2a865733b2603b7e965764.png)  
+
+![picture 16](images/53f468693307fd56906245bb4939ff0232968dd6f69e5a519c42a9d1e0ed45b4.png)  
+
+![picture 17](images/642e4f29940d7ecfd2c89d4c3ed1fc1387a4602646e80951b160b63cf9e1cb08.png)  
+
+### Model Predictions Displayed
+
+#### Left Box – "Prediction using all features"
+
+- **Estimated Price (&euro;):** `351,146`
+- This prediction is made using the **full feature set** available in the training dataset (e.g., `type`, `locality`, `surface`, `kitchenType`, `EPC`, etc.)
+
+#### Right Box – "Prediction using top 30 features"
+
+- **Estimated Price (&euro;):** `337,674`
+- This model only uses the **top 30 features**, identified by feature importance (e.g., via `RandomForest`).
+
+![picture 18](images/c3579e1eee122293dd26c0edbca2fa660468e9cfb8bacacefd2515f62a63e4d5.png)  
+
+### What Happens in the Background
+
+When you click **Predict**:
+1. The Streamlit app collects the user input.
+2. It sends **two separate API calls** to the backend:
+   - One to `/predict_all`
+   - One to `/predict_top30`
+3. The backend uses **CatBoost models tuned with Optuna** trained with:
+   - Full features (`predict_all`)
+   - Top 30 features (`predict_top30`)
+4. Results are returned as **JSON** and rendered in two columns.
+  
+# Docker Containers – Setup & Usage Guide
+
+This project uses **Docker containers** to isolate and run the different components of the Real Estate Price Prediction app:
+
+## What Do the Containers Do?
+
+- **Backend container**  
+  Runs the FastAPI server with trained **CatBoost + Optuna** models, listening on port `8000`.  
+  It exposes two endpoints:
+  - `/predict_all`: uses the full feature set.
+  - `/predict_top30`: uses the top 30 features only.
+
+- **Frontend container**  
+  Runs the **Streamlit app** allowing the user to enter features, send requests to the backend, and visualize predictions.  
+  It runs on port `8501`.
+
+
+### Requirements – Docker Installation
+
+Before using Docker, make sure it's installed:
+
+1. **Download Docker Desktop** for Windows, Mac, or Linux:  
+   https://www.docker.com/products/docker-desktop/
+
+2. **Install it** and ensure Docker Engine is running (check the Docker icon in the system tray).
+
+3. Open a terminal and verify installation:
+
+```bash
+docker --version
+docker compose version
+```
+You should see a version like `Docker version 28.x.x`.
+
+## How to Launch the Application (Frontend + Backend)
+
+Use the following script to launch **both** the FastAPI backend and Streamlit frontend:
+
+```bash
+./launch-docker-compose.sh
+```
+![picture 21](images/5b7c487c98d96cfa79627ba73ad2ff56c5a3b87633c2a70bb1a17e6390eb530c.png)  
+
+
+This will:
+
+- Build both containers (backend and frontend-streamlit)
+- Launch them using the `docker-compose.yml` file
+- Expose:
+  - FastAPI backend at http://localhost:8000/docs
+  - Streamlit frontend at http://localhost:8501
+
+![picture 22](images/1f2eddfeecc329530e306e5e2d282fcc5ca4bb99527ddb1f8e3f694339763240.png)  
+
+![picture 23](images/3b17ddb0f89557ba10045e549c6afaa9479cabf6b0dbb5cdcb221461925ad480.png)  
+
+
+## Summary of Commands
+
+| Task                             | Command                          |
+|----------------------------------|----------------------------------|
+| Launch both frontend and backend | `./launch-docker-compose.sh`     |
+| Stop all containers              | `docker compose down`            |
+| Check Docker version             | `docker --version`               |
+
+## Note
+Make sure Docker Desktop is running before launching any script.
+

@@ -48,3 +48,4 @@ azureml-core==1.55.0
 # azure-identity==1.16.0
 # azureml-mlflow==1.55.0
 ipywidgets==8.0.6
+streamlit==1.35.0

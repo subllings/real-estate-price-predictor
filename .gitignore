@@ -97,4 +97,4 @@ logs/
 *.log
 
 // App frontend
-app/frontend/node_modules/
+app/frontend-react/node_modules/

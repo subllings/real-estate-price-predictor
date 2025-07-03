@@ -3,7 +3,7 @@ services:
   backend:
     build:
       context: ./app/backend
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.dev
     ports:
       - "8000:8000"
     volumes:
@@ -14,12 +14,12 @@ services:
 
   frontend:
     build:
-      context: ./app/frontend
-      dockerfile: Dockerfile
+      context: ./app/frontend-streamlit
+      dockerfile: Dockerfile.dev
     ports:
       - "3000:3000"
     volumes:
-      - ./app/frontend:/app
+      - ./app/frontend-streamlit:/app
     stdin_open: true
     tty: true
     env_file:

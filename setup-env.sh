@@ -60,8 +60,8 @@ print_blue "pip version:"pyt
 pip --version
 
 # === Upgrade pip ===
-print_blue "Upgrading pip..."
-python -m pip install --upgrade pip
+#print_blue "Upgrading pip..."
+#python.exe -m pip install --upgrade pip
 
 # === Install dependencies ===
 print_blue "Installing dependencies from requirements.txt..."
@@ -69,6 +69,10 @@ print_blue "Installing dependencies from requirements.txt..."
 # pip install -r requirements-dev.txt
 
 python.exe -m pip install -r requirements.txt
+
+# === Upgrade pip ===
+print_blue "Upgrading pip..."
+python.exe -m pip install --upgrade pip
 
 #npm install -g pyright
 #pip install --upgrade flake8 flake8-docstrings pydocstyle

@@ -1,8 +1,7 @@
 #!/bin/bash
 
-# Make this file executable: chmod +x launch_containers_app.sh
-# Run it with: ./launch_containers_app.sh
-      
+# Make this file executable: chmod +x launch-docker-compose.sh
+# Run it with: ./launch-docker-compose.sh
 
 clear
 
@@ -47,4 +46,4 @@ fi
 print_blue "Building and launching Docker containers..."
 docker compose up --build || print_error "Docker Compose failed to start."
 
-# =
+

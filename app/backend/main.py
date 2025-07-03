@@ -18,8 +18,8 @@ app.add_middleware(
 )
 
 # Load both models at startup
-MODEL_ALL_PATH = "models/pkl/catboost_optuna_all_20250702_1417_TEST.pkl"
-MODEL_TOP30_PATH = "models/pkl/catboost_optuna_top30_20250702_1417_TEST.pkl"
+MODEL_ALL_PATH = "models/pkl/catboost_optuna_all_20250703_0914.pkl"
+MODEL_TOP30_PATH = "models/pkl/catboost_optuna_top30_20250703_0914.pkl"
 
 with open(MODEL_ALL_PATH, "rb") as f:
     model_all = joblib.load(f)
@@ -54,22 +54,22 @@ class InputDataAll(BaseModel):
     subtype_VILLA: float
     province_Antwerp: float
     province_Brussels: float
-    province_East_Flanders: float
-    province_Flemish_Brabant: float
+    province_East_Flanders: float = Field(..., alias="province_East Flanders")
+    province_Flemish_Brabant: float = Field(..., alias="province_Flemish Brabant")
     province_Hainaut: float
     province_Limburg: float
-    province_Liège: float
+    province_Liège: float = Field(..., alias="province_Liège")
     province_Luxembourg: float
     province_Namur: float
-    province_Walloon_Brabant: float
-    province_West_Flanders: float
+    province_Walloon_Brabant: float = Field(..., alias="province_Walloon Brabant")
+    province_West_Flanders: float = Field(..., alias="province_West Flanders")
     locality_Anderlecht: float
     locality_Antwerpen: float
     locality_Bruxelles: float
     locality_Gent: float
     locality_Ixelles: float
-    locality_Knokke_Heist: float
-    locality_Liège: float
+    locality_Knokke_Heist: float = Field(..., alias="locality_Knokke-Heist")
+    locality_Liège: float = Field(..., alias="locality_Liège")
     locality_Uccle: float
     buildingCondition_AS_NEW: float
     buildingCondition_GOOD: float
@@ -94,7 +94,7 @@ class InputDataAll(BaseModel):
     kitchenType_USA_INSTALLED: float
     kitchenType_nan: float
     epcScore_A: float
-    epcScore_A_: float
+    epcScore_A_plus: float = Field(..., alias="epcScore_A+")
     epcScore_B: float
     epcScore_C: float
     epcScore_D: float
@@ -103,6 +103,10 @@ class InputDataAll(BaseModel):
     epcScore_G: float
     hasLivingRoom: float
     hasTerrace: float
+
+    model_config = {
+    "populate_by_name": True
+    }
 
 # Input schema for top 30 feature model
 class InputDataTop30(BaseModel):
@@ -137,8 +141,11 @@ class InputDataTop30(BaseModel):
     epcScore_F: float
     locality_Gent: float
 
-    class Config:
-        allow_population_by_field_name = True
+    model_config = {
+    "populate_by_name": True
+    }
+
+
 
 # Endpoint for full feature model
 @app.post("/predict_all")
@@ -164,3 +171,6 @@ def predict_top30(data: InputDataTop30):
 def read_root():
     return {"message": "Real estate price predictor API is up and running"}
 
+@app.post("/echo")
+def echo_input(data: dict):
+    return {"received": data}
