@@ -626,3 +626,12 @@ This will:
 ## Note
 Make sure Docker Desktop is running before launching any script.
 
+---
+
+# Summary – API, Streamlit & Docker Integration
+
+- **FastAPI backend** serves machine learning models (CatBoost) via two prediction endpoints: `/predict_all` and `/predict_top30`.
+- **Streamlit frontend** provides a user-friendly web interface to input property features and display price predictions in real time.
+- **Docker** containers encapsulate both backend and frontend for easy deployment and reproducibility.
+- A shared **Docker network** ensures seamless communication between the API and the Streamlit app.
+- Everything is orchestrated via `docker-compose`, allowing a single command to launch the full prediction stack locally or in the cloud.
