@@ -29,67 +29,77 @@ chmod +x setup-env.sh
 ```text
 
 real-estate-price-predictor/
-├── configs/                         # YAML configuration files (e.g. column mapping)
-│   └── feature_mapping.yaml         # Mapping of column variants to standard names
-│
-├── data/                            # Input CSV datasets
-│   ├── cleaned/                     # Cleaned datasets ready for modeling
-│   ├── ml_ready/                    # ML-ready final datasets
-│   ├── raw/                         # Original raw exports
-│   └── outputs/                     # Any intermediate or test outputs
-│
-├── database/                        # SQLite database storage for evaluation and cleaning logs
-│   └── metrics.db                   # Centralized database for model metrics and data cleaning versions
-│
-├── dbfs_models/                     # Output directory for models if using Databricks
-│
-├── local_models/                    # Trained models stored locally
-│   ├── rf/                          # Random Forest models by dataset
-│   ├── lgbm/                        # LightGBM models by dataset
-│   └── lr/                          # Linear Regression models by dataset
-│
-├── ml_models/                       # Core machine learning model definitions
-│   ├── __init__.py                  # Makes this a Python package
-│   ├── base_model.py                # Abstract base class for model interfaces
-│   ├── rf_model.py                  # Random Forest implementation
-│   ├── lgbm_model.py                # LightGBM implementation (Distributed Gradient Boosting Machine)
-│   ├── lr_model.py                  # Linear Regression implementation
-│   └── model_factory.py             # Factory to retrieve the correct model class
-│
-├── notebooks/                       # Jupyter notebooks for exploration and training
-│   ├── exploration/                 # Notebooks for EDA per source
-│   └── pipeline/                    # Modular notebooks (cleaning, training, tuning, export,etc.)
-│       ├── 00_setup_env.ipynb           # Setup virtual environment and dependencies
-│       ├── 01_exploration.ipynb         # Data exploration and inspection
-│       ├── 02_preprocessing.ipynb       # Data cleaning and feature engineering
-│       ├── 03_train_model.ipynb         # Training individual models
-│       ├── 04_evaluate_model.ipynb      # Evaluation metrics and visualizations
-│       ├── 05_register_model.ipynb      # Optional model registry logic
-│       └── 06_batch_train_all.ipynb     # Loop training over all datasets
-│
-├── scripts/                         # Executable Python scripts
-│   ├── train_all_datasets.py        # Main script to train all models for all datasets
-│   ├── train_all_datasets.sh        # Bash script to launch training from terminal
-│   ├── train_and_register.py        # Alternate script to train and register models
-│   └── train_and_register.sh        # Bash wrapper for above
-│
-├── tests/                           # Unit tests
-│   ├── __init__.py                  # Init file for test package
-│   └── test_model_training.py       # Basic test for training pipeline
-│
-├── utils/                           # Utility scripts and helpers
-│   ├── column_mapper.py             # Logic to standardize columns across datasets
-│   ├── constants.py                 # Global constants (e.g., target column)
-│   ├── logger.py                    # Logging utilities
-│   ├── paths.py                     # Helper functions for path management
-│   ├── model_evaluator.py           # Centralized logic to log model evaluations (MAE, RMSE, R<sup>2</sup>) to SQLite
-│   ├── data_cleaner.py              # Cleans data and logs decisions (outliers, filters, price range, etc.)
-│   └── preprocessing.py             # Custom preprocessing functions
-│
-├── .gitignore                       # Git ignored files list
-├── README.md                        # Project overview and documentation
-├── requirements.txt                 # Python package dependencies
-└── setup-env.sh                     # Script to initialize virtual environment
+├── app/                              # Application code for both backend and frontend
+│ ├── backend/                        # FastAPI backend serving prediction endpoints
+│ │ ├── main.py                       # Main FastAPI app with endpoints
+│ │ ├── models/                       # Folder containing ML model files (.pkl)
+│ │ ├── Dockerfile.dev                # Local development Dockerfile for API
+│ │ └── Dockerfile.azure              # Production Dockerfile for deployment to Azure App Service
+│ └── frontend-streamlit/             # Streamlit frontend UI
+│ ├── streamlit_app.py                # Main Streamlit script
+│ ├── input_features_converter.       # Converts UI inputs to model-ready format
+│ ├── Dockerfile.dev                  # Local development Dockerfile for UI
+│ └── Dockerfile.azure                # Azure-ready Dockerfile for UI deployment
+├── cloud/                            # Cloud deployment scripts and configuration
+│ ├── azure/                          # Azure-specific deployment
+│ │ ├── azure_deploy_api.sh           # Shell script to deploy FastAPI backend to Azure
+│ │ ├── azure_deploy_frontend.sh      # Shell script to deploy Streamlit frontend to Azure
+│ │ └── docker-compose-azure.yml      # Optional multi-container Azure deployment (if needed)
+│ ├── aws/                            # (Reserved) AWS deployment files
+│ └── gcp/                            # (Reserved) GCP deployment files
+├── configs/                          # Static configuration files
+│ └── feature_mapping.yaml            # Manual mapping for categorical encodings
+├── data/                             # All input and output data folders
+│ ├── raw/                            # Raw unprocessed data
+│ ├── cleaned/                        # Cleaned data after preprocessing
+│ ├── ml_ready/                       # Final dataset ready for ML training
+│ ├── ml_pre_study_metrics/           # Benchmark metrics from early model runs
+│ └── model_train_test_logs/          # Logs and predictions from model training/evaluation
+├── database/                         # SQLite database storage
+│ └── metrics.db                      # Central DB storing cleaning logs + model evaluation metrics
+├── deck/                             # Presentations or project slides (e.g. PPTX, PDFs)
+├── environment/                      # Environment setup files (e.g. conda, Docker context)
+├── images/                           # Visuals for UI, documentation, or README
+├── local_models/                     # Saved model variants for testing
+├── ml_models/                        # OOP-style custom model classes
+│ ├── base_model.py                   # Abstract base class for all models
+│ ├── model_factory.py                # Utility to load the correct model class dynamically
+│ ├── rf_model.py                     # Random Forest implementation
+│ ├── lgbm_model.py                   # LightGBM implementation
+│ └── lr_model.                       # Linear regression model
+├── models/                           # (Legacy or optional) alternate model storage
+├── notebooks/                        # Jupyter Notebooks for experimentation and pipelines
+│ ├── exploration/                    # EDA and hypothesis testing
+│ ├── catboost_info/                  # Specific notebooks for CatBoost tuning
+│ └── pipeline/                       # Modular pipeline notebooks
+│ ├── 010_data_load_clean.ipynb       # Load + clean raw data
+│ ├── 030_preprocessing.ipynb         # Feature engineering, encoding, and scaling
+│ ├── 050_tune_xgboost.ipynb          # XGBoost + Optuna hyperparameter tuning
+│ └── ...                             # More model notebooks (LightGBM, CatBoost, etc.)
+├── scripts/                          # Python and Bash scripts for automation
+│ ├── pipeline_runner.py              # Automates full ML pipeline
+│ ├── predict_price.py                # Script for making price predictions from CLI
+│ ├── train_all_datasets.py           # Train model across multiple city datasets
+│ ├── submit_azure_job.py             # Submit training as a remote Azure ML job
+│ └── .sh                             # Various helper bash scripts
+├── tests/                            # Unit tests
+│ └── test_model_training.py          # Unit tests for model training components
+├── utils/                            # Utility modules and helper classes
+│ ├── constants.py                    # Global constants (e.g. paths, test mode)
+│ ├── data_cleaner.py                 # Cleaning logic and strategies
+│ ├── data_loader.py                  # Load + preprocess data for models
+│ ├── experiment_tracker.py           # Track experiment metadata or versions
+│ ├── model_evaluator.py              # Evaluate model performance (MAE, RMSE, R<sup>2</sup>)
+│ ├── model_saver.py                  # Save models and metrics
+│ ├── model_visualizer.py             # SHAP, permutation importance, etc.
+│ ├── column_mapper.py                # Manual feature mappings
+│ └── preprocessing_pipeline.         # Full preprocessing pipeline logic
+├── docker-compose.yml                # Compose file to run backend + frontend locally
+├── launch-docker-compose-.sh         # Helper scripts to run Docker Compose locally or remotely
+├── README.md                         # Project documentation and quickstart
+└── requirements.txt                  # Python dependencies for whole project
+
+
 ```
 
 # Real Estate Price Prediction Pipeline (CatBoost, XGBoost, Linear Models)
