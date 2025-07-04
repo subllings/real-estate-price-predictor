@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# Make this file executable: chmod +x launch-docker-compose.sh
-# Run it with: ./launch-docker-compose.sh
+# Make this file executable: chmod +x launch-docker-compose-dev.sh
+# Run it with: ./launch-docker-compose-dev.sh
 
 clear
 

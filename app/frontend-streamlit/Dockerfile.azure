@@ -1,20 +1,24 @@
-# Use official Python slim image
+# Use official Python base image
 FROM python:3.12-slim
 
 # Set working directory
 WORKDIR /app
 
-# Copy only necessary files
+# Copy requirements and install dependencies
 COPY requirements.txt .
-
-# Install dependencies
 RUN pip install --no-cache-dir --upgrade pip \
- && pip install --no-cache-dir -r requirements.txt
+    && pip install --no-cache-dir -r requirements.txt
+
+# Set working directory
+WORKDIR /app/frontend-streamlit
 
 # Copy application code
 COPY . .
 
+# Expose Streamlit default port
+EXPOSE 8501
 
-# Run Streamlit in headless mode for production
-CMD ["streamlit", "run", "streamlit_app.py", "--server.port=80", "--server.address=0.0.0.0", "--server.headless=true"]
+# Run the app using Python entrypoint (auto-handles dynamic port from Azure)
+ENTRYPOINT ["sh", "-c"]
+CMD ["streamlit run streamlit_app.py --server.port=${PORT:-8501} --server.address=0.0.0.0 --server.headless=true"]
 

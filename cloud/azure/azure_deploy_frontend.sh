@@ -1,5 +1,9 @@
 #!/bin/bash
 
+# Make this script executable: chmod +x cloud/azure/azure_deploy_frontend.sh
+# Run with: ./cloud/azure/azure_deploy_frontend.sh
+
+clear
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -13,8 +17,8 @@ APP_SERVICE_PLAN="realestate-api-plan-north"
 WEBAPP_NAME="realestate-ui"
 
 FRONTEND_IMAGE="$ACR_NAME.azurecr.io/real-estate-frontend:latest"
-DOCKERFILE_PATH="app/frontend/Dockerfile.azure"
-FRONTEND_DIR="app/frontend"
+DOCKERFILE_PATH="app/frontend-streamlit/Dockerfile.azure"
+FRONTEND_DIR="app/frontend-streamlit"
 
 echo "Creating ACR if needed..."
 az acr show --name "$ACR_NAME" --resource-group "$RESOURCE_GROUP" &> /dev/null || {
@@ -51,11 +55,11 @@ az webapp config container set \
   --docker-registry-server-user "$ACR_USERNAME" \
   --docker-registry-server-password "$ACR_PASSWORD"
 
-echo "Setting required environment variables (port 8501)..."
+echo "Setting required environment variables (port 8501 + API_URL)..."
 az webapp config appsettings set \
   --name "$WEBAPP_NAME" \
   --resource-group "$RESOURCE_GROUP" \
-  --settings WEBSITES_PORT=8501
+  --settings PORT=8501 API_URL=https://realestate-api.azurewebsites.net
 
 echo "Restarting frontend Web App..."
 az webapp restart \
@@ -65,3 +69,11 @@ az webapp restart \
 echo ""
 echo "Streamlit frontend deployed:"
 echo "https://$WEBAPP_NAME.azurewebsites.net"
+
+az webapp log config \
+  --name realestate-ui \
+  --resource-group realestate-api-rg-north \
+  --docker-container-logging filesystem
+
+
+

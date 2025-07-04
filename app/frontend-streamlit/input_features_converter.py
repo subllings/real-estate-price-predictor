@@ -1,3 +1,4 @@
+from typing import Union
 import pandas as pd
 
 class InputFeatureConverter:
@@ -7,7 +8,6 @@ class InputFeatureConverter:
     """
 
     def __init__(self):
-        # All features expected by the trained model (sorted, fixed order)
         self.expected_features = [
             "bedroomCount", "bathroomCount", "postCode", "habitableSurface", "buildingConstructionYear",
             "facedeCount", "toiletCount", "room_count", "surface_per_room", "building_age",
@@ -31,15 +31,56 @@ class InputFeatureConverter:
         ]
 
     def convert(self, raw_input: dict) -> pd.DataFrame:
-        """
-        Converts the raw form input dictionary into a properly encoded DataFrame.
+        features = {feat: 0 for feat in self.expected_features}
 
-        Parameters:
-        - raw_input: dictionary from form or API input
+        # Numeric and derived features
+        try:
+            features["bedroomCount"] = raw_input["bedroomCount"]
+            features["bathroomCount"] = raw_input["bathroomCount"]
+            features["postCode"] = raw_input["postCode"]
+            features["habitableSurface"] = raw_input["habitableSurface"]
+            features["buildingConstructionYear"] = raw_input["buildingConstructionYear"]
+            features["facedeCount"] = raw_input["facedeCount"]
+            features["toiletCount"] = raw_input["toiletCount"]
 
-        Returns:
-        - pd.DataFrame with all required features in correct order
-        """
+            features["room_count"] = raw_input["room_count"]
+            features["surface_per_room"] = (
+                raw_input["habitableSurface"] / raw_input["room_count"]
+                if raw_input["room_count"] > 0 else 0
+            )
+            features["building_age"] = 2025 - raw_input["buildingConstructionYear"]
+        except Exception as e:
+            print("Error computing numeric fields:", e)
+
+        # One-hot encoding for categorical fields
+        for prefix in [
+            "type", "subtype", "province", "locality",
+            "buildingCondition", "floodZoneType",
+            "heatingType", "kitchenType", "epcScore"
+        ]:
+            raw_value = raw_input.get(prefix)
+
+            # Skip dicts or invalid types (this is your bug)
+            if isinstance(raw_value, dict):
+                print(f"Skipped invalid dict for {prefix}: {raw_value}")
+                continue
+
+            # Proceed only if value is a valid string
+            if isinstance(raw_value, str):
+                key = f"{prefix}_{raw_value}"
+                if key in features:
+                    features[key] = 1
+            else:
+                print(f"Skipping invalid value for {prefix}: {raw_value} (type={type(raw_value)})")
+
+
+
+
+
+
+"""
+    def convert(self, raw_input: dict) -> pd.DataFrame:
+
         # Initialize feature vector with all expected features set to 0
         features = {feat: 0 for feat in self.expected_features}
 
@@ -73,3 +114,4 @@ class InputFeatureConverter:
 
         # Return as DataFrame
         return pd.DataFrame([features])
+"""

@@ -104,9 +104,9 @@ class InputDataAll(BaseModel):
     hasLivingRoom: float
     hasTerrace: float
 
-    model_config = {
-    "populate_by_name": True
-    }
+    class Config:
+        populate_by_name = True
+
 
 # Input schema for top 30 feature model
 class InputDataTop30(BaseModel):
@@ -141,9 +141,8 @@ class InputDataTop30(BaseModel):
     epcScore_F: float
     locality_Gent: float
 
-    model_config = {
-    "populate_by_name": True
-    }
+    class Config:
+        populate_by_name = True
 
 
 
@@ -151,21 +150,31 @@ class InputDataTop30(BaseModel):
 @app.post("/predict_all")
 def predict_all(data: InputDataAll):
     try:
-        input_df = pd.DataFrame([data.dict(by_alias=True)])
+        input_dict = data.dict(by_alias=True)
+        for k, v in input_dict.items():
+            if isinstance(v, dict):  # Safety: avoid nested dicts
+                raise ValueError(f"Invalid value for key '{k}': nested dict detected ({v})")
+        input_df = pd.DataFrame([input_dict])
         prediction = model_all.predict(input_df)
         return {"prediction": float(prediction[0])}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
+
 # Endpoint for top 30 features model
 @app.post("/predict_top30")
 def predict_top30(data: InputDataTop30):
     try:
-        input_df = pd.DataFrame([data.dict(by_alias=True)])
+        input_dict = data.dict(by_alias=True)
+        for k, v in input_dict.items():
+            if isinstance(v, dict):
+                raise ValueError(f"Invalid value for key '{k}': nested dict detected ({v})")
+        input_df = pd.DataFrame([input_dict])
         prediction = model_top30.predict(input_df)
         return {"prediction": float(prediction[0])}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
+
 
 @app.get("/")
 def read_root():

@@ -1,12 +1,25 @@
-import os
+
+import json
 import streamlit as st
+import os
+import sys
+from streamlit.web import cli as stcli
 import requests
 import time
 
-API_URL = os.getenv("API_URL", "http://localhost:8000")
-
+# Set up Streamlit page config
 st.set_page_config(page_title="Real Estate Price Predictor", layout="wide")
 st.title("Real Estate Price Prediction")
+
+# API endpoints (ALL vs TOP 30 features)
+API_URL = os.getenv("API_URL", "http://localhost:8000")
+# Force usage of Azure API endpoints — NO fallback to localhost
+#API_URL = os.getenv("API_URL", "http://realestate-api.azurewebsites.net")
+
+# Detect environment port (used in Docker/Azure)
+port = os.environ.get("PORT", "8501")
+
+
 
 # Categorical options
 property_types = ["HOUSE", "APARTMENT"]
@@ -123,17 +136,36 @@ def encode_inputs():
     for label in epc_labels:
         payload[f"epcScore_{label}"] = int(label == epcScore)
 
+    # Final validation: ensure all values are numeric and not dicts
+    for key, value in payload.items():
+        if isinstance(value, dict):
+            raise ValueError(f"Invalid value for '{key}': dict found instead of number")
+        if isinstance(value, bool):
+            payload[key] = int(value)
+        if not isinstance(payload[key], (int, float)):
+            raise ValueError(f"Invalid type for '{key}': {type(value)}")
+
     return payload
+
 
 # API call logic
 if submitted:
-    input_data = encode_inputs()
+    try:
+        input_data = encode_inputs()
 
-    with st.spinner("Sending data to prediction API..."):
-        time.sleep(0.8)  # show spinner briefly
-        try:
+        # DEBUG – détecter les erreurs de type dans l'input
+        for k, v in input_data.items():
+            if isinstance(v, dict):
+                st.error(f"Key '{k}' has a dict instead of a number → {v}")
+            elif not isinstance(v, (int, float)):
+                st.warning(f"Key '{k}' has type {type(v)} with value: {v}")
+
+        #st.subheader("Input JSON sent to API")
+        #st.json(input_data) # Display the input data as JSON for debugging
+
+        with st.spinner("Sending data to prediction API..."):
+            time.sleep(0.8)
             res_all = requests.post(f"{API_URL}/predict_all", json=input_data)
-            #st.write(res_all.json()) # Debugging line to see the response structure
             res_top = requests.post(f"{API_URL}/predict_top30", json=input_data)
 
             if res_all.ok and res_top.ok:
@@ -144,11 +176,10 @@ if submitted:
                 with col1:
                     st.success("Prediction using all features")
                     st.metric("Estimated Price (€)", f"{int(price_all):,}".replace(",", " "))
-
                 with col2:
                     st.success("Prediction using top 30 features")
                     st.metric("Estimated Price (€)", f"{int(price_top):,}".replace(",", " "))
             else:
-                st.error("Prediction failed. Please check the API response.")
-        except Exception as e:
-            st.error(f"Error during API call: {e}")
+                st.error(f"Prediction failed. API responses:\n/predict_all: {res_all.text}\n/predict_top30: {res_top.text}")
+    except Exception as e:
+        st.error(f"Error during API call: {e}")
