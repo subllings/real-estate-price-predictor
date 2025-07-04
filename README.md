@@ -208,6 +208,7 @@ This table presents a comprehensive comparison of several regression models trai
 
 ### Rank 1: CatBoost + Optuna CV (All Features – Post-Split Evaluation)
 - **MAE Test**: 61.2 k&euro;
+- **R<sup>2</sup> Train**: 0.918  
 - **R<sup>2</sup> Test**: 0.809
 - **r2_gap**: 0.109 → *Moderate Overfitting*
 - **Features**: 72
@@ -817,9 +818,6 @@ After deployment, your Streamlit frontend is publicly accessible at:
 ```bash
 https://realestate-ui.azurewebsites.net
 ```
-
-
-
 
 The frontend communicates with the backend API via HTTP POST requests, for example:
 
