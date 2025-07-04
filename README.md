@@ -90,60 +90,6 @@ real-estate-price-predictor/
 ├── README.md                        # Project overview and documentation
 ├── requirements.txt                 # Python package dependencies
 └── setup-env.sh                     # Script to initialize virtual environment
-
-
-real-estate-price-predictor/
-├── configs/                         # YAML configuration files (e.g. column mapping)
-│   └── feature_mapping.yaml         # Mapping of column variants to standard names
-│
-├── data/                            # Input CSV datasets
-│   └── immovlan_real_estate.csv     # Sample real estate dataset
-│
-├── dbfs_models/                     # Output directory for models if using Databricks
-│
-├── local_models/                    # Trained models stored locally
-│   ├── rf/                          # Random Forest models by dataset
-│   ├── lgbm/                        # LightGBM models by dataset
-│   └── lr/                          # Linear Regression models by dataset
-│
-├── ml_models/                       # Core machine learning model definitions
-│   ├── __init__.py                  # Makes this a Python package
-│   ├── base_model.py                # Abstract base class for model interfaces
-│   ├── rf_model.py                  # Random Forest implementation
-│   ├── lgbm_model.py                # LightGBM implementation (Distributed Gradient Boosting Machine)
-│   ├── lr_model.py                  # Linear Regression implementation
-│   └── model_factory.py             # Factory to retrieve the correct model class
-│
-├── notebooks/                       # Jupyter notebooks for exploration and training
-│   ├── 00_setup_env.ipynb           # Setup virtual environment and dependencies
-│   ├── 01_exploration.ipynb         # Data exploration and inspection
-│   ├── 02_preprocessing.ipynb       # Data cleaning and feature engineering
-│   ├── 03_train_model.ipynb         # Training individual models
-│   ├── 04_evaluate_model.ipynb      # Evaluation metrics and visualizations
-│   ├── 05_register_model.ipynb      # Optional model registry logic
-│   └── 06_batch_train_all.ipynb     # Loop training over all datasets
-│
-├── scripts/                         # Executable Python scripts
-│   ├── train_all_datasets.py        # Main script to train all models for all datasets
-│   ├── train_all_datasets.sh        # Bash script to launch training from terminal
-│   ├── train_and_register.py        # Alternate script to train and register models
-│   └── train_and_register.sh        # Bash wrapper for above
-│
-├── tests/                           # Unit tests
-│   ├── __init__.py                  # Init file for test package
-│   └── test_model_training.py       # Basic test for training pipeline
-│
-├── utils/                           # Utility scripts and helpers
-│   ├── column_mapper.py             # Logic to standardize columns across datasets
-│   ├── constants.py                 # Global constants (e.g., target column)
-│   ├── logger.py                    # Logging utilities
-│   ├── paths.py                     # Helper functions for path management
-│   └── preprocessing.py             # Custom preprocessing functions
-│
-├── .gitignore                       # Git ignored files list
-├── README.md                        # Project overview and documentation
-├── requirements.txt                 # Python package dependencies
-└── setup-env.sh                     # Script to initialize virtual environment
 ```
 
 # Real Estate Price Prediction Pipeline (CatBoost, XGBoost, Linear Models)
@@ -322,7 +268,7 @@ This benchmark highlights the value of **Optuna-tuned CatBoost**, but also warns
 ![picture 24](images/243ec15ace97058c9b3f73e1709713138c40bdbd2500d004f68c138061d73085.png)  
 
 
-#  Real Estate Price Prediction API
+#  Real Estate Price Prediction API (backend)
 
 ## What does the API do?
 
@@ -643,3 +589,24 @@ Make sure Docker Desktop is running before launching any script.
 - **Docker** containers encapsulate both backend and frontend for easy deployment and reproducibility.
 - A shared **Docker network** ensures seamless communication between the API and the Streamlit app.
 - Everything is orchestrated via `docker-compose`, allowing a single command to launch the full prediction stack locally or in the cloud.
+
+
+### API Deployment on Azure (FastAPI)
+
+The FastAPI backend is containerized with Docker and deployed to **Azure App Service** using the Azure CLI.  
+The Docker image is built locally and pushed to **Azure Container Registry (ACR)**, then configured in a Linux App Service instance.  
+The app is served via Uvicorn on port `8000`, and made publicly accessible.
+
+**Public URLs:**
+- API base: [https://realestate-api.azurewebsites.net](https://realestate-api.azurewebsites.net)
+- API Docs: [https://realestate-api.azurewebsites.net/docs](https://realestate-api.azurewebsites.net/docs)
+
+** Deployment script:**  
+Run the following script to deploy the API from your local machine:
+
+```bash
+./cloud/azure/azure_deploy_api.sh
+```
+
+![picture 27](images/5bbdc2a6d3735fe8aea6d13ea54c021448624c0edeee633da4d9859f6d235aac.png)  
+

@@ -1,0 +1,20 @@
+# Use official Python slim image
+FROM python:3.12-slim
+
+# Set working directory
+WORKDIR /app
+
+# Copy only necessary files
+COPY requirements.txt .
+
+# Install dependencies
+RUN pip install --no-cache-dir --upgrade pip \
+ && pip install --no-cache-dir -r requirements.txt
+
+# Copy application code
+COPY . .
+
+
+# Run Streamlit in headless mode for production
+CMD ["streamlit", "run", "streamlit_app.py", "--server.port=80", "--server.address=0.0.0.0", "--server.headless=true"]
+

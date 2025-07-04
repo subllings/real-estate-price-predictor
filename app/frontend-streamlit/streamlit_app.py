@@ -1,8 +1,9 @@
+import os
 import streamlit as st
 import requests
 import time
 
-API_URL = "http://localhost:8000"
+API_URL = os.getenv("API_URL", "http://localhost:8000")
 
 st.set_page_config(page_title="Real Estate Price Predictor", layout="wide")
 st.title("Real Estate Price Prediction")
