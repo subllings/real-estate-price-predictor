@@ -33,7 +33,7 @@ print_error() {
 }
 
 docker ps -a --filter "ancestor=test-streamlit-ui"
-ddocker rm -f $(docker ps -aq --filter "ancestor=test-streamlit-ui")
+docker rm -f $(docker ps -aq --filter "ancestor=test-streamlit-ui")
 
 # === Build Docker image ===
 print_blue "Building Docker image..."

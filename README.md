@@ -368,10 +368,13 @@ Download here: [https://www.postman.com/downloads/](https://www.postman.com/down
   "locality_Gent": 0
 }
 ```
-![picture 3](images/5d7f4edacdfa4c64ebf0a6d7428dc61a77620ade0f33538b594b9a652fd2b0ae.png)  
-![alt text](image.png) 
+
 
 ![picture 10](images/ba612a39c2510021ab52ff7bd333c5ba334e062dd6a747a7ef5e7bf2711b542b.png)  
+
+![picture 3](images/5d7f4edacdfa4c64ebf0a6d7428dc61a77620ade0f33538b594b9a652fd2b0ae.png)  
+
+![picture 32](images/657918f6e75636ee604d03791985f4fb1bd6837534eb56db3c51b494d0cfadcb.png)  
 
 
 ### Example test in Postman (for `/predict_all`)
@@ -452,6 +455,11 @@ Download here: [https://www.postman.com/downloads/](https://www.postman.com/down
   "hasTerrace": 1
 }
 ```
+![picture 33](images/f980a0fd9c000942586008b3a784ff35e1e3cc4c87c555bf6931f0f57a93c625.png)  
+
+![picture 31](images/6c3eb0c2015b1c8aae5503ef19eff3af686a74af98fca7b3badf3bb82505bd02.png)  
+
+![picture 30](images/e7e4ec2027c8384365bd281aded393f47544b165924d4d66e8a2d7072249b95e.png) 
 
 # Streamlit Frontend – Feature Input Interface
 
@@ -580,7 +588,7 @@ This will:
 ## Note
 Make sure Docker Desktop is running before launching any script.
 
----
+
 
 # Summary – API, Streamlit & Docker Integration
 
@@ -591,22 +599,233 @@ Make sure Docker Desktop is running before launching any script.
 - Everything is orchestrated via `docker-compose`, allowing a single command to launch the full prediction stack locally or in the cloud.
 
 
-### API Deployment on Azure (FastAPI)
+# API Deployment on Azure (FastAPI)
 
-The FastAPI backend is containerized with Docker and deployed to **Azure App Service** using the Azure CLI.  
-The Docker image is built locally and pushed to **Azure Container Registry (ACR)**, then configured in a Linux App Service instance.  
-The app is served via Uvicorn on port `8000`, and made publicly accessible.
+The FastAPI backend is containerized using Docker and deployed to **Azure App Service** via the Azure CLI. It uses **Azure Container Registry (ACR)** to store the image and is hosted on a Linux App Service instance.
 
-**Public URLs:**
-- API base: [https://realestate-api.azurewebsites.net](https://realestate-api.azurewebsites.net)
-- API Docs: [https://realestate-api.azurewebsites.net/docs](https://realestate-api.azurewebsites.net/docs)
+## Public URLs
 
-** Deployment script:**  
-Run the following script to deploy the API from your local machine:
+- **API Base URL**: [https://realestate-api.azurewebsites.net](https://realestate-api.azurewebsites.net)
+- **API Docs (Swagger UI)**: [https://realestate-api.azurewebsites.net/docs](https://realestate-api.azurewebsites.net/docs)
+
+![picture 27](images/5bbdc2a6d3735fe8aea6d13ea54c021448624c0edeee633da4d9859f6d235aac.png)  
+
+## Deployment Overview
+
+- The backend is served with **Uvicorn** on port `8000`.
+- The Docker image is built locally, then **pushed to ACR**.
+- An **App Service for Linux** is configured to pull the image from ACR.
+- The deployment is fully automated via a shell script: `cloud/azure/azure_deploy_api.sh`
+
+## How to Deploy the API
+
+To deploy from your local machine:
 
 ```bash
 ./cloud/azure/azure_deploy_api.sh
 ```
 
-![picture 27](images/5bbdc2a6d3735fe8aea6d13ea54c021448624c0edeee633da4d9859f6d235aac.png)  
 
+
+
+## API Deployment Script – Step-by-Step
+
+This script performs the following steps:
+
+### 1. Login to Azure via CLI
+
+```bash
+az login
+```
+
+### 2. Set environment variables (e.g., resource group, ACR name, app name)
+
+```bash
+RESOURCE_GROUP=my-rg
+ACR_NAME=myacr
+APP_NAME=realestate-api
+```
+
+### 3. Build the Docker image locally
+
+```bash
+docker build -t $ACR_NAME.azurecr.io/$APP_NAME:latest ./app/backend
+```
+
+### 4. Login to Azure Container Registry (ACR)
+
+```bash
+az acr login --name $ACR_NAME
+```
+
+### 5. Push the image to ACR
+
+```bash
+docker push $ACR_NAME.azurecr.io/$APP_NAME:latest
+```
+
+### 6. Create the Web App (if not already created)
+
+```bash
+az webapp create \
+  --resource-group $RESOURCE_GROUP \
+  --plan myAppServicePlan \
+  --name $APP_NAME \
+  --deployment-container-image-name $ACR_NAME.azurecr.io/$APP_NAME:latest
+```
+
+### 7. Configure App Service to pull from ACR
+
+```bash
+az webapp config container set \
+  --name $APP_NAME \
+  --resource-group $RESOURCE_GROUP \
+  --docker-custom-image-name $ACR_NAME.azurecr.io/$APP_NAME:latest \
+  --docker-registry-server-url https://$ACR_NAME.azurecr.io
+```
+
+### 8. Restart the app
+
+```bash
+az webapp restart --name $APP_NAME --resource-group $RESOURCE_GROUP
+```
+
+## Related Files
+
+Located in `cloud/azure/`:
+
+- `azure_deploy_api.sh` – Automates API deployment)  
+- `azure_deploy_frontend.sh` – For Streamlit UI (see separate doc)  
+- `docker-compose-azure.yml` – Optional multi-container deployment reference
+
+## Result
+
+After deployment, your FastAPI backend is live and ready to serve predictions via:
+
+```bash
+GET  https://realestate-api.azurewebsites.net/docs
+POST https://realestate-api.azurewebsites.net/predict_all
+POST https://realestate-api.azurewebsites.net/predict_top30
+```
+
+Make sure CORS settings are configured to allow frontend access if needed.
+
+# Frontend Deployment on Azure (Streamlit)
+
+The Streamlit frontend is containerized using Docker and deployed to Azure App Service via the Azure CLI. It uses Azure Container Registry (ACR) to store the image and is hosted on a Linux App Service instance.
+
+## Public URL
+
+Frontend URL:  
+https://realestate-ui.azurewebsites.net
+
+![picture 29](images/20985cbad8a002c3da2ec2250a5adf10910802b234f16d22fce51bf3fd0eb6da.png)  
+
+
+## Deployment Overview
+
+- The frontend is served with Streamlit on port `8501`.
+- The Docker image is built locally, then pushed to ACR.
+- An App Service for Linux is configured to pull the image from ACR.
+- The deployment is fully automated via the shell script:  
+  `cloud/azure/azure_deploy_frontend.sh`
+
+## How to Deploy the Frontend
+
+This script performs the following steps:
+
+### 1. Login to Azure via CLI
+
+```bash
+az login
+```
+
+### 2. Set environment variables (e.g., resource group, ACR name, app name)
+
+```bash
+RESOURCE_GROUP=my-rg
+ACR_NAME=myacr
+APP_NAME=realestate-ui
+```
+
+### 3. Build the Docker image locally
+
+```bash
+docker build -t $ACR_NAME.azurecr.io/$APP_NAME:latest ./app/frontend-streamlit
+```
+
+### 4. Login to Azure Container Registry (ACR)
+
+```bash
+az acr login --name $ACR_NAME
+```
+
+### 5. Push the image to ACR
+
+```bash
+docker push $ACR_NAME.azurecr.io/$APP_NAME:latest
+```
+
+### 6. Create the Web App (if not already created)
+
+```bash
+az webapp create \
+  --resource-group $RESOURCE_GROUP \
+  --plan myAppServicePlan \
+  --name $APP_NAME \
+  --deployment-container-image-name $ACR_NAME.azurecr.io/$APP_NAME:latest
+```
+
+### 7. Configure App Service to pull from ACR
+
+```bash
+az webapp config container set \
+  --name $APP_NAME \
+  --resource-group $RESOURCE_GROUP \
+  --docker-custom-image-name $ACR_NAME.azurecr.io/$APP_NAME:latest \
+  --docker-registry-server-url https://$ACR_NAME.azurecr.io
+```
+
+### 8. Restart the app
+
+```bash
+az webapp restart --name $APP_NAME --resource-group $RESOURCE_GROUP
+```
+
+## Related Files
+
+Located in `cloud/azure/`:
+
+- `azure_deploy_frontend.sh` – Automates Streamlit UI deployment  
+- `azure_deploy_api.sh` – For FastAPI backend deployment  
+- `docker-compose-azure.yml` – Optional multi-container deployment reference
+
+## Result
+
+After deployment, your Streamlit frontend is publicly accessible at:
+
+```bash
+https://realestate-ui.azurewebsites.net
+```
+
+
+
+
+The frontend communicates with the backend API via HTTP POST requests, for example:
+
+```python
+API_URL = "https://realestate-api.azurewebsites.net/predict_all"
+response = requests.post(API_URL, json=input_data)
+```
+
+Both the backend and frontend run in isolated Docker containers, each deployed as a separate **Azure Web App**. The Streamlit frontend uses `requests.post(...)` to call the FastAPI backend over HTTPS.
+
+To allow these **cross-origin requests** between different domains (e.g. `realestate-ui.azurewebsites.net` → `realestate-api.azurewebsites.net`), the backend must include **CORS (Cross-Origin Resource Sharing)** settings. These are configured in the FastAPI app using `CORSMiddleware`.
+
+## Azure Deployment Summary
+
+This setup ensures a fully containerized deployment of both the **FastAPI backend** and the **Streamlit frontend** on **Azure App Service**, with container images hosted in **Azure Container Registry (ACR)**. 
+
+Each component runs in isolation, is independently deployable, and can scale based on demand. Once **CORS** is properly configured on the backend, the frontend can securely communicate with the API over HTTPS, enabling real-time price predictions from any browser.
+
+This cloud architecture is robust, production-ready, and easy to maintain, ideal for both development and operational use at scale.
