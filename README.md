@@ -29,17 +29,20 @@ chmod +x setup-env.sh
 ```text
 
 real-estate-price-predictor/
+│
 ├── app/                              # Application code for both backend and frontend
 │ ├── backend/                        # FastAPI backend serving prediction endpoints
 │ │ ├── main.py                       # Main FastAPI app with endpoints
 │ │ ├── models/                       # Folder containing ML model files (.pkl)
 │ │ ├── Dockerfile.dev                # Local development Dockerfile for API
 │ │ └── Dockerfile.azure              # Production Dockerfile for deployment to Azure App Service
+│ │
 │ └── frontend-streamlit/             # Streamlit frontend UI
 │ ├── streamlit_app.py                # Main Streamlit script
 │ ├── input_features_converter.       # Converts UI inputs to model-ready format
 │ ├── Dockerfile.dev                  # Local development Dockerfile for UI
 │ └── Dockerfile.azure                # Azure-ready Dockerfile for UI deployment
+│
 ├── cloud/                            # Cloud deployment scripts and configuration
 │ ├── azure/                          # Azure-specific deployment
 │ │ ├── azure_deploy_api.sh           # Shell script to deploy FastAPI backend to Azure
@@ -47,27 +50,34 @@ real-estate-price-predictor/
 │ │ └── docker-compose-azure.yml      # Optional multi-container Azure deployment (if needed)
 │ ├── aws/                            # (Reserved) AWS deployment files
 │ └── gcp/                            # (Reserved) GCP deployment files
+│
 ├── configs/                          # Static configuration files
 │ └── feature_mapping.yaml            # Manual mapping for categorical encodings
+│
 ├── data/                             # All input and output data folders
 │ ├── raw/                            # Raw unprocessed data
 │ ├── cleaned/                        # Cleaned data after preprocessing
 │ ├── ml_ready/                       # Final dataset ready for ML training
 │ ├── ml_pre_study_metrics/           # Benchmark metrics from early model runs
 │ └── model_train_test_logs/          # Logs and predictions from model training/evaluation
+
 ├── database/                         # SQLite database storage
-│ └── metrics.db                      # Central DB storing cleaning logs + model evaluation metrics
+│ └── metrics.db                      # Central DB storing cleaning logs + model evaluation │
+│
 ├── deck/                             # Presentations or project slides (e.g. PPTX, PDFs)
 ├── environment/                      # Environment setup files (e.g. conda, Docker context)
 ├── images/                           # Visuals for UI, documentation, or README
 ├── local_models/                     # Saved model variants for testing
+│
 ├── ml_models/                        # OOP-style custom model classes
 │ ├── base_model.py                   # Abstract base class for all models
 │ ├── model_factory.py                # Utility to load the correct model class dynamically
 │ ├── rf_model.py                     # Random Forest implementation
 │ ├── lgbm_model.py                   # LightGBM implementation
 │ └── lr_model.                       # Linear regression model
+│
 ├── models/                           # (Legacy or optional) alternate model storage
+│
 ├── notebooks/                        # Jupyter Notebooks for experimentation and pipelines
 │ ├── exploration/                    # EDA and hypothesis testing
 │ ├── catboost_info/                  # Specific notebooks for CatBoost tuning
@@ -76,14 +86,17 @@ real-estate-price-predictor/
 │ ├── 030_preprocessing.ipynb         # Feature engineering, encoding, and scaling
 │ ├── 050_tune_xgboost.ipynb          # XGBoost + Optuna hyperparameter tuning
 │ └── ...                             # More model notebooks (LightGBM, CatBoost, etc.)
+│
 ├── scripts/                          # Python and Bash scripts for automation
 │ ├── pipeline_runner.py              # Automates full ML pipeline
 │ ├── predict_price.py                # Script for making price predictions from CLI
 │ ├── train_all_datasets.py           # Train model across multiple city datasets
 │ ├── submit_azure_job.py             # Submit training as a remote Azure ML job
 │ └── .sh                             # Various helper bash scripts
+│
 ├── tests/                            # Unit tests
 │ └── test_model_training.py          # Unit tests for model training components
+│
 ├── utils/                            # Utility modules and helper classes
 │ ├── constants.py                    # Global constants (e.g. paths, test mode)
 │ ├── data_cleaner.py                 # Cleaning logic and strategies
@@ -94,11 +107,11 @@ real-estate-price-predictor/
 │ ├── model_visualizer.py             # SHAP, permutation importance, etc.
 │ ├── column_mapper.py                # Manual feature mappings
 │ └── preprocessing_pipeline.         # Full preprocessing pipeline logic
+│
 ├── docker-compose.yml                # Compose file to run backend + frontend locally
 ├── launch-docker-compose-.sh         # Helper scripts to run Docker Compose locally or remotely
 ├── README.md                         # Project documentation and quickstart
 └── requirements.txt                  # Python dependencies for whole project
-
 
 ```
 
@@ -141,7 +154,7 @@ These models are located in:
 ```
 app/backend/models/pkl/
 ├── catboost_optuna_all_{date_time}.pkl
-└── catboost_optuna_top30_{date_time}.pkl<sup>2</sup>
+└── catboost_optuna_top30_{date_time}.pkl
 ```
 
 ## Model Exploration and Tuning
@@ -275,7 +288,6 @@ This benchmark highlights the value of **Optuna-tuned CatBoost**, but also warns
 
 
 
-
 ![picture 24](images/243ec15ace97058c9b3f73e1709713138c40bdbd2500d004f68c138061d73085.png)  
 
 
@@ -315,8 +327,6 @@ You can explore and test the API interactively via Swagger:
 ![picture 9](images/ed2823cb8e611ae4f8733ee1ebd2e88937eeb245a8906d91fce868ad1d3d80b1.png)  
 
 ![picture 12](images/ba612a39c2510021ab52ff7bd333c5ba334e062dd6a747a7ef5e7bf2711b542b.png)  
-
-
 
 
 ## Test the API with Postman
@@ -379,7 +389,6 @@ Download here: [https://www.postman.com/downloads/](https://www.postman.com/down
   "locality_Gent": 0
 }
 ```
-
 
 ![picture 10](images/ba612a39c2510021ab52ff7bd333c5ba334e062dd6a747a7ef5e7bf2711b542b.png)  
 
@@ -630,13 +639,11 @@ The FastAPI backend is containerized using Docker and deployed to **Azure App Se
 
 ## How to Deploy the API
 
-To deploy from your local machine:
+To deploy from your local machine, launch next the API deployment script:
 
 ```bash
 ./cloud/azure/azure_deploy_api.sh
 ```
-
-
 
 
 ## API Deployment Script – Step-by-Step
@@ -721,7 +728,41 @@ POST https://realestate-api.azurewebsites.net/predict_top30
 
 Make sure CORS settings are configured to allow frontend access if needed.
 
-# Frontend Deployment on Azure (Streamlit)
+# API Deployment on Render
+
+## Docker file 
+
+```Dockerfile
+FROM python:3.11-slim
+
+# Install system dependencies for LightGBM
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    libgomp1 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set work directory
+WORKDIR /app
+
+# Copy source code
+COPY . /app
+
+# Install Python dependencies
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Expose FastAPI port
+EXPOSE 8000
+
+# Start API
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+```
+
+## Configure deployment on Render
+![picture 34](images/a296782a5fb732433e32f219f03e3748cecbe06513466e377a93117588f55d55.png)  
+
+![picture 35](images/fd247ec1c00446d90865b5302f8cb0fbc6bab9f64a58f2aadbca65333d1c181d.png)  
+
+# Frontend Deployment on Azure (Streamlit frontend)
 
 The Streamlit frontend is containerized using Docker and deployed to Azure App Service via the Azure CLI. It uses Azure Container Registry (ACR) to store the image and is hosted on a Linux App Service instance.
 
@@ -731,6 +772,7 @@ Frontend URL:
 https://realestate-ui.azurewebsites.net
 
 ![picture 29](images/20985cbad8a002c3da2ec2250a5adf10910802b234f16d22fce51bf3fd0eb6da.png)  
+
 
 
 ## Deployment Overview

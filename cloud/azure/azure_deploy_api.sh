@@ -35,7 +35,7 @@ echo "WEBAPP_NAME=$WEBAPP_NAME"
 # Step 1: Create the resource group
 az group create --name "$RESOURCE_GROUP" --location "$LOCATION"
 
-# Step 2: Create the ACR if it doesn't exist
+# Step 2: Create the Azure Container Registry (ACR) if it doesn't exist
 az acr show --name "$ACR_NAME" --resource-group "$RESOURCE_GROUP" &> /dev/null || {
   echo "Creating Azure Container Registry..."
   az acr create --resource-group "$RESOURCE_GROUP" --name "$ACR_NAME" --sku Basic --location "$LOCATION"
