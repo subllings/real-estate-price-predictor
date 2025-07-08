@@ -153,7 +153,7 @@ if submitted:
     try:
         input_data = encode_inputs()
 
-        # DEBUG – détecter les erreurs de type dans l'input
+        # DEBUG – detect type errors in the input
         for k, v in input_data.items():
             if isinstance(v, dict):
                 st.error(f"Key '{k}' has a dict instead of a number → {v}")

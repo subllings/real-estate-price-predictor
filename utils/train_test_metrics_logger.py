@@ -14,7 +14,7 @@ from utils.constants import (
     TEST_MODE,
 )
 
-# Crée le dossier model_train_test_logs si besoin
+# Create the model_train_test_logs folder if needed
 MODEL_TRAIN_TEST_LOGS_DIR = os.path.join(DATA_DIR, "model_train_test_logs")
 os.makedirs(MODEL_TRAIN_TEST_LOGS_DIR, exist_ok=True)
 
