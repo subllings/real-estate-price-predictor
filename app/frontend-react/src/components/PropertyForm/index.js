@@ -50,7 +50,7 @@ const PropertyForm = () => {
     },
   };
 
-    const postCodeToLocation = {};
+  const postCodeToLocation = {};
   Object.entries(localityData).forEach(([province, localities]) => {
     Object.entries(localities).forEach(([locality, postCode]) => {
       postCodeToLocation[postCode] = { province, locality };
@@ -81,6 +81,14 @@ const PropertyForm = () => {
     if (name === "locality") {
       updatedForm.postCode = localityData[formData.province][value];
     }
+
+    if (name === "postCode") {
+      const location = postCodeToLocation[value];
+      if (location) {
+        updatedForm.province = location.province;
+        updatedForm.locality = location.locality;
+      }
+    }    
 
     setFormData(updatedForm);
   };
@@ -158,7 +166,13 @@ const PropertyForm = () => {
         {/* Post Code */}
         <div className="form-field">
           <label>Post Code</label>
-          <input type="text" name="postCode" value={currentPostCode} disabled />
+          <select name="postCode" value={formData.postCode} onChange={handleChange}>
+            {Object.entries(postCodeToLocation).map(([code, data]) => (
+              <option key={code} value={code}>
+                {code} – {data.locality}
+              </option>
+            ))}
+          </select>
         </div>
 
         {/* Numeric fields */}

@@ -1,13 +1,22 @@
-// src/components/ResultCard/index.jsx
 import React from "react";
-
+import styles from "./ResultCard.module.css";
 
 const ResultCard = ({ title, value }) => {
+  const formattedValue = value
+    .toFixed(0)
+    .replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+
+  // Découper le titre avant et après les mots-clés pour ne mettre en gras que la fin
+  const [prefix, boldPart] = title.split(/(all features|top 30 features)/i);
+
   return (
-    <div className="bg-green-100 border-l-4 border-green-500 p-4 shadow rounded">
-      <h3 className="text-lg font-bold text-green-700">{title}</h3>
-      <p className="text-2xl mt-2 font-semibold">
-        Estimated Price (€): {parseInt(value).toLocaleString("fr-FR")}
+    <div className={styles.resultCard}>
+      <h3 className={styles.title}>
+        {prefix}
+        <span className={styles.boldTitle}>{boldPart}</span>
+      </h3>
+      <p className={styles.price}>
+        Estimated Price (€): <span className={styles.priceValue}>{formattedValue}</span>
       </p>
     </div>
   );

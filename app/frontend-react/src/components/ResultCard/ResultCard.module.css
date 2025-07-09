@@ -1,0 +1,31 @@
+.resultCard {
+  padding: 1rem;
+  background-color: #e6ffe6;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  flex: 1;
+  border-left: 6px solid #2e8b57;
+}
+
+.title {
+  font-size: 1.2rem;
+  color: #215c42;
+  margin-bottom: 0.5rem;
+  font-weight: normal; /* ⚠️ Ici normal, pour ne pas tout mettre en gras */
+}
+
+.boldTitle {
+  font-size: 1.4rem;
+  font-weight: bold;
+}
+
+.price {
+  font-size: 1.2rem;
+  color: #000;
+  font-weight: normal;
+}
+
+.priceValue {
+  font-weight: bold;
+  font-size: 1.4rem;
+}
