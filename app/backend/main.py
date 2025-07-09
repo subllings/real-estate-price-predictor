@@ -4,9 +4,15 @@ import joblib
 import pandas as pd
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
+from typing import Dict, Any
+import logging
 
 # Initialize FastAPI app
 app = FastAPI()
+
+# Configure logging (important pour afficher le contenu reçu)
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # Enable CORS for frontend on localhost
 app.add_middleware(
@@ -147,6 +153,7 @@ class InputDataTop30(BaseModel):
 
 
 # Endpoint for full feature model
+"""
 @app.post("/predict_all")
 def predict_all(data: InputDataAll):
     try:
@@ -159,7 +166,46 @@ def predict_all(data: InputDataAll):
         return {"prediction": float(prediction[0])}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
+"""
+@app.post("/predict_all")
+async def predict_all(data: Dict[str, Any]):
+    try:
+        logger.info("----")
+        logger.info("Received payload for prediction:")
+        logger.info(data)
 
+        # Detect nested dictionaries
+        for k, v in data.items():
+            if isinstance(v, dict):
+                raise ValueError(f"Invalid value for key '{k}': nested dict detected ({v})")
+
+        # Check for missing features
+        missing_cols = [col for col in model_all.feature_names_ if col not in data]
+        if missing_cols:
+            logger.error(f"Missing columns: {missing_cols}")
+            raise HTTPException(
+                status_code=400,
+                detail={
+                    "error": "Missing required features",
+                    "missing_features": missing_cols
+                }
+            )
+
+        # Create input DataFrame and reorder columns
+        input_df = pd.DataFrame([data])
+        input_df = input_df[model_all.feature_names_]
+        logger.info(f"DataFrame created with shape {input_df.shape}")
+
+        # Prediction
+        prediction = model_all.predict(input_df)
+        logger.info("Prediction: %s", prediction)
+        return {"prediction": float(prediction[0])}
+
+    except HTTPException as he:
+        raise he  # Let FastAPI handle it properly
+    except Exception as e:
+        logger.exception("Prediction failed:")
+        raise HTTPException(status_code=400, detail={"error": "Prediction failed", "message": str(e)})
 
 
 # Endpoint for top 30 features model
