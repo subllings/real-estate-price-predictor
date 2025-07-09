@@ -1,0 +1,18 @@
+# Dockerfile
+FROM node:18
+
+# Create app directory
+WORKDIR /usr/src/app
+
+# Copy package files and install dependencies
+COPY package*.json ./
+RUN npm install
+
+# Copy the rest of the code
+COPY . .
+
+# Expose port (même que PORT dans .env)
+EXPOSE 5050
+
+# Start command
+CMD [ "npm", "start" ]

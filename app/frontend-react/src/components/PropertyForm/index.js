@@ -1,10 +1,10 @@
 import React, { useState } from "react";
 import axios from "axios";
 import ResultCard from "../ResultCard";
+import SidePanel from "../SidePanel/SidePanel.jsx";
 import encodeInputs from "../../helpers/encodeInputs";
 import "./PropertyForm.css";
 
-//const API_URL = "http://localhost:8000";
 const API_URL = "https://realestate-api.azurewebsites.net";
 
 const initialFormData = {
@@ -30,8 +30,11 @@ const initialFormData = {
 };
 
 const PropertyForm = () => {
-  // Utilise directement initialFormData ici pour éviter la redondance et erreurs
+  const [isSidePanelExpanded, setIsSidePanelExpanded] = useState(false);
   const [formData, setFormData] = useState(initialFormData);
+  const [loading, setLoading] = useState(false);
+  const [results, setResults] = useState({ all: null, top: null });
+  const [error, setError] = useState(null);
 
   const subtypesByPropertyType = {
     HOUSE: [
@@ -81,12 +84,7 @@ const PropertyForm = () => {
     });
   });
 
-  const [loading, setLoading] = useState(false);
-  const [results, setResults] = useState({ all: null, top: null });
-  const [error, setError] = useState(null);
-
   const availableLocalities = Object.keys(localityData[formData.province] || []);
-  const currentPostCode = localityData[formData.province]?.[formData.locality] || "";
 
   const handleChange = (e) => {
     const { name, type, checked, value } = e.target;
@@ -148,203 +146,210 @@ const PropertyForm = () => {
   };
 
   return (
-    <form className="property-form" onSubmit={handleSubmit}>
-      <h2 className="form-title">Property Information</h2>
+    <>
+      <form className="property-form" onSubmit={handleSubmit}>
+        <h2 className="form-title">Property Information</h2>
 
-      <div className="form-grid">
-        {/* Property Type */}
-        <div className="form-field">
-          <label>Property Type</label>
-          <select
-            name="propertyType"
-            value={formData.propertyType}
-            onChange={handleChange}
-          >
-            {["HOUSE", "APARTMENT"].map((opt) => (
-              <option key={opt} value={opt}>
-                {opt}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {/* Subtype */}
-        <div className="form-field">
-          <label>Subtype</label>
-          <select name="subtype" value={formData.subtype} onChange={handleChange}>
-            {(subtypesByPropertyType[formData.propertyType] || []).map((opt) => (
-              <option key={opt} value={opt}>
-                {opt.replace(/_/g, " ")}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {/* Province */}
-        <div className="form-field">
-          <label>Province</label>
-          <select name="province" value={formData.province} onChange={handleChange}>
-            {Object.keys(localityData).map((province) => (
-              <option key={province} value={province}>
-                {province}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {/* Locality */}
-        <div className="form-field">
-          <label>Locality</label>
-          <select name="locality" value={formData.locality} onChange={handleChange}>
-            {availableLocalities.map((locality) => (
-              <option key={locality} value={locality}>
-                {locality}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {/* Post Code */}
-        <div className="form-field">
-          <label>Post Code</label>
-          <select name="postCode" value={formData.postCode} onChange={handleChange}>
-            {Object.entries(postCodeToLocation).map(([code, data]) => (
-              <option key={code} value={code}>
-                {code} – {data.locality}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {/* Numeric fields */}
-        {[
-          { label: "Bedrooms", name: "bedroomCount" },
-          { label: "Bathrooms", name: "bathroomCount" },
-          { label: "Toilets", name: "toiletCount" },
-          { label: "Rooms", name: "roomCount" },
-          { label: "Habitable Surface (m²)", name: "habitableSurface" },
-          { label: "Facade Count", name: "facedeCount" },
-          { label: "Construction Year", name: "buildingConstructionYear" },
-        ].map(({ label, name }) => (
-          <div className="form-field" key={name}>
-            <label>{label}</label>
-            <input
-              type="number"
-              name={name}
-              value={formData[name]}
+        <div className="form-grid">
+          {/* Property Type */}
+          <div className="form-field">
+            <label>Property Type</label>
+            <select
+              name="propertyType"
+              value={formData.propertyType}
               onChange={handleChange}
-              min={name === "buildingConstructionYear" ? 1800 : 0}
-              max={name === "buildingConstructionYear" ? new Date().getFullYear() : undefined}
-            />
+            >
+              {["HOUSE", "APARTMENT"].map((opt) => (
+                <option key={opt} value={opt}>
+                  {opt}
+                </option>
+              ))}
+            </select>
           </div>
-        ))}
 
-        {/* Select fields */}
-        {[
-          {
-            name: "buildingCondition",
-            options: ["AS_NEW", "GOOD", "RENOVATION_NEEDED", "TO_RESTORE"],
-          },
-          {
-            name: "kitchenType",
-            options: ["HYPER_EQUIPPED", "EQUIPPED", "SIMPLE", "NOT_INSTALLED"],
-          },
-          { name: "heatingType", options: ["ELECTRIC", "GAS", "NONE"] },
-          { name: "floodZoneType", options: ["NON_FLOOD_ZONE", "FLOOD_ZONE"] },
-        ].map(({ name, options }) => (
-          <div className="form-field" key={name}>
-            <label>
-              {name.replace(/([A-Z])/g, " $1").replace(/^./, (str) => str.toUpperCase())}
-            </label>
-            <select name={name} value={formData[name]} onChange={handleChange}>
-              {options.map((opt) => (
+          {/* Subtype */}
+          <div className="form-field">
+            <label>Subtype</label>
+            <select name="subtype" value={formData.subtype} onChange={handleChange}>
+              {(subtypesByPropertyType[formData.propertyType] || []).map((opt) => (
                 <option key={opt} value={opt}>
                   {opt.replace(/_/g, " ")}
                 </option>
               ))}
             </select>
           </div>
-        ))}
 
-        {/* EPC Score */}
-        <div className="form-field">
-          <label>EPC Score</label>
-          <select name="epcScore" value={formData.epcScore} onChange={handleChange}>
-            <option value="A_plus">A+</option>
-            <option value="A">A</option>
-            <option value="B">B</option>
-            <option value="C">C</option>
-            <option value="D">D</option>
-            <option value="E">E</option>
-            <option value="F">F</option>
-            <option value="G">G</option>
-          </select>
-        </div>
+          {/* Province */}
+          <div className="form-field">
+            <label>Province</label>
+            <select name="province" value={formData.province} onChange={handleChange}>
+              {Object.keys(localityData).map((province) => (
+                <option key={province} value={province}>
+                  {province}
+                </option>
+              ))}
+            </select>
+          </div>
 
-        {/* Features checkboxes */}
-        <div className="form-field">
-          <label className="form-label">Features</label>
-          <div className="checkbox-inline">
-            <label className="checkbox-item">
+          {/* Locality */}
+          <div className="form-field">
+            <label>Locality</label>
+            <select name="locality" value={formData.locality} onChange={handleChange}>
+              {availableLocalities.map((locality) => (
+                <option key={locality} value={locality}>
+                  {locality}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Post Code */}
+          <div className="form-field">
+            <label>Post Code</label>
+            <select name="postCode" value={formData.postCode} onChange={handleChange}>
+              {Object.entries(postCodeToLocation).map(([code, data]) => (
+                <option key={code} value={code}>
+                  {code} – {data.locality}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Numeric fields */}
+          {[
+            { label: "Bedrooms", name: "bedroomCount" },
+            { label: "Bathrooms", name: "bathroomCount" },
+            { label: "Toilets", name: "toiletCount" },
+            { label: "Rooms", name: "roomCount" },
+            { label: "Habitable Surface (m²)", name: "habitableSurface" },
+            { label: "Facade Count", name: "facedeCount" },
+            { label: "Construction Year", name: "buildingConstructionYear" },
+          ].map(({ label, name }) => (
+            <div className="form-field" key={name}>
+              <label>{label}</label>
               <input
-                type="checkbox"
-                name="hasLivingRoom"
-                checked={formData.hasLivingRoom}
+                type="number"
+                name={name}
+                value={formData[name]}
                 onChange={handleChange}
+                min={name === "buildingConstructionYear" ? 1800 : 0}
+                max={name === "buildingConstructionYear" ? new Date().getFullYear() : undefined}
               />
-              Has Living Room
-            </label>
-            <label className="checkbox-item">
-              <input
-                type="checkbox"
-                name="hasTerrace"
-                checked={formData.hasTerrace}
-                onChange={handleChange}
-              />
-              Has Terrace
-            </label>
+            </div>
+          ))}
+
+          {/* Select fields */}
+          {[
+            {
+              name: "buildingCondition",
+              options: ["AS_NEW", "GOOD", "RENOVATION_NEEDED", "TO_RESTORE"],
+            },
+            {
+              name: "kitchenType",
+              options: ["HYPER_EQUIPPED", "EQUIPPED", "SIMPLE", "NOT_INSTALLED"],
+            },
+            { name: "heatingType", options: ["ELECTRIC", "GAS", "NONE"] },
+            { name: "floodZoneType", options: ["NON_FLOOD_ZONE", "FLOOD_ZONE"] },
+          ].map(({ name, options }) => (
+            <div className="form-field" key={name}>
+              <label>
+                {name.replace(/([A-Z])/g, " $1").replace(/^./, (str) => str.toUpperCase())}
+              </label>
+              <select name={name} value={formData[name]} onChange={handleChange}>
+                {options.map((opt) => (
+                  <option key={opt} value={opt}>
+                    {opt.replace(/_/g, " ")}
+                  </option>
+                ))}
+              </select>
+            </div>
+          ))}
+
+          {/* EPC Score */}
+          <div className="form-field">
+            <label>EPC Score</label>
+            <select name="epcScore" value={formData.epcScore} onChange={handleChange}>
+              <option value="A_plus">A+</option>
+              <option value="A">A</option>
+              <option value="B">B</option>
+              <option value="C">C</option>
+              <option value="D">D</option>
+              <option value="E">E</option>
+              <option value="F">F</option>
+              <option value="G">G</option>
+            </select>
+          </div>
+
+          {/* Features checkboxes */}
+          <div className="form-field">
+            <label className="form-label">Features</label>
+            <div className="checkbox-inline">
+              <label className="checkbox-item">
+                <input
+                  type="checkbox"
+                  name="hasLivingRoom"
+                  checked={formData.hasLivingRoom}
+                  onChange={handleChange}
+                />
+                Has Living Room
+              </label>
+              <label className="checkbox-item">
+                <input
+                  type="checkbox"
+                  name="hasTerrace"
+                  checked={formData.hasTerrace}
+                  onChange={handleChange}
+                />
+                Has Terrace
+              </label>
+            </div>
           </div>
         </div>
-      </div>
 
+        <div className="form-actions">
+          <button
+            type="button"
+            className="reset-button"
+            onClick={() => {
+              setFormData(initialFormData);
+              setResults({ all: null, top: null });
+              setError(null);
+            }}
+            disabled={loading}
+          >
+            Reset
+          </button>
+          <button type="submit" className="submit-button" disabled={loading}>
+            Predict
+          </button>
 
-      <div className="form-actions">
-        <button
-          type="button"
-          className="reset-button"
-          onClick={() => {
-            setFormData(initialFormData);  // reset formulaire
-            setResults({ all: null, top: null });  // reset prédictions
-            setError(null);  // reset erreur
-          }}
-          disabled={loading}
-        >
-          Reset
-        </button>
-        <button type="submit" className="submit-button" disabled={loading}>
-          Predict
-        </button>
-
-        {loading && (
-          <span className="loading-text">
-            <span className="spinner" />
-            Calling API...
-          </span>
-        )}
-      </div>
-
-
-
-
-      {error && <div className="error-message">{error}</div>}
-
-      {results.all && results.top && (
-        <div className="results-container">
-          <ResultCard title="Prediction using all features" value={results.all} />
-          <ResultCard title="Prediction using top 30 features" value={results.top} />
+          {loading && (
+            <span className="loading-text">
+              <span className="spinner" />
+              Calling API...
+            </span>
+          )}
         </div>
-      )}
-    </form>
+
+        {error && <div className="error-message">{error}</div>}
+
+        {results.all && results.top && (
+          <div className="results-container">
+            <ResultCard title="Prediction using all features" value={results.all} />
+            <ResultCard title="Prediction using top 30 features" value={results.top} />
+          </div>
+        )}
+      </form>
+
+    <SidePanel
+      user={{ profile: "Yves Schillings", history: ["search1", "search2"] }}
+      isExpanded={isSidePanelExpanded}
+      onToggle={() => setIsSidePanelExpanded(!isSidePanelExpanded)}
+      onClose={() => setIsSidePanelExpanded(false)}
+    />
+
+
+    </>
   );
 };
 
