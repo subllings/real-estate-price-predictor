@@ -17,7 +17,10 @@ logger = logging.getLogger(__name__)
 # Enable CORS for frontend on localhost
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=[
+        "http://localhost:3000",  # React local dev
+        "https://realestate-react-ui.azurewebsites.net",  # React in production Azure
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

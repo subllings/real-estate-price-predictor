@@ -4,31 +4,55 @@ import ResultCard from "../ResultCard";
 import encodeInputs from "../../helpers/encodeInputs";
 import "./PropertyForm.css";
 
-const API_URL = "http://localhost:8000";
-// const API_URL = "https://realestate-api.azurewebsites.net";
+//const API_URL = "http://localhost:8000";
+const API_URL = "https://realestate-api.azurewebsites.net";
+
+const initialFormData = {
+  propertyType: "HOUSE",
+  subtype: "HOUSE",
+  province: "Antwerp",
+  locality: "Antwerpen",
+  postCode: "2000",
+  bedroomCount: 3,
+  bathroomCount: 1,
+  toiletCount: 1,
+  roomCount: 5,
+  habitableSurface: 110,
+  facedeCount: 2,
+  buildingConstructionYear: 2000,
+  buildingCondition: "AS_NEW",
+  kitchenType: "HYPER_EQUIPPED",
+  heatingType: "ELECTRIC",
+  floodZoneType: "NON_FLOOD_ZONE",
+  epcScore: "A_plus",
+  hasLivingRoom: true,
+  hasTerrace: true,
+};
 
 const PropertyForm = () => {
-  const [formData, setFormData] = useState({
-    propertyType: "HOUSE",
-    subtype: "HOUSE",
-    province: "Antwerp",
-    locality: "Antwerpen",
-    postCode: "2000",
-    bedroomCount: 3,
-    bathroomCount: 1,
-    toiletCount: 1,
-    roomCount: 5,
-    habitableSurface: 110,
-    facedeCount: 2,
-    buildingConstructionYear: 2000,
-    buildingCondition: "AS_NEW",
-    kitchenType: "HYPER_EQUIPPED",
-    heatingType: "ELECTRIC",
-    floodZoneType: "NON_FLOOD_ZONE",
-    epcScore: "A_plus",
-    hasLivingRoom: true,
-    hasTerrace: true,
-  });
+  // Utilise directement initialFormData ici pour éviter la redondance et erreurs
+  const [formData, setFormData] = useState(initialFormData);
+
+  const subtypesByPropertyType = {
+    HOUSE: [
+      "HOUSE",
+      "VILLA",
+      "BUNGALOW",
+      "MANSION",
+      "FARMHOUSE",
+      "MANOR_HOUSE",
+      "CHALET",
+      "TOWN_HOUSE",
+      "SERVICE_FLAT",
+    ],
+    APARTMENT: [
+      "APARTMENT",
+      "APARTMENT_BLOCK",
+      "DUPLEX",
+      "GROUND_FLOOR",
+      "PENTHOUSE",
+    ],
+  };
 
   const localityData = {
     Brussels: {
@@ -71,6 +95,11 @@ const PropertyForm = () => {
       [name]: type === "checkbox" ? checked : value,
     };
 
+    if (name === "propertyType") {
+      const newSubtypes = subtypesByPropertyType[value] || [];
+      updatedForm.subtype = newSubtypes.length > 0 ? newSubtypes[0] : "";
+    }
+
     if (name === "province") {
       const newProvince = value;
       const newLocality = Object.keys(localityData[newProvince])[0];
@@ -88,11 +117,10 @@ const PropertyForm = () => {
         updatedForm.province = location.province;
         updatedForm.locality = location.locality;
       }
-    }    
+    }
 
     setFormData(updatedForm);
   };
-
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -109,7 +137,11 @@ const PropertyForm = () => {
         top: resTop.data.prediction,
       });
     } catch (err) {
-      setError("Prediction failed. Please try again.");
+      const errorMsg =
+        err.response && err.response.data
+          ? err.response.data.detail || JSON.stringify(err.response.data)
+          : err.message || "Prediction failed. Please try again.";
+      setError(errorMsg);
     } finally {
       setLoading(false);
     }
@@ -120,12 +152,18 @@ const PropertyForm = () => {
       <h2 className="form-title">Property Information</h2>
 
       <div className="form-grid">
-        {/* Property type */}
+        {/* Property Type */}
         <div className="form-field">
           <label>Property Type</label>
-          <select name="propertyType" value={formData.propertyType} onChange={handleChange}>
+          <select
+            name="propertyType"
+            value={formData.propertyType}
+            onChange={handleChange}
+          >
             {["HOUSE", "APARTMENT"].map((opt) => (
-              <option key={opt} value={opt}>{opt}</option>
+              <option key={opt} value={opt}>
+                {opt}
+              </option>
             ))}
           </select>
         </div>
@@ -134,11 +172,10 @@ const PropertyForm = () => {
         <div className="form-field">
           <label>Subtype</label>
           <select name="subtype" value={formData.subtype} onChange={handleChange}>
-            {[
-              "HOUSE", "VILLA", "BUNGALOW", "MANSION", "PENTHOUSE", "STUDIO", "LOFT", "DUPLEX",
-              "TRIPLEX", "FARMHOUSE", "MANOR_HOUSE", "CHALET", "TOWN_HOUSE", "SERVICE_FLAT"
-            ].map((opt) => (
-              <option key={opt} value={opt}>{opt.replace(/_/g, " ")}</option>
+            {(subtypesByPropertyType[formData.propertyType] || []).map((opt) => (
+              <option key={opt} value={opt}>
+                {opt.replace(/_/g, " ")}
+              </option>
             ))}
           </select>
         </div>
@@ -148,7 +185,9 @@ const PropertyForm = () => {
           <label>Province</label>
           <select name="province" value={formData.province} onChange={handleChange}>
             {Object.keys(localityData).map((province) => (
-              <option key={province} value={province}>{province}</option>
+              <option key={province} value={province}>
+                {province}
+              </option>
             ))}
           </select>
         </div>
@@ -158,7 +197,9 @@ const PropertyForm = () => {
           <label>Locality</label>
           <select name="locality" value={formData.locality} onChange={handleChange}>
             {availableLocalities.map((locality) => (
-              <option key={locality} value={locality}>{locality}</option>
+              <option key={locality} value={locality}>
+                {locality}
+              </option>
             ))}
           </select>
         </div>
@@ -183,7 +224,7 @@ const PropertyForm = () => {
           { label: "Rooms", name: "roomCount" },
           { label: "Habitable Surface (m²)", name: "habitableSurface" },
           { label: "Facade Count", name: "facedeCount" },
-          { label: "Construction Year", name: "buildingConstructionYear" }
+          { label: "Construction Year", name: "buildingConstructionYear" },
         ].map(({ label, name }) => (
           <div className="form-field" key={name}>
             <label>{label}</label>
@@ -200,16 +241,26 @@ const PropertyForm = () => {
 
         {/* Select fields */}
         {[
-          { name: "buildingCondition", options: ["AS_NEW", "GOOD", "RENOVATION_NEEDED", "TO_RESTORE"] },
-          { name: "kitchenType", options: ["HYPER_EQUIPPED", "EQUIPPED", "SIMPLE", "NOT_INSTALLED"] },
+          {
+            name: "buildingCondition",
+            options: ["AS_NEW", "GOOD", "RENOVATION_NEEDED", "TO_RESTORE"],
+          },
+          {
+            name: "kitchenType",
+            options: ["HYPER_EQUIPPED", "EQUIPPED", "SIMPLE", "NOT_INSTALLED"],
+          },
           { name: "heatingType", options: ["ELECTRIC", "GAS", "NONE"] },
-          { name: "floodZoneType", options: ["NON_FLOOD_ZONE", "FLOOD_ZONE"] }
+          { name: "floodZoneType", options: ["NON_FLOOD_ZONE", "FLOOD_ZONE"] },
         ].map(({ name, options }) => (
           <div className="form-field" key={name}>
-            <label>{name.replace(/([A-Z])/g, " $1").replace(/^./, str => str.toUpperCase())}</label>
+            <label>
+              {name.replace(/([A-Z])/g, " $1").replace(/^./, (str) => str.toUpperCase())}
+            </label>
             <select name={name} value={formData[name]} onChange={handleChange}>
               {options.map((opt) => (
-                <option key={opt} value={opt}>{opt.replace(/_/g, " ")}</option>
+                <option key={opt} value={opt}>
+                  {opt.replace(/_/g, " ")}
+                </option>
               ))}
             </select>
           </div>
@@ -230,41 +281,60 @@ const PropertyForm = () => {
           </select>
         </div>
 
-  <div className="form-field">
-    <label className="form-label">Features</label>
-    <div className="checkbox-inline">
-      <label className="checkbox-item">
-        <input
-          type="checkbox"
-          name="hasLivingRoom"
-          checked={formData.hasLivingRoom}
-          onChange={handleChange}
-        />
-        Has Living Room
-      </label>
-      <label className="checkbox-item">
-        <input
-          type="checkbox"
-          name="hasTerrace"
-          checked={formData.hasTerrace}
-          onChange={handleChange}
-        />
-        Has Terrace
-      </label>
-    </div>
-  </div>
-
-
-
+        {/* Features checkboxes */}
+        <div className="form-field">
+          <label className="form-label">Features</label>
+          <div className="checkbox-inline">
+            <label className="checkbox-item">
+              <input
+                type="checkbox"
+                name="hasLivingRoom"
+                checked={formData.hasLivingRoom}
+                onChange={handleChange}
+              />
+              Has Living Room
+            </label>
+            <label className="checkbox-item">
+              <input
+                type="checkbox"
+                name="hasTerrace"
+                checked={formData.hasTerrace}
+                onChange={handleChange}
+              />
+              Has Terrace
+            </label>
+          </div>
+        </div>
       </div>
 
-      {/* Submit */}
+
       <div className="form-actions">
+        <button
+          type="button"
+          className="reset-button"
+          onClick={() => {
+            setFormData(initialFormData);  // reset formulaire
+            setResults({ all: null, top: null });  // reset prédictions
+            setError(null);  // reset erreur
+          }}
+          disabled={loading}
+        >
+          Reset
+        </button>
         <button type="submit" className="submit-button" disabled={loading}>
           Predict
         </button>
-        {loading && <span className="loading-text">Calling API...</span>}
+
+        {loading && (
+          <span className="loading-text">
+            <span className="spinner" />
+            Calling API...
+          </span>
+        )}
       </div>
+
+
+
 
       {error && <div className="error-message">{error}</div>}
 

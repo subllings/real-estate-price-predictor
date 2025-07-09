@@ -880,7 +880,10 @@ Each component runs in isolation, is independently deployable, and can scale bas
 
 This cloud architecture is robust, production-ready, and easy to maintain, ideal for both development and operational use at scale.
 
-# How to clean and reinstall node_modules
+
+# REACT Frontend – Real Estate Price Prediction
+
+## How to clean and reinstall node_modules
 
 If you're using Git Bash or PowerShell, use standard Unix commands:
 
@@ -902,3 +905,47 @@ npm start
 ```
 
 ![picture 36](images/9c9906b8c264b5f17f399e3105c3256b5c2501b752cf729295d45b8a3db34f30.png)  
+
+## CORS (Cross-Origin Resource Sharing) Explained
+
+When your React frontend (running on http://localhost:3000 during development or on a different domain in production) tries to call the FastAPI backend API (hosted on Azure or localhost), the browser enforces security policies called CORS.
+
+### What is CORS?
+
+CORS is a browser security feature that restricts web pages from making requests to a different domain than the one that served the web page, unless the server explicitly allows it.
+
+### Why is it important for this project?
+Your React app runs at:
+- http://localhost:3000 during local development
+- https://realestate-react-ui.azurewebsites.net when deployed on Azure
+
+Your FastAPI backend API runs on a different origin, e.g.:
+- http://localhost:8000 during dev
+- https://realestate-api.azurewebsites.net in production
+
+The browser's same-origin policy prevents the frontend from calling the backend API unless the backend explicitly allows the frontend origin via CORS headers.
+
+
+
+python
+```
+from fastapi.middleware.cors import CORSMiddleware
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000", "https://your-frontend-domain.com"],  # Add your frontend URLs here
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+```
+
+- allow_origins: List of allowed frontend URLs. During development, this is usually http://localhost:3000.
+- In production, add your deployed React app domain here (e.g., https://realestate-react-ui.azurewebsites.net).
+Common issues & tips
+If CORS is not configured correctly, your React app will see errors like "Network Error" or "CORS policy: No 'Access-Control-Allow-Origin' header" in the browser console.
+
+Always make sure the frontend origin is added in allow_origins.
+You can add multiple URLs (local dev and prod) in the list.
+For local testing, keep allow_origins=["http://localhost:3000"].
+For production, update it with your actual deployed frontend domain.

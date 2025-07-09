@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# Make this script executable: chmod +x cloud/azure/azure_deploy_frontend.sh
-# Run with: ./cloud/azure/azure_deploy_frontend.sh
+# Make this script executable: chmod +x cloud/azure/azure_deploy_frontend_streamlit.sh
+# Run with: ./cloud/azure/azure_deploy_frontend_streamlit.sh
 
 clear
 set -e

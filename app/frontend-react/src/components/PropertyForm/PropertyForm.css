@@ -2,10 +2,13 @@
   max-width: 900px;
   margin: 0 auto;
   padding: 2rem;
-  background-color: #fafafa;
+  background-color: #ffffff; /* blanc pur */
   border: 1px solid #ccc;
   border-radius: 12px;
   font-family: Arial, sans-serif;
+
+  /* Ombre douce */
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);  
 }
 
 .form-title {
@@ -37,7 +40,14 @@
   border: 1px solid #ccc;
   border-radius: 6px;
   font-size: 1rem;
-  background-color: #fff;
+  background-color: #f0f8ff  /* Bleu ciel très clair */
+}
+
+.form-field input:focus,
+.form-field select:focus {
+  background-color: #ccefff;
+  outline: none;
+  border-color: #3399ff;
 }
 
 .form-row.checkbox-row {
@@ -55,11 +65,10 @@
 }
 
 .form-actions {
-  display: flex;
-  justify-content: center;
+  display: inline-flex;
   align-items: center;
+  gap: 10px;
   margin-top: 2rem;
-  gap: 1rem;
 }
 
 .submit-button {
@@ -78,9 +87,13 @@
 }
 
 .loading-text {
+  color: #007bff;              /* bleu identique au bouton */
   font-style: italic;
-  color: #555;
+  display: flex;
+  align-items: center;
+  white-space: nowrap;         /* pour ne pas casser la ligne */
 }
+
 
 .error-message {
   color: red;
@@ -121,11 +134,83 @@
 .checkbox-inline {
   display: flex;
   flex-direction: row;
-  align-items: center;
+  align-items: center; /* aligne verticalement au centre */
   gap: 2rem;
-  margin-top: 0.5rem; /* ⬅️ Ajout de marge au-dessus */
+  margin-top: 0.5rem;
 }
 
 .checkbox-inline input[type="checkbox"] {
-  margin-right: 0.5rem; /* ou 8px */
+  width: 17px;         /* largeur plus grande */
+  height: 17px;        /* hauteur plus grande */
+  accent-color: #007bff; /* couleur bleue comme le bouton */
+  margin-right: 0.5rem; /* espace à droite */
+  cursor: pointer;     /* curseur pointer au survol */
+}
+
+.checkbox-inline label {
+  display: flex;
+  align-items: center; /* alignement vertical au centre */
+  gap: 0rem;
+}
+
+
+.spinner {
+  width: 16px;
+  height: 16px;
+  border: 3px solid #007bff;
+  border-top: 3px solid transparent;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-right: 6px;
+}
+
+.spinner {
+  width: 12px;
+  height: 12px;
+  border: 2px solid rgba(0, 0, 0, 0.3);
+  border-top-color: #007bff;
+  border-radius: 50%;
+  animation: spinner 0.6s linear infinite;
+  box-sizing: border-box;
+}
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.loading-text {
+  font-style: italic;
+  color: #555;
+}
+
+.form-field input:hover,
+.form-field select:hover {
+  background-color: #b3d9ff; /* Slightly darker blue */
+  cursor: pointer; /* Optional: show pointer on hover */
+}
+
+.form-field input,
+.form-field select {
+  transition: background-color 0.3s ease, border-color 0.3s ease;
+}
+
+/* Reset Button style */
+.reset-button {
+  background-color: #6c757d; /* gris plus doux */
+  color: white;
+  padding: 0.7rem 1.5rem;
+  font-size: 1rem;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.2s ease-in-out;
+}
+
+.reset-button:hover {
+  background-color: #0056b3; /* gris un peu plus foncé au survol */
+}
+/* Submit Button déjà défini dans ton CSS, juste fixer la largeur */
+.submit-button {
+  width: 100px; /* même largeur que reset-button */
+  text-align: center;
 }
