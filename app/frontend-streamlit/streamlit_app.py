@@ -12,9 +12,9 @@ st.set_page_config(page_title="Real Estate Price Predictor", layout="wide")
 st.title("Real Estate Price Prediction")
 
 # API endpoints (ALL vs TOP 30 features)
-#API_URL = os.getenv("API_URL", "http://localhost:8000")
+API_URL = os.getenv("API_URL", "http://localhost:8000")
 # Force usage of Azure API endpoints — NO fallback to localhost
-API_URL = os.getenv("API_URL", "http://realestate-api.azurewebsites.net")
+#API_URL = os.getenv("API_URL", "http://realestate-api.azurewebsites.net")
 
 # Detect environment port (used in Docker/Azure)
 port = os.environ.get("PORT", "8501")

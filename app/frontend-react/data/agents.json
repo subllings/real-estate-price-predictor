@@ -1,0 +1,41 @@
+
+const agents = [
+  {
+    id: "esg",
+    name: "ESG Agent",
+    description: "Analyze ESG data (CO₂, energy...), auto-generate CSRD reports",
+    image: "/images/esg256x256.png", 
+  },
+  {
+    id: "software",
+    name: "Software Engineering Agent",
+    description: "Assist in code analysis and debugging",
+    image: "/images/softeng256x256.png",
+  },
+  {
+    id: "ecommerce",
+    name: "E-commerce Analytics Agent",
+    description: "Analyze top-selling products, AI-powered recommendations",
+    image: "/images/ecommerce256x256.png",
+  },
+  {
+    id: "finance",
+    name: "Financial Insights Agent",
+    description: "Investment decisions",
+    image: "/images/investment256x256.png",
+  },
+  {
+    id: "passive",
+    name: "Passive Income Agent",
+    description: "Generate passive income ideas with AI evaluation",
+    image: "/images/passiveincome256x256.png",
+  },
+  {
+    id: "claims",
+    name: "Claims Automation Agent",
+    description: "Automate insurance claims processing",
+    image: "/images/claims.png",
+  },
+];
+
+export default agents;

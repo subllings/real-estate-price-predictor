@@ -1,0 +1,24 @@
+.homepage {
+  padding: 2rem;
+  font-family: 'Segoe UI', sans-serif;
+  background: #f5f7fa;
+  text-align: center;
+}
+
+.title {
+  font-size: 2.5rem;
+  font-weight: bold;
+  margin-bottom: 0.5rem;
+}
+
+.subtitle {
+  color: #555;
+  margin-bottom: 2rem;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 2rem;
+  padding: 0 1rem;
+}

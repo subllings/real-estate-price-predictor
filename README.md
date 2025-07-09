@@ -879,3 +879,26 @@ This setup ensures a fully containerized deployment of both the **FastAPI backen
 Each component runs in isolation, is independently deployable, and can scale based on demand. Once **CORS** is properly configured on the backend, the frontend can securely communicate with the API over HTTPS, enabling real-time price predictions from any browser.
 
 This cloud architecture is robust, production-ready, and easy to maintain, ideal for both development and operational use at scale.
+
+# How to clean and reinstall node_modules
+
+If you're using Git Bash or PowerShell, use standard Unix commands:
+
+```bash
+# Navigate to the project folder
+cd "/e/_SoftEng/_BeCode/real-estate-price-predictor/app/frontend-react"
+
+# Clean node_modules and lock file
+rm -rf node_modules package-lock.json
+
+# Clear npm cache
+npm cache clean --force
+
+# Reinstall dependencies
+npm install
+
+# Start the dev server
+npm start
+```
+
+![picture 36](images/9c9906b8c264b5f17f399e3105c3256b5c2501b752cf729295d45b8a3db34f30.png)  
