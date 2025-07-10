@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import "./SidePanel.css";
+import axios from "axios";
 
 const SidePanel = ({ user, isExpanded, onToggle, onClose, comments }) => {
   const [chatInput, setChatInput] = useState("");
@@ -7,17 +8,35 @@ const SidePanel = ({ user, isExpanded, onToggle, onClose, comments }) => {
     { from: "agent", text: "Hello! How can I assist you today?" }
   ]);
 
-  const handleSend = () => {
-    if (!chatInput.trim()) return;
+const handleSend = async () => {
+  if (!chatInput.trim()) return;
 
-    setMessages(prev => [...prev, { from: "user", text: chatInput }]);
-    const userMessage = chatInput;
-    setChatInput("");
+  const userMessage = { role: "user", content: chatInput };
 
-    setTimeout(() => {
-      setMessages(prev => [...prev, { from: "agent", text: `You asked: "${userMessage}"` }]);
-    }, 1000);
-  };
+  // Ajout côté UI (affichage)
+  setMessages(prev => [...prev, { from: "user", text: chatInput }]);
+  setChatInput("");
+
+  try {
+    const response = await axios.post("https://realestate-api-llm.azurewebsites.net/chat", {
+      messages: [userMessage]  // ✅ Format attendu par l’API
+    });
+
+    // La réponse attendue dans response.data.response
+    setMessages(prev => [
+      ...prev,
+      { from: "agent", text: response.data.response || "No response from assistant." }
+    ]);
+  } catch (err) {
+    console.error("Chat error:", err.response?.data || err.message || err);
+    setMessages(prev => [
+      ...prev,
+      { from: "agent", text: "Sorry, I couldn’t reach the assistant." }
+    ]);
+  }
+};
+
+
 
   return (
     <aside className={`sidepanel ${isExpanded ? "expanded" : "collapsed"}`}>
@@ -32,27 +51,27 @@ const SidePanel = ({ user, isExpanded, onToggle, onClose, comments }) => {
         {isExpanded && (
           <>
             <h3>Profile: {user.profile}</h3>
-            <button className="close-btn" onClick={onClose} aria-label="Close Side Panel">&times;</button>
+            <button className="close-btn" onClick={onClose} aria-label="Close Side Panel">
+              &times;
+            </button>
           </>
         )}
       </header>
 
       {isExpanded && (
         <>
-          <section className="search-history">
-            <h4>Search History</h4>
-            <ul>
-              {user.history.map((item, idx) => (
-                <li key={idx}>{item}</li>
-              ))}
-            </ul>
-          </section>
 
-         
+
           <section className="llm-comment">
             <h4>AI Commentary</h4>
-            <p>{comments || "No comment available."}</p>
-          </section>          
+            {comments.length === 0 ? (
+              <p>No comment available.</p>
+            ) : (
+              comments.map((comment, idx) => (
+                <p key={idx}>{comment}</p>
+              ))
+            )}
+          </section>
 
           <section className="chat-container">
             <div className="messages" aria-live="polite" aria-atomic="true">
@@ -72,7 +91,9 @@ const SidePanel = ({ user, isExpanded, onToggle, onClose, comments }) => {
                 value={chatInput}
                 onChange={e => setChatInput(e.target.value)}
                 placeholder="Ask your question..."
-                onKeyDown={e => { if (e.key === "Enter") handleSend(); }}
+                onKeyDown={e => {
+                  if (e.key === "Enter") handleSend();
+                }}
                 aria-label="Chat input"
               />
               <button onClick={handleSend} className="send-btn" aria-label="Send message">

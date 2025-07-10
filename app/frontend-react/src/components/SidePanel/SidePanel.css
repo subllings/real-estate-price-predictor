@@ -18,7 +18,7 @@
 }
 
 .sidepanel.expanded {
-  width: 700px;
+  width: 600px;
   overflow-y: auto;
 }
 
@@ -99,4 +99,24 @@
   color: white;
   cursor: pointer;
   font-size: 0.9rem;
+}
+
+.llm-comment {
+  padding: 10px;
+  font-size: 1.1rem; /* agrandir la taille */
+  line-height: 1.5;
+  color: #333;
+}
+
+.llm-comment h4 {
+  margin-bottom: 8px;
+}
+
+.messages {
+  display: flex;           /* ou 'block' pour simple pile */
+  flex-direction: column;  /* empile verticalement */
+  gap: 8px;                /* espace vertical entre messages */
+  overflow-y: auto;        /* scroll si trop de messages */
+  max-height: 300px;       /* limite la hauteur du bloc */
+  padding-right: 8px;      /* espace droit */
 }

@@ -37,7 +37,8 @@ const PropertyForm = () => {
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState({ all: null, top: null });
   const [error, setError] = useState(null);
-  const [comments, setComments] = useState("");
+
+  const [comments, setComments] = useState([]);
 
 
   const subtypesByPropertyType = {
@@ -126,48 +127,52 @@ const PropertyForm = () => {
     setFormData(updatedForm);
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    setError(null);
-    setComments("");  // reset commentaire à chaque nouveau submit
-    try {
-      const encodedPayload = encodeInputs(formData);
 
-      // Appels prédiction prix
-      const [resAll, resTop] = await Promise.all([
-        axios.post(`${API_URL}/predict_all`, encodedPayload),
-        axios.post(`${API_URL}/predict_top30`, encodedPayload),
-      ]);
 
-      setResults({
-        all: resAll.data.prediction,
-        top: resTop.data.prediction,
-      });
+const handleSubmit = async (e) => {
+  e.preventDefault();
+  setLoading(true);
+  setError(null);
+  setComments([]); // vider les commentaires au début
 
-      // Préparation des données à envoyer au LLM
-      const llmPayload = {
-        formData: formData,
-        predictionAll: resAll.data.prediction,
-        predictionTop: resTop.data.prediction,
-      };
+  try {
+    const encodedPayload = encodeInputs(formData);
 
-      console.log("LLM Payload:", llmPayload);
+    // Appels prédiction prix
+    const [resAll, resTop] = await Promise.all([
+      axios.post(`${API_URL}/predict_all`, encodedPayload),
+      axios.post(`${API_URL}/predict_top30`, encodedPayload),
+    ]);
 
-      // Appel API LLM pour générer un commentaire
-      const commentaryResponse = await axios.post(LLM_API_URL, llmPayload);
+    setResults({
+      all: resAll.data.prediction,
+      top: resTop.data.prediction,
+    });
 
-      setComments(commentaryResponse.data.comment || "No comment received");
+    // Préparation des données à envoyer au LLM
+    const llmPayload = {
+      formData: formData,
+      predictionAll: resAll.data.prediction,
+      predictionTop: resTop.data.prediction,
+    };
 
-    } catch (err) {
-      const errorMsg =
-        err.response && err.response.data
-          ? err.response.data.detail || JSON.stringify(err.response.data)
-          : err.message || "Prediction failed. Please try again.";
-      setError(errorMsg);
-    } finally {
-      setLoading(false);
-    }
+    console.log("LLM Payload:", llmPayload);
+
+    // Appel API LLM pour générer un commentaire
+    const commentaryResponse = await axios.post(LLM_API_URL, llmPayload);
+
+    // Déplacer ici l'utilisation de commentaryResponse
+    setComments([commentaryResponse.data.comment || "No comment received"]);
+
+  } catch (err) {
+    const errorMsg =
+      err.response && err.response.data
+        ? err.response.data.detail || JSON.stringify(err.response.data)
+        : err.message || "Prediction failed. Please try again.";
+    setError(errorMsg);
+  } finally {
+    setLoading(false);
+  }
 };
 
 
