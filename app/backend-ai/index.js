@@ -9,10 +9,20 @@ const swaggerSpecs = require('./swagger');
 const app = express();
 const port = process.env.PORT || 5050;
 
-app.use(cors());
+const corsOptions = {
+  origin: [
+    "https://realestate-ui.azurewebsites.net", // ton frontend React en ligne
+    "http://localhost:3000" // pour tests en local
+  ],
+  methods: ["GET", "POST", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+  credentials: true
+};
+
+app.use(cors(corsOptions));
 app.use(bodyParser.json());
 
-// Serve Swagger docs at /docs
+// === Swagger ===
 app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpecs));
 
 /**
@@ -61,7 +71,6 @@ app.post('/chat', async (req, res) => {
   try {
     const endpoint = process.env.AZURE_OPENAI_ENDPOINT;
     const fullEndpoint = endpoint.endsWith('/') ? endpoint : endpoint + '/';
-
     const url = `${fullEndpoint}openai/deployments/${process.env.AZURE_OPENAI_DEPLOYMENT_NAME}/chat/completions?api-version=${process.env.AZURE_OPENAI_API_VERSION}`;
 
     const response = await axios.post(
@@ -83,7 +92,62 @@ app.post('/chat', async (req, res) => {
   }
 });
 
-// Root health check
+/**
+ * @openapi
+ * /comment:
+ *   post:
+ *     summary: Generate comments based on predictions
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               predictionAll:
+ *                 type: number
+ *               predictionTop:
+ *                 type: number
+ *     responses:
+ *       200:
+ *         description: Comments generated
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 comments:
+ *                   type: array
+ *                   items:
+ *                     type: string
+ */
+app.post('/comment', (req, res) => {
+  const { predictionAll, predictionTop } = req.body;
+
+  if (predictionAll === undefined || predictionTop === undefined) {
+    return res.status(400).json({ error: 'Missing predictionAll or predictionTop' });
+  }
+
+  const comments = [];
+
+  if (predictionAll > predictionTop) {
+    comments.push("Using all features slightly improved the prediction.");
+  } else if (predictionAll < predictionTop) {
+    comments.push("Using top 30 features gave a better prediction.");
+  } else {
+    comments.push("Both models predicted the same value.");
+  }
+
+  if (predictionAll > 500000) {
+    comments.push("This is a high-value property. Consider double-checking luxury features.");
+  } else if (predictionAll < 200000) {
+    comments.push("This is a low-value estimate. Maybe the location or condition impacts price.");
+  }
+
+  return res.json({ comments });
+});
+
+// === Root check ===
 app.get('/', (req, res) => {
   res.send('API is running...');
 });
