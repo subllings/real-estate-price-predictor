@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import "./SidePanel.css";
 
-const SidePanel = ({ user, isExpanded, onToggle, onClose }) => {
+const SidePanel = ({ user, isExpanded, onToggle, onClose, comments }) => {
   const [chatInput, setChatInput] = useState("");
   const [messages, setMessages] = useState([
     { from: "agent", text: "Hello! How can I assist you today?" }
@@ -47,6 +47,12 @@ const SidePanel = ({ user, isExpanded, onToggle, onClose }) => {
               ))}
             </ul>
           </section>
+
+         
+          <section className="llm-comment">
+            <h4>AI Commentary</h4>
+            <p>{comments || "No comment available."}</p>
+          </section>          
 
           <section className="chat-container">
             <div className="messages" aria-live="polite" aria-atomic="true">

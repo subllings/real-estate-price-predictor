@@ -6,6 +6,8 @@ import encodeInputs from "../../helpers/encodeInputs";
 import "./PropertyForm.css";
 
 const API_URL = "https://realestate-api.azurewebsites.net";
+const LLM_API_URL = "https://realestate-api-llm.azurewebsites.net/comment";
+
 
 const initialFormData = {
   propertyType: "HOUSE",
@@ -35,6 +37,8 @@ const PropertyForm = () => {
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState({ all: null, top: null });
   const [error, setError] = useState(null);
+  const [comments, setComments] = useState("");
+
 
   const subtypesByPropertyType = {
     HOUSE: [
@@ -88,6 +92,8 @@ const PropertyForm = () => {
 
   const handleChange = (e) => {
     const { name, type, checked, value } = e.target;
+    console.log(`handleChange called for ${name}:`, type === "checkbox" ? checked : value); // DEBUG
+
     let updatedForm = {
       ...formData,
       [name]: type === "checkbox" ? checked : value,
@@ -124,16 +130,35 @@ const PropertyForm = () => {
     e.preventDefault();
     setLoading(true);
     setError(null);
+    setComments("");  // reset commentaire à chaque nouveau submit
     try {
       const encodedPayload = encodeInputs(formData);
+
+      // Appels prédiction prix
       const [resAll, resTop] = await Promise.all([
         axios.post(`${API_URL}/predict_all`, encodedPayload),
         axios.post(`${API_URL}/predict_top30`, encodedPayload),
       ]);
+
       setResults({
         all: resAll.data.prediction,
         top: resTop.data.prediction,
       });
+
+      // Préparation des données à envoyer au LLM
+      const llmPayload = {
+        formData: formData,
+        predictionAll: resAll.data.prediction,
+        predictionTop: resTop.data.prediction,
+      };
+
+      console.log("LLM Payload:", llmPayload);
+
+      // Appel API LLM pour générer un commentaire
+      const commentaryResponse = await axios.post(LLM_API_URL, llmPayload);
+
+      setComments(commentaryResponse.data.comment || "No comment received");
+
     } catch (err) {
       const errorMsg =
         err.response && err.response.data
@@ -143,7 +168,8 @@ const PropertyForm = () => {
     } finally {
       setLoading(false);
     }
-  };
+};
+
 
   return (
     <>
@@ -342,10 +368,11 @@ const PropertyForm = () => {
       </form>
 
     <SidePanel
-      user={{ profile: "Yves Schillings", history: ["search1", "search2"] }}
+      user={{ profile: "Yves", history: ["search1", "search2"] }}
       isExpanded={isSidePanelExpanded}
       onToggle={() => setIsSidePanelExpanded(!isSidePanelExpanded)}
       onClose={() => setIsSidePanelExpanded(false)}
+      comments={comments}
     />
 
 
