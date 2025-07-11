@@ -5,6 +5,7 @@
   "toiletCount",
   "buildingConstructionYear",
   "locality_Knokke-Heist",
+  "building_age",
   "surface_per_room",
   "facedeCount",
   "kitchenType_HYPER_EQUIPPED",
@@ -23,10 +24,9 @@
   "buildingCondition_GOOD",
   "heatingType_nan",
   "hasLivingRoom",
-  "epcScore_A",
   "locality_Ixelles",
   "kitchenType_INSTALLED",
+  "epcScore_A",
   "epcScore_F",
-  "buildingCondition_JUST_RENOVATED",
-  "heatingType_GAS"
+  "locality_Gent"
 ]

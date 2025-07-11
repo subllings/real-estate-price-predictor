@@ -8,6 +8,7 @@
   "toiletCount",
   "room_count",
   "surface_per_room",
+  "building_age",
   "type_APARTMENT",
   "type_HOUSE",
   "subtype_APARTMENT",

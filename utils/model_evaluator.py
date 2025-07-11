@@ -27,6 +27,9 @@ class ModelEvaluator:
         """
         Print global metrics and segmented performance by price range.
         """
+        print(f"[DEBUG] Call print_evaluation for {self.model_name}")
+        print(f"[DEBUG] y_true: {len(y_true)}, y_pred: {len(y_pred)}")
+
         global_metrics, range_metrics = self.evaluate(y_true, y_pred, bins)
 
         print(f"\nEvaluation – {self.model_name}")
@@ -35,14 +38,24 @@ class ModelEvaluator:
         print(f"  R²:   {global_metrics['r2']:.4f}")
         print("-" * 40)
 
-        if range_metrics:
-            print("Price Range Evaluation:")
-            for r in range_metrics:
-                print(f"  {r['price_range']:<25} → "
-                      f"MAE: {r['mae']:,.0f} €, "
-                      f"RMSE: {r['rmse']:,.0f} €, "
-                      f"R²: {r['r2']:.3f} (n={r['count']})")
-            print("-" * 40)
+        if not range_metrics:
+            print("No segmented evaluation available.")
+            return
+
+        print(f"[DEBUG] Segments found: {len(range_metrics)}")
+
+        # Format and display as a clean DataFrame
+        df_metrics = pd.DataFrame(range_metrics).rename(columns={
+            "price_range": "Price Range",
+            "count": "n",
+            "mae": "MAE (€)",
+            "rmse": "RMSE (€)",
+            "r2": "R²"
+        })
+
+        df_metrics = df_metrics[["Price Range", "n", "MAE (€)", "RMSE (€)", "R²"]]
+        print(df_metrics.to_string(index=False, float_format="{:,.2f}".format))
+        print("-" * 40)
 
     def _compute_global_metrics(self, y_true, y_pred):
         """
@@ -63,8 +76,8 @@ class ModelEvaluator:
 
         results = []
         for name, group in df.groupby("price_range"):
-            if len(group) < 10:
-                continue  # Skip small sample sizes
+            #if len(group) < 10:
+            #    continue  # Skip small sample sizes
             results.append({
                 "price_range": str(name),
                 "mae": mean_absolute_error(group["true"], group["pred"]),

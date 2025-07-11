@@ -1,0 +1,7 @@
+{
+  "model": "CatBoost + Optuna CV (All Features \u2013 Post-Split Evaluation) [TEST]_20250712_0037_TEST.pkl",
+  "mae": 65719.7244561234,
+  "rmse": 96653.99007465756,
+  "r2": 0.7859015805882194,
+  "timestamp": "2025-07-12 00:37:44"
+}

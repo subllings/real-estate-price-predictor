@@ -1,0 +1,7 @@
+{
+  "model": "CatBoost + Optuna CV (All Features \u2013 R\u00b2 gap evaluated) [TEST]_20250711_2342_TEST.pkl",
+  "mae": 65298.49686811704,
+  "rmse": 96095.08499199813,
+  "r2": 0.7883704848440539,
+  "timestamp": "2025-07-11 23:42:27"
+}
