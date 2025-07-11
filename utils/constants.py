@@ -19,8 +19,8 @@ PREDICTIONS_DIR = os.path.join(BASE_DIR, "predictions")
 
 # === Data files ===
 RAW_DATA_FILE = os.path.join(RAW_DIR, "immoweb_real_estate.csv")
-CLEANED_DATA_FILE = os.path.join(DATA_DIR, "immoweb_real_estate_cleaned_dataset.csv")
-ML_READY_DATA_FILE = os.path.join(DATA_DIR, "immoweb_real_estate_ml_ready.csv")
+CLEANED_DATA_FILE = os.path.join(CLEANED_DIR, "immoweb_real_estate_cleaned_dataset.csv")
+ML_READY_DATA_FILE = os.path.join(CLEANED_FOR_ML_DATA_DIR, "immoweb_real_estate_ml_ready.csv")
 
 
 ML_READY_DATA_FILE = os.path.join(ML_READY_DIR, "immoweb_real_estate_ml_ready.csv")

@@ -1,14 +1,33 @@
 import os,sys
+import glob
 # Add the project root to the Python path
 project_root = os.path.abspath("../..")
 sys.path.append(project_root)
 
 import pandas as pd
-from utils.constants import LEAK_FEATURES
+from utils.constants import LEAK_FEATURES, CLEANED_FOR_ML_DATA_DIR
+
 
 class DataLoader:
     def __init__(self, path):
         self.path = path
+
+
+    @staticmethod
+    def get_latest_cleaned_file_path():
+        """
+        Return the name of the most recent cleaned CSV file in the given directory.
+        """
+        # Get list of matching CSV files
+        csv_files = glob.glob(os.path.join(CLEANED_FOR_ML_DATA_DIR, "immoweb_real_estate_cleaned_for_ml_*.csv"))
+        if not csv_files:
+            print("No cleaned CSV files found.")
+            return None
+        
+        # Sort by modification time and return the most recent one
+        latest_file = max(csv_files, key=os.path.getmtime)
+        return latest_file
+
 
     def load_data(self):
         """
@@ -19,7 +38,8 @@ class DataLoader:
         """
         df = pd.read_csv(self.path)
         return df
-
+    
+    
     def clean_booleans(self, df, bool_cols):
         """
         Converts string boolean columns to integers (1/0).

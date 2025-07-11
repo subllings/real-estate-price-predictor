@@ -32,24 +32,6 @@ class TrainTestMetricsLogger:
 
 
 
-
-    def get_latest_cleaned_file(self, dir_choice="cleaned", pattern=r"_(\d{8}_\d{4})\.csv$"):
-        """
-        Returns the file with the latest timestamp (YYYYMMDD_HHMM) in the filename.
-        """
-        folder = self.cleaned_data_dir if dir_choice == "cleaned" else self.ml_ready_dir
-        files = glob.glob(os.path.join(folder, "*.csv"))
-        latest_file = None
-        latest_ts = None
-        for f in files:
-            m = re.search(pattern, os.path.basename(f))
-            if m:
-                ts = m.group(1)
-                if latest_ts is None or ts > latest_ts:
-                    latest_ts = ts
-                    latest_file = f
-        return latest_file
-
     def log(
         self,
         model_name,
