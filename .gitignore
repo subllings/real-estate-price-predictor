@@ -89,8 +89,7 @@ notebooks/pipelines/cateboost_info/
 catboost_info/
 
 # Ignore all models directory
-models/
-saved_models/
+
 
 # Ignore experiment logs
 logs/
@@ -98,3 +97,4 @@ logs/
 
 // App frontend
 app/frontend-react/node_modules/
+

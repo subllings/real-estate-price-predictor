@@ -19,10 +19,10 @@ RESOURCE_GROUP="realestate-api-rg-north"
 LOCATION="northeurope"
 ACR_NAME="realestateacrneo$(date +%Y%m%d%H%M)"
 APP_SERVICE_PLAN="realestate-api-plan"
-WEBAPP_NAME="realestate-api-llm"
+WEBAPP_NAME="realestate-api-llm-v2"
 
-DOCKERFILE_PATH="app/backend-ai/Dockerfile.azure"
-BACKEND_DIR="app/backend-ai"
+DOCKERFILE_PATH="app/backend-api-llm-v2/Dockerfile.azure"
+BACKEND_DIR="app/backend-api-llm-v2"
 BACKEND_IMAGE="$ACR_NAME.azurecr.io/llm-api-backend:latest"
 
 echo "Using configuration:"
@@ -91,12 +91,12 @@ az webapp config container set \
   --container-registry-user "$ACR_USERNAME" \
   --container-registry-password "$ACR_PASSWORD"
 
-# Step 9: Set environment variable for port (5050)
-echo "Setting environment variable WEBSITES_PORT=5050..."
+# Step 9: Set environment variable for port (8000)
+echo "Setting environment variable WEBSITES_PORT=8000..."
 az webapp config appsettings set \
   --name "$WEBAPP_NAME" \
   --resource-group "$RESOURCE_GROUP" \
-  --settings WEBSITES_PORT=5050
+  --settings WEBSITES_PORT=8000
 
 # Step 10: Restart Web App
 echo "Restarting Web App..."

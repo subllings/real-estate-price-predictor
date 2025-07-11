@@ -2,7 +2,6 @@
 
 # Make this file executable: chmod +x setup-env.sh
 # Run it with: ./setup-env.sh
-# chmod +x setup-env.sh && ./setup-env.sh
 
 clear
 
@@ -45,50 +44,51 @@ if [ -d ".venv" ]; then
 fi
 
 # === Create new venv ===
-print_blue "Creating new virtual environment with Python 3.12.10..."
+print_blue "Creating new virtual environment with Python 3.12..."
 py -3.12 -m venv .venv || print_error "Python 3.12 not found. Please install it first."
 
 # === Activate venv ===
-echo ">>> Activating virtual environment..."
+print_blue "Activating virtual environment..."
 source .venv/Scripts/activate || print_error "Failed to activate venv. Are you in Git Bash?"
 
-# === Show versions ===
+# === Show Python and pip versions ===
 print_blue "Python version:"
 python --version
 
-print_blue "pip version:"pyt
+print_blue "pip version:"
 pip --version
 
-# === Upgrade pip ===
-#print_blue "Upgrading pip..."
-#python.exe -m pip install --upgrade pip
+# === Upgrade pip only if needed (version < 23) ===
+PIP_VERSION=$(pip --version | awk '{print $2}')
+PIP_MAJOR=$(echo "$PIP_VERSION" | cut -d. -f1)
+if (( PIP_MAJOR < 23 )); then
+    print_blue "Upgrading pip (current: $PIP_VERSION)..."
+    python -m pip install --upgrade pip
+else
+    print_blue "pip is up-to-date ($PIP_VERSION), skipping upgrade."
+fi
 
 # === Install dependencies ===
 print_blue "Installing dependencies from requirements.txt..."
-#pip install -r requirements.txt
-# pip install -r requirements-dev.txt
-
-python.exe -m pip install -r requirements.txt
-
-# === Upgrade pip ===
-print_blue "Upgrading pip..."
-python.exe -m pip install --upgrade pip
-
-#npm install -g pyright
-#pip install --upgrade flake8 flake8-docstrings pydocstyle
+pip install -r requirements.txt || print_error "Failed to install dependencies."
 
 # === Register venv in Jupyter ===
+print_blue "Registering virtual environment in Jupyter..."
 python -m ipykernel install --user --name=venv --display-name "Python (.venv)"
-print_blue "Writing .vscode/settings.json to use .venv Python interpreter..."
+
+# === Configure VS Code interpreter ===
+print_blue "Writing VS Code settings..."
 mkdir -p .vscode
 echo '{
   "python.defaultInterpreterPath": "${workspaceFolder}/.venv/Scripts/python.exe"
 }' > .vscode/settings.json
 
-
-# GPU support with NVIDIA XGBoost
+# === Optional: XGBoost GPU Support (NVIDIA) ===
+print_blue "Installing GPU-enabled XGBoost (optional)..."
 pip uninstall -y xgboost
 pip install --upgrade --extra-index-url https://pypi.nvidia.com xgboost
+
+pip install "uvicorn[standard]==0.29.0"
 
 # === Done ===
 print_green "Setup complete. Your virtual environment is ready!"

@@ -6,7 +6,7 @@ import encodeInputs from "../../helpers/encodeInputs";
 import "./PropertyForm.css";
 
 const API_URL = "https://realestate-api.azurewebsites.net";
-const LLM_API_URL = "https://realestate-api-llm.azurewebsites.net/comment";
+const LLM_API_URL = "https://realestate-api-llm-v2.azurewebsites.net/comment";
 
 
 const initialFormData = {

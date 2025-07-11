@@ -19,7 +19,7 @@ const handleSend = async () => {
 
   try {
     const response = await axios.post("https://realestate-api-llm.azurewebsites.net/chat", {
-      messages: [userMessage]  // ✅ Format attendu par l’API
+      messages: [userMessage]  
     });
 
     // La réponse attendue dans response.data.response

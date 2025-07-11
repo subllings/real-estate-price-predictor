@@ -1,0 +1,14 @@
+# FastAPI + server
+fastapi==0.110.0
+uvicorn==0.29.0
+
+# Input validation
+pydantic==1.10.14
+
+# Env variables
+python-dotenv==1.0.1
+
+# HTTP requests
+requests==2.31.0
+
+watchdog==4.0.0
