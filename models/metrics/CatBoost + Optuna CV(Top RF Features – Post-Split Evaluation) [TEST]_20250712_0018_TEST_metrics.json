@@ -1,7 +1,0 @@
-{
-  "model": "CatBoost + Optuna CV(Top RF Features \u2013 Post-Split Evaluation) [TEST]_20250712_0018_TEST.pkl",
-  "mae": 66987.89986793698,
-  "rmse": 98033.55069634417,
-  "r2": 0.7797462294161495,
-  "timestamp": "2025-07-12 00:18:51"
-}

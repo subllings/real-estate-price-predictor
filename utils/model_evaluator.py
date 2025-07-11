@@ -23,6 +23,9 @@ class ModelEvaluator:
 
         return global_metrics, range_metrics
 
+
+
+
     def print_evaluation(self, y_true, y_pred, bins=None):
         """
         Print global metrics and segmented performance by price range.
@@ -38,24 +41,41 @@ class ModelEvaluator:
         print(f"  R²:   {global_metrics['r2']:.4f}")
         print("-" * 40)
 
-        if not range_metrics:
-            print("No segmented evaluation available.")
+        if not range_metrics or len(range_metrics) == 0:
+            print("No segmented evaluation available (range_metrics is empty).")
             return
 
         print(f"[DEBUG] Segments found: {len(range_metrics)}")
+        print("[Evaluation by Price Range – All Features]")
 
-        # Format and display as a clean DataFrame
-        df_metrics = pd.DataFrame(range_metrics).rename(columns={
-            "price_range": "Price Range",
-            "count": "n",
-            "mae": "MAE (€)",
-            "rmse": "RMSE (€)",
-            "r2": "R²"
-        })
+        # Convert to DataFrame and validate structure
+        try:
+            df_metrics = pd.DataFrame(range_metrics)
 
-        df_metrics = df_metrics[["Price Range", "n", "MAE (€)", "RMSE (€)", "R²"]]
-        print(df_metrics.to_string(index=False, float_format="{:,.2f}".format))
-        print("-" * 40)
+            expected_cols = {"price_range", "count", "mae", "rmse", "r2"}
+            if not expected_cols.issubset(df_metrics.columns):
+                print(f"[ERROR] Missing expected columns in df_metrics: found {df_metrics.columns}")
+                return
+
+            # Rename and reorder
+            df_metrics = df_metrics.rename(columns={
+                "price_range": "Price Range",
+                "count": "n",
+                "mae": "MAE (€)",
+                "rmse": "RMSE (€)",
+                "r2": "R²"
+            })
+            df_metrics = df_metrics[["Price Range", "n", "MAE (€)", "RMSE (€)", "R²"]]
+
+            print(df_metrics.to_string(index=False, float_format="{:,.2f}".format))
+            print("-" * 40)
+        except Exception as e:
+            print(f"[ERROR] Could not format segmented metrics: {e}")
+
+
+
+
+
 
     def _compute_global_metrics(self, y_true, y_pred):
         """
