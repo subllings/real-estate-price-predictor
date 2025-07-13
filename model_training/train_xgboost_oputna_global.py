@@ -9,7 +9,7 @@ import pandas as pd
 import numpy as np
 from uuid import uuid4
 from datetime import datetime
-from catboost import CatBoostRegressor
+from xgboost import XGBRegressor
 from sklearn.model_selection import train_test_split, KFold
 from sklearn.metrics import mean_squared_error, r2_score
 
@@ -21,15 +21,15 @@ from utils.model_saver import ModelSaver
 if LOG_COSMOS_DB:
     from utils.cosmosdb_logger import CosmosDbLogger
 
-print("Starting CatBoost Optuna tuning...")
+print("Starting XGBoost Optuna tuning...")
 if TEST_MODE:
-    print("[TEST_MODE ENABLED] → 3 trials / 1000 rows / 50 iterations")
+    print("[TEST_MODE ENABLED] → 3 trials / 1000 rows / 50 estimators")
 else:
     print("Running in FULL mode")
 
 
-class CatBoostOptunaTrainer:
-    def __init__(self, n_trials=50, model_name="CatBoost + Optuna (All Features)", use_gpu=True):
+class XGBoostOptunaTrainer:
+    def __init__(self, n_trials=50, model_name="XGBoost + Optuna (All Features)", use_gpu=True):
         self.n_trials = 3 if TEST_MODE else n_trials
         self.model_name = model_name
         self.best_params = None
@@ -48,15 +48,16 @@ class CatBoostOptunaTrainer:
     def objective(self, trial):
         params = {
             "learning_rate": trial.suggest_float("learning_rate", 0.01, 0.3),
-            "depth": trial.suggest_int("depth", 4, 10),
-            "l2_leaf_reg": trial.suggest_float("l2_leaf_reg", 1.0, 10.0),
-            "bagging_temperature": trial.suggest_float("bagging_temperature", 0.0, 1.0),
-            "border_count": trial.suggest_int("border_count", 32, 255),
-            "random_strength": trial.suggest_float("random_strength", 1e-9, 10.0),
-            "verbose": 0,
-            "task_type": "GPU" if self.use_gpu else "CPU",
-            "devices": "0",
-            "iterations": 50 if TEST_MODE else 1000
+            "max_depth": trial.suggest_int("max_depth", 3, 10),
+            "min_child_weight": trial.suggest_float("min_child_weight", 1, 10),
+            "subsample": trial.suggest_float("subsample", 0.5, 1.0),
+            "colsample_bytree": trial.suggest_float("colsample_bytree", 0.5, 1.0),
+            "gamma": trial.suggest_float("gamma", 0, 5),
+            "reg_alpha": trial.suggest_float("reg_alpha", 0.0, 1.0),
+            "reg_lambda": trial.suggest_float("reg_lambda", 0.0, 1.0),
+            "n_estimators": 50 if TEST_MODE else 1000,
+            "tree_method": "gpu_hist" if self.use_gpu else "auto",
+            "verbosity": 0
         }
 
         kf = KFold(n_splits=5, shuffle=True, random_state=42)
@@ -66,8 +67,9 @@ class CatBoostOptunaTrainer:
             X_train, X_valid = self.X_dev.iloc[train_idx], self.X_dev.iloc[valid_idx]
             y_train, y_valid = self.y_dev.iloc[train_idx], self.y_dev.iloc[valid_idx]
 
-            model = CatBoostRegressor(**params)
-            model.fit(X_train, y_train, eval_set=(X_valid, y_valid), early_stopping_rounds=20, verbose=0)
+            model = XGBRegressor(**params)
+            model.fit(X_train, y_train, eval_set=[(X_valid, y_valid)],
+                      early_stopping_rounds=20, verbose=False)
 
             preds = model.predict(X_valid)
             rmse = np.sqrt(mean_squared_error(y_valid, preds))
@@ -79,31 +81,26 @@ class CatBoostOptunaTrainer:
         study = optuna.create_study(direction="minimize")
         study.optimize(self.objective, n_trials=self.n_trials)
         self.best_params = study.best_params
-        self.best_params["verbose"] = 0
-        self.best_params["task_type"] = "GPU" if self.use_gpu else "CPU"
-        self.best_params["devices"] = "0"
-        self.best_params["iterations"] = 50 if TEST_MODE else 1000
+        self.best_params["n_estimators"] = 50 if TEST_MODE else 1000
+        self.best_params["tree_method"] = "gpu_hist" if self.use_gpu else "auto"
+        self.best_params["verbosity"] = 0
 
     def train_final_model(self):
-        self.model = CatBoostRegressor(**self.best_params)
+        self.model = XGBRegressor(**self.best_params)
         self.model.fit(self.X_dev, self.y_dev)
 
     def evaluate_and_log(self):
-        # Make predictions
         y_train_pred = self.model.predict(self.X_dev)
         y_test_pred = self.model.predict(self.X_test)
 
-        # Evaluate test set
         evaluator = ModelEvaluator(self.model_name)
         global_metrics, _ = evaluator.evaluate(self.y_test, y_test_pred)
         evaluator.print_evaluation(self.y_test, y_test_pred)
 
-        # Evaluate training set
         mae_train = np.mean(np.abs(self.y_dev - y_train_pred))
         rmse_train = np.sqrt(mean_squared_error(self.y_dev, y_train_pred))
         r2_train = r2_score(self.y_dev, y_train_pred)
 
-        # Log to CSV
         logger = TrainTestMetricsLogger()
         logger.log(
             model_name=self.model_name,
@@ -119,26 +116,23 @@ class CatBoostOptunaTrainer:
         )
         logger.display_table()
 
-        # Save model and features
         ModelSaver().save_model_and_features(
             self.model,
             self.X_dev.columns.tolist(),
-            "catboost_optuna_all_features"
+            "xgboost_optuna_all_features"
         )
 
-        # Log to Cosmos DB
         if LOG_COSMOS_DB:
             cosmos_logger = CosmosDbLogger()
 
             if ERASE_COSMOS_DB:
-                print("[⚠] ERASE_COSMOS_DB is True → deleting all previous logs for this model.")
+                print("[ERASE MODE ENABLED] → Deleting previous logs for this model.")
                 cosmos_logger.delete_all_runs(self.model_name)
 
             delta_rmse = global_metrics["rmse"] - rmse_train
             delta_r2 = r2_train - global_metrics["r2"]
             agent_ready = bool(delta_rmse < 5000 and delta_r2 < 0.05)
 
-            # Convert all NumPy types to native Python types for JSON serialization
             cleaned_params = {
                 k: (
                     float(v) if isinstance(v, np.floating)
@@ -178,5 +172,5 @@ class CatBoostOptunaTrainer:
 
 
 if __name__ == "__main__":
-    trainer = CatBoostOptunaTrainer()
+    trainer = XGBoostOptunaTrainer()
     trainer.run()
