@@ -46,6 +46,6 @@ LEAK_FEATURES = ["price_per_m2"]
 METRICS_DB_PATH = os.path.join(DB_DIR, "metrics.db")
 
 # === Dev mode ===
-TEST_MODE = True
+TEST_MODE = False
 
 RUN_ON_AZURE = True  # Set to True if running on Azure ML

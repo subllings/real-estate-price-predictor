@@ -45,7 +45,7 @@ class ModelEvaluator:
             print("No segmented evaluation available (range_metrics is empty).")
             return
 
-        print(f"[DEBUG] Segments found: {len(range_metrics)}")
+        print(f"Segments found: {len(range_metrics)}")
         print("[Evaluation by Price Range – All Features]")
 
         # Convert to DataFrame and validate structure

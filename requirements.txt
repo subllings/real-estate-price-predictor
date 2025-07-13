@@ -59,3 +59,7 @@ azureml-core==1.55.0
 
 # Terminal output / UX
 rich==13.7.1
+
+# Cosmos db
+pymongo>=4.6,<5.0
+motor>=3.4
