@@ -51,7 +51,7 @@ TEST_MODE = True
 RUN_ON_AZURE = True  # Set to True if running on Azure ML
 
 LOG_COSMOS_DB = True  # Set to True if you want to log metrics to Cosmos DB
-ERASE_COSMOS_DB = False  # Set to True if you want to erase Cosmos DB before logging new metrics
+ERASE_COSMOS_DB = True  # Set to True if you want to erase Cosmos DB before logging new metrics
 
 PERFECT_R2_THRESHOLD = 0.95
 PERFECT_MAE_THRESHOLD = 50000

@@ -38,13 +38,14 @@ class TunerAgentOrchestrator:
         df = data_loader.load_data()
         X, y = data_loader.split_X_y(df)
 
-        # Step 2 – Load parameter search space via GPT
+        # Step 2 – Get parameter search space from LLM agent (ChatGPT)
         print("[STEP] Loading parameter space via ChatGPT...")
-        param_loader = OptunaParamLoader(self.model_name)
-        search_space = param_loader.get_param_space()
+        # Instead of OptunaParamLoader, use LLMTunerAgent or similar to get a refined search space
+        llm_agent = LLMTunerAgent(self.model_name)
+        search_space = llm_agent.suggest_param_space()
         print("[✔] Parameter space loaded.")
 
-        # Step 3 – Initialize the tuner
+        # Step 3 – Initialize the tuner based on the model type
         if self.model_name == "catboost":
             tuner = CatBoostTuner(
                 X, y, self.n_trials, self.n_splits, self.early_stopping_rounds,
@@ -58,13 +59,13 @@ class TunerAgentOrchestrator:
         else:
             raise ValueError(f"Unsupported model: {self.model_name}")
 
-        # Step 4 – Run optimization (avec run_study() qui fait tout)
+        # Step 4 – Run optimization (run_study handles the tuning loop)
         print("[STEP] Starting optimization...")
         best_trial = tuner.run_study()
 
         print(f"\n✅ Best trial – RMSE: {best_trial.value:.2f}")
 
-        # Récupération des métriques finales
+        # Retrieve final metrics from tuner
         final_metrics = tuner.get_final_metrics()
         r2 = final_metrics.get("r2_test", 0)
         mae = final_metrics.get("mae_test", float("inf"))
@@ -72,7 +73,7 @@ class TunerAgentOrchestrator:
 
         print(f"Final metrics:\n  R²: {r2:.4f}\n  MAE: {mae:.2f}\n  RMSE: {rmse:.2f}")
 
-        # Ici on ne fait plus de vérification 'is_perfect' basée sur des attributs absents
+        # Return the best trial and a flag indicating perfection (False for now)
         return best_trial, False
 
 

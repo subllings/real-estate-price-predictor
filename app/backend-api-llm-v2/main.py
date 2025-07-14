@@ -6,6 +6,9 @@ from pydantic import BaseModel
 from dotenv import load_dotenv
 import requests
 import json
+import logging
+
+logger = logging.getLogger("uvicorn.error")
 
 # Load environment variables
 load_dotenv()
@@ -149,12 +152,18 @@ def generate_comments(request: CommentRequest):
     comments = [c.strip() for c in response_text.strip().split('\n') if c.strip()]
     return {"comments": comments}
 
+from fastapi import APIRouter, HTTPException
+import json
 
-@app.post("/llm-tuner/suggest-space", tags=["LLM Tuner"])
+router = APIRouter()
+app.include_router(router)
+
+@router.post("/suggest-space", tags=["LLM Tuner"])
 def suggest_param_space(request: SuggestionRequest):
     model_name = request.model_name
     trials = request.previous_trials
 
+    # Build a summary of previous trials for the prompt
     if not trials:
         trial_summary = "(no prior trials found)"
     else:
@@ -164,6 +173,7 @@ def suggest_param_space(request: SuggestionRequest):
             for t in trials
         ])
 
+    # Construct prompt for LLM
     prompt = f"""
 You are an expert in hyperparameter tuning using Optuna.
 Here are previous trials for the model '{model_name}':
@@ -174,6 +184,10 @@ Based on this history, suggest a refined Optuna parameter space in JSON format.
 Only output valid JSON. No explanations.
 """
 
+    logger.info("=== Prompt sent to ChatGPT ===")
+    logger.info(prompt)
+
+    # Call Azure OpenAI chat endpoint
     response_text = call_azure_openai_chat(
         messages=[
             {"role": "system", "content": "You are a helpful assistant specialized in ML hyperparameter tuning."},
@@ -183,8 +197,20 @@ Only output valid JSON. No explanations.
         max_tokens=700
     )
 
+    logger.info("=== Response received from ChatGPT ===")
+    logger.info(response_text)
+
+
+
+    # Attempt to parse JSON response
     try:
         param_space = json.loads(response_text)
         return {"model": model_name, "param_space": param_space}
     except json.JSONDecodeError:
-        raise HTTPException(status_code=500, detail=f"Invalid JSON returned by LLM:\n{response_text}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Invalid JSON returned by LLM:\n{response_text}"
+        )
+
+
+app.include_router(router)

@@ -3,6 +3,8 @@ from datetime import datetime
 from azure.cosmos import CosmosClient, PartitionKey, exceptions
 from dotenv import load_dotenv
 from utils.constants import ML_READY_DATA_FILE, TEST_MODE
+import numpy as np
+from datetime import datetime
 
 
 load_dotenv()
@@ -11,6 +13,7 @@ COSMOS_ENDPOINT = os.getenv("COSMOS_ENDPOINT")
 COSMOS_KEY = os.getenv("COSMOS_KEY")
 COSMOS_DATABASE_NAME = os.getenv("COSMOS_DATABASE_NAME")
 COSMOS_CONTAINER_NAME = os.getenv("COSMOS_CONTAINER_NAME")
+COSMOS_SERVERLESS = os.getenv("COSMOS_SERVERLESS", "false").lower() == "true"
 
 class CosmosDbLogger:
     def __init__(self):
@@ -27,11 +30,19 @@ class CosmosDbLogger:
 
     def _get_or_create_container(self, database, name):
         try:
-            return database.create_container_if_not_exists(
-                id=name,
-                partition_key=PartitionKey(path="/run_id"),
-                offer_throughput=400
-            )
+            if COSMOS_SERVERLESS:
+                # Serverless account - no throughput parameter
+                return database.create_container_if_not_exists(
+                    id=name,
+                    partition_key=PartitionKey(path="/run_id")
+                )
+            else:
+                # Provisioned throughput account
+                return database.create_container_if_not_exists(
+                    id=name,
+                    partition_key=PartitionKey(path="/run_id"),
+                    offer_throughput=400
+                )
         except exceptions.CosmosHttpResponseError as e:
             print(f"[CosmosDB] Container error: {e}")
             raise
@@ -99,9 +110,6 @@ class CosmosDbLogger:
 
 
     def log_best_trial(self, trial):
-        if TEST_MODE:
-            print("[TEST_MODE] Skipping logging to Cosmos DB.")
-            return
 
         log_data = {
             "id": f"best_trial_{datetime.utcnow().isoformat()}",
@@ -112,6 +120,8 @@ class CosmosDbLogger:
         }
         self.container.upsert_item(log_data)
 
+
+
     def log_llm_response(self, source: str, model_name: str, payload: dict, response: str):
         try:
             log_data = {
@@ -120,28 +130,81 @@ class CosmosDbLogger:
                 "timestamp": datetime.utcnow().isoformat(),
                 "source": source,
                 "model_name": model_name,
-                "payload": payload,
-                "response": response
+                "payload": self._convert_np_types(payload),
+                "response": str(response)[:5000]  # tronque la réponse si trop longue
             }
             self.container.create_item(body=log_data)
             print("[✔] LLM response logged to Cosmos DB.")
         except Exception as e:
-            print(f"[✘] Failed to log LLM response: {e}")     
+            print(f"[✘] Failed to log LLM response: {e}")
 
+
+    def _convert_np_types(self, data):
+        if isinstance(data, dict):
+            return {k: self._convert_np_types(v) for k, v in data.items()}
+        elif isinstance(data, list):
+            return [self._convert_np_types(item) for item in data]
+        elif isinstance(data, np.generic):
+            return data.item()
+        elif isinstance(data, bool):  # ajout nécessaire
+            return bool(data)
+        else:
+            return data
 
     def log_experiment(self, data: dict):
-        if TEST_MODE:
-            print("[TEST_MODE] Skipping log_experiment to Cosmos DB.")
-            return
-
         try:
+            # Ajout timestamp et ID si absent
             if "run_id" not in data:
                 data["run_id"] = f"exp_{datetime.utcnow().isoformat()}"
             if "id" not in data:
                 data["id"] = data["run_id"]
             data["timestamp"] = datetime.utcnow().isoformat()
-            self.container.create_item(body=data)
+
+            # Calcul des deltas et interprétation
+            train = data.get("metrics", {}).get("train", {})
+            test = data.get("metrics", {}).get("test", {})
+
+            if train and test:
+                data["delta_mae"] = train.get("mae", 0) - test.get("mae", 0)
+                data["delta_rmse"] = train.get("rmse", 0) - test.get("rmse", 0)
+                data["delta_r2"] = train.get("r2", 0) - test.get("r2", 0)
+
+                delta_r2 = data["delta_r2"]
+                delta_rmse = data["delta_rmse"]
+
+                if abs(delta_r2) < 0.02 and abs(delta_rmse) < 10000:
+                    data["fit_status"] = "good_generalization"
+                elif delta_r2 > 0.05 and delta_rmse > 20000:
+                    data["fit_status"] = "severe_overfit"
+                elif delta_r2 > 0.02:
+                    data["fit_status"] = "slight_overfit"
+                elif delta_r2 < -0.02:
+                    data["fit_status"] = "underfit"
+                else:
+                    data["fit_status"] = "unclear"
+
+                # Déduction de "is_perfect"
+                data["is_perfect"] = (
+                    data["fit_status"] == "good_generalization" and data["delta_r2"] >= 0 and test.get("r2", 0) >= 0.85)
+
+                fit_comments = {
+                    "good_generalization": "Model generalizes well to unseen data.",
+                    "severe_overfit": "Warning: severe overfitting detected — test performance drops significantly.",
+                    "slight_overfit": "Mild overfitting detected — consider more regularization or early stopping.",
+                    "underfit": "Model may be underfitting — try increasing complexity or reducing regularization.",
+                    "unclear": "Fit status unclear — delta metrics are inconclusive."
+                }
+                data["fit_comment"] = fit_comments.get(data["fit_status"], "No comment available.")
+
+
+
+            # Conversion JSON-compatible
+            clean_data = self._convert_np_types(data)
+
+            # Écriture en base Cosmos DB
+            self.container.create_item(body=clean_data)
             print("[✔] Experiment log successfully pushed to Cosmos DB.")
+
         except Exception as e:
             print(f"[✘] Failed to log experiment to Cosmos DB: {e}")
 

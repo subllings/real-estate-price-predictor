@@ -241,8 +241,14 @@ class CatBoostTuner:
                 "model_name": model_name,
                 "model_file": model_path,
                 "params": params,
-                "metrics": global_metrics_test,
-                "is_perfect": is_perfect,
+                "metrics": {
+                    "train": global_metrics_train,
+                    "test": global_metrics_test,
+                    "delta_r2": global_metrics_train["r2"] - global_metrics_test["r2"],
+                    "delta_rmse": global_metrics_train["rmse"] - global_metrics_test["rmse"]
+                },
+                "metrics_by_price_range": metrics_by_range,
+                "is_perfect": is_perfect
             }
         )
 
