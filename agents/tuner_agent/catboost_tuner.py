@@ -102,13 +102,7 @@ class CatBoostTuner:
 
         params["thread_count"] = 1  # Use single thread for reproducibility  
 
-        # Définition du device GPU/CPU
-        if self.use_gpu:
-            params["task_type"] = "GPU"
-        else:
-            params["task_type"] = "CPU"
-        params["task_type"] = "CPU" # Force CPU for testing
-        #print(f"Training with {'GPU' if self.use_gpu else 'CPU'}")
+
 
         # Conditional parameter only for Bayesian bootstrap
         if bootstrap_type == "Bayesian":
@@ -119,6 +113,9 @@ class CatBoostTuner:
             params["task_type"] = "GPU"
         else:
             params["task_type"] = "CPU"
+        # Force CPU pour test uniquement (commenter/décommenter selon besoin)
+        params["task_type"] = "CPU"
+        print(f"Training with {params['task_type']}")
 
         kf = KFold(n_splits=self.n_splits, shuffle=True, random_state=self.random_state)
         scores, models, evals = [], [], []
@@ -136,7 +133,7 @@ class CatBoostTuner:
                     y_train,
                     eval_set=(X_valid, y_valid),
                     early_stopping_rounds=self.early_stopping_rounds,
-                    verbose=0,
+                    verbose=100,
                 )
 
                 preds = model.predict(X_valid)

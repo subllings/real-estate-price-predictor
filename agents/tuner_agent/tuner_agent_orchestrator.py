@@ -20,7 +20,7 @@ class TunerAgentOrchestrator:
         self.logger = CosmosDbLogger()
 
         # Default settings – override if needed
-        self.n_trials = 3 if TEST_MODE else 50
+        self.n_trials = 1 if TEST_MODE else 50
         self.n_splits = 3
         self.early_stopping_rounds = 20
         self.use_gpu = True
@@ -46,42 +46,34 @@ class TunerAgentOrchestrator:
 
         # Step 3 – Initialize the tuner
         if self.model_name == "catboost":
-            tuner = CatBoostTuner(X, y, self.n_trials, self.n_splits, self.early_stopping_rounds,
-                                search_space, self.random_state, self.use_gpu)
+            tuner = CatBoostTuner(
+                X, y, self.n_trials, self.n_splits, self.early_stopping_rounds,
+                search_space, self.random_state, self.use_gpu
+            )
         elif self.model_name == "xgboost":
-            tuner = XGBoostTuner(X, y, self.n_trials, self.n_splits, self.early_stopping_rounds,
-                                search_space, self.random_state, self.use_gpu)
+            tuner = XGBoostTuner(
+                X, y, self.n_trials, self.n_splits, self.early_stopping_rounds,
+                search_space, self.random_state, self.use_gpu
+            )
         else:
             raise ValueError(f"Unsupported model: {self.model_name}")
 
-        # Step 4 – Run optimization
+        # Step 4 – Run optimization (avec run_study() qui fait tout)
         print("[STEP] Starting optimization...")
-        study = optuna.create_study(direction="minimize")
-        study.optimize(
-            tuner.objective,
-            n_trials=self.n_trials,
-            gc_after_trial=True
-        )
+        best_trial = tuner.run_study()
 
-        best_trial = study.best_trial
         print(f"\n✅ Best trial – RMSE: {best_trial.value:.2f}")
 
-        # Step 5 – Evaluate if the model is "perfect"
+        # Récupération des métriques finales
         final_metrics = tuner.get_final_metrics()
         r2 = final_metrics.get("r2_test", 0)
         mae = final_metrics.get("mae_test", float("inf"))
         rmse = final_metrics.get("rmse_test", float("inf"))
 
-        r2_gap = 0
-        is_perfect = self.is_model_perfect(r2=r2, mae=mae, rmse=rmse, r2_previous=self.best_r2_so_far)
-        if is_perfect:
-            print("🎯 Perfect or significantly improved model found!")
-            print(f"Metrics:\n  R²: {r2:.4f}\n  MAE: {mae:.2f}\n  RMSE: {rmse:.2f}")
-            if r2_gap is not None:
-                print(f"R² improvement (gap) over previous best: {r2_gap:.4f}")
+        print(f"Final metrics:\n  R²: {r2:.4f}\n  MAE: {mae:.2f}\n  RMSE: {rmse:.2f}")
 
-        return best_trial, is_perfect
-
+        # Ici on ne fait plus de vérification 'is_perfect' basée sur des attributs absents
+        return best_trial, False
 
 
     def _tune_model(self, search_space, X, y):
@@ -112,30 +104,3 @@ class TunerAgentOrchestrator:
         return loader.split_X_y(df)
 
 
-    def is_model_perfect(self, r2, mae, rmse, r2_previous=None):
-        """
-        Returns True if the model is considered perfect (meets all quality thresholds),
-        or if it shows a significant improvement in R² over the previous model.
-        Updates self.best_r2_so_far if the current r2 is better.
-        """
-        # Cas 1 – modèle parfait selon les trois métriques
-        if (
-            r2 >= PERFECT_R2_THRESHOLD and
-            mae <= PERFECT_MAE_THRESHOLD and
-            rmse <= PERFECT_RMSE_THRESHOLD
-        ):
-            # Mise à jour best_r2_so_far si meilleure valeur trouvée
-            if r2 > self.best_r2_so_far:
-                self.best_r2_so_far = r2
-            return True
-
-        # Cas 2 – amélioration significative du R²
-        if r2_previous is not None:
-            delta_r2 = r2 - r2_previous
-            if delta_r2 >= DELTA_R2_THRESHOLD:
-                if r2 > self.best_r2_so_far:
-                    self.best_r2_so_far = r2
-                return True
-
-        # Sinon : ni parfait, ni significativement meilleur
-        return False

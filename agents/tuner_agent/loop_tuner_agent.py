@@ -27,24 +27,28 @@ def main():
     print(f"Starting tuner loop for model: {model_name}")
 
     while True:
-        print("Running tuning cycle...")
+        print(f"[{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Running tuning cycle...")
         orchestrator = TunerAgentOrchestrator(model_name)
-        is_perfect = orchestrator.run()  # <-- ici on récupère un booléen
+        best_trial, is_perfect = orchestrator.run()  # <-- attention : run() doit retourner (best_trial, is_perfect)
 
         if is_perfect:
-            print("Perfect model found, stopping tuning loop.")
+            print(f"🎯 Perfect model found (R² >= {PERFECT_R2_THRESHOLD}). Stopping tuning loop.")
+            print("Best trial parameters:")
+            for k, v in best_trial.params.items():
+                print(f"  {k}: {v}")
             break
 
         if is_time_to_stop():
-            print("Stop time reached, stopping tuning loop.")
+            print(f"⏰ Stop time reached ({STOP_HOUR:02d}:{STOP_MINUTE:02d}), stopping tuning loop.")
             break
 
-        time.sleep(1)  
+        time.sleep(5)  # 5 seconds d’attente entre les runs pour ne pas spammer le CPU
 
 
 def is_time_to_stop() -> bool:
     now = datetime.datetime.now()
-    return now.hour >= STOP_HOUR and now.minute >= STOP_MINUTE
+    # Arrêt si on est passé à 7h00 ou plus
+    return now.hour > STOP_HOUR or (now.hour == STOP_HOUR and now.minute >= STOP_MINUTE)
 
 if __name__ == "__main__":
     main()
