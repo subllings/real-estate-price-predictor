@@ -144,3 +144,28 @@ class CosmosDbLogger:
             print("[✔] Experiment log successfully pushed to Cosmos DB.")
         except Exception as e:
             print(f"[✘] Failed to log experiment to Cosmos DB: {e}")
+
+
+
+    def get_trials_for_model(self, model_name: str, limit: int = 10) -> list:
+        """
+        Retrieve the last 'limit' trials for a given model.
+        """
+        query = """
+        SELECT TOP @limit * FROM c
+        WHERE c.model_name = @model_name AND c.type = 'metrics'
+        ORDER BY c.timestamp DESC
+        """
+        parameters = [
+            {"name": "@limit", "value": limit},
+            {"name": "@model_name", "value": model_name}
+        ]
+        try:
+            return list(self.container.query_items(
+                query=query,
+                parameters=parameters,
+                enable_cross_partition_query=True
+            ))
+        except Exception as e:
+            print(f"[✘] Error fetching trials from CosmosDB: {e}")
+            return []

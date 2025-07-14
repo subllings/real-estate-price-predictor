@@ -25,7 +25,7 @@ scikit-learn==1.4.2
 joblib==1.4.2
 xgboost==2.0.3
 lightgbm==4.3.0
-catboost==1.2.3
+catboost==1.2.8 
 optuna==3.6.1
 shap==0.45.1
 

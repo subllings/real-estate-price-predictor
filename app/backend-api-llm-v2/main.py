@@ -77,6 +77,10 @@ class CommentRequest(BaseModel):
 class LLMParamRequest(BaseModel):
     model_name: str
 
+class SuggestionRequest(BaseModel):
+    model_name: str
+    previous_trials: list
+
 # === Utility Function ===
 
 def call_azure_openai_chat(messages: List[dict], temperature: float = 0.7, max_tokens: int = 300):
@@ -145,34 +149,38 @@ def generate_comments(request: CommentRequest):
     comments = [c.strip() for c in response_text.strip().split('\n') if c.strip()]
     return {"comments": comments}
 
+
 @app.post("/llm-tuner/suggest-space", tags=["LLM Tuner"])
-def suggest_param_space(request: LLMParamRequest):
-    model_name = request.model_name.strip()
+def suggest_param_space(request: SuggestionRequest):
+    model_name = request.model_name
+    trials = request.previous_trials
+
+    if not trials:
+        trial_summary = "(no prior trials found)"
+    else:
+        trial_summary = "\n".join([
+            f"- Params: {t.get('hyperparameters', t.get('params'))}, "
+            f"Score: {t.get('r2_test') or t.get('rmse') or '?'}"
+            for t in trials
+        ])
 
     prompt = f"""
-    You are an expert in machine learning and hyperparameter tuning.
+You are an expert in hyperparameter tuning using Optuna.
+Here are previous trials for the model '{model_name}':
 
-    Suggest a well-structured Optuna search space in JSON format for the model: '{model_name}'.
-    Do not include any parameter that is incompatible with CatBoost on GPU, like 'rsm'.
-    Return only a clean JSON object, no explanations, with each parameter name as a key and a dict as value.
-    Each dict must include: "type" (float, int, categorical), "low" and "high" (if applicable), or "choices".
+{trial_summary}
 
-    Example output:
-    {{
-        "learning_rate": {{"type": "float", "low": 0.01, "high": 0.3}},
-        "max_depth": {{"type": "int", "low": 3, "high": 12}},
-        "subsample": {{"type": "float", "low": 0.5, "high": 1.0}},
-        "booster": {{"type": "categorical", "choices": ["gbtree", "dart"]}}
-    }}
-    """
+Based on this history, suggest a refined Optuna parameter space in JSON format.
+Only output valid JSON. No explanations.
+"""
 
     response_text = call_azure_openai_chat(
         messages=[
-            {"role": "system", "content": "You are a helpful AI assistant that generates Optuna parameter spaces."},
+            {"role": "system", "content": "You are a helpful assistant specialized in ML hyperparameter tuning."},
             {"role": "user", "content": prompt}
         ],
-        temperature=0.3,
-        max_tokens=500
+        temperature=0.2,
+        max_tokens=700
     )
 
     try:

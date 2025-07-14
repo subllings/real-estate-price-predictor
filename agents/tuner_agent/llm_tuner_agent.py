@@ -24,10 +24,14 @@ class LLMTunerAgent:
 
     def suggest_param_space(self) -> dict:
         """
-        Call the internal FastAPI endpoint to suggest parameter space.
+        Call the internal FastAPI endpoint to suggest parameter space, using previous trials.
         """
+        # 1. Get previous trials (last N successful runs)
+        previous_trials = self.logger.get_trials_for_model(self.model_name, limit=10)
+
         payload = {
-            "model_name": self.model_name
+            "model_name": self.model_name,
+            "previous_trials": previous_trials
         }
 
         try:
@@ -59,10 +63,6 @@ class LLMTunerAgent:
             return result["param_space"]
         except json.JSONDecodeError:
             raise ValueError(f"[❌] LLM returned invalid JSON: {raw}")
-
-
-
-
 
 
 
