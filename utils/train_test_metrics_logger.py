@@ -41,13 +41,12 @@ class TrainTestMetricsLogger:
         data_file=None,
         test_mode=TEST_MODE,
         dir_choice="ml_ready",
-        n_features=None  
+        n_features=None,
+        is_perfect=None  
     ):
         # If data_file not provided, get latest from the right dir (default: ml_ready)
         if data_file is None:
-            data_file = self.get_latest_cleaned_file(dir_choice=dir_choice)
-            if data_file is None:
-                raise FileNotFoundError(f"No CSV file found in {dir_choice} directory.")
+            raise FileNotFoundError(f"No CSV file found in {dir_choice} directory.")
 
         file_timestamp = None
         if os.path.isfile(data_file):
@@ -76,7 +75,8 @@ class TrainTestMetricsLogger:
             "data_file_timestamp": [file_timestamp],
             "test_mode": [test_mode],
             "interpretation (r2,mae_gap)": [interp["status"]],
-            "ranking_score": [ranking_score]
+            "ranking_score": [ranking_score],
+            "is_perfect": [is_perfect]  # <-- ajout ici
         }
 
         df = pd.DataFrame(data)

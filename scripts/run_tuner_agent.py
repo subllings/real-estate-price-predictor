@@ -1,0 +1,26 @@
+import sys, os
+
+# Ajoute la racine du projet au PYTHONPATH
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+sys.path.append(project_root)
+
+from agents.tuner_agent.tuner_agent_orchestrator import TunerAgentOrchestrator
+
+def main():
+    if len(sys.argv) != 2:
+        print("Usage: python scripts/run_tuner_agent.py <model_name>")
+        print("Example: python scripts/run_tuner_agent.py xgboost")
+        sys.exit(1)
+
+    model_name = sys.argv[1]
+    print(f"[run_tuner_agent.py] Launching tuning agent for model: {model_name}")
+
+    orchestrator = TunerAgentOrchestrator(model_name)
+    metrics = orchestrator.run()
+
+    print("\nFinal model evaluation:")
+    for k, v in metrics.items():
+        print(f"{k}: {v}")
+
+if __name__ == "__main__":
+    main()

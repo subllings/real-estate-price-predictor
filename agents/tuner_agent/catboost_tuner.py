@@ -1,52 +1,192 @@
 import sys, os
-project_root = os.path.abspath("../..")
+
+# Add the project root to the Python path
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
 sys.path.append(project_root)
 
 import optuna
 import numpy as np
 import pandas as pd
+from datetime import datetime
 from sklearn.model_selection import KFold
 from sklearn.metrics import mean_squared_error
 from catboost import CatBoostRegressor
 
+from utils.cosmosdb_logger import CosmosDbLogger
+from utils.model_saver import ModelSaver
+from utils.model_evaluator import ModelEvaluator
+from utils.data_loader import DataLoader
+from utils.constants import ML_READY_DATA_FILE, TEST_MODE
+
+
 class CatBoostTuner:
-    def __init__(self, X, y, n_trials=50, n_splits=5, early_stopping_rounds=20, optuna_params=None, random_state=42):
+    def __init__(self, X, y, n_trials, n_splits, early_stopping_rounds, optuna_params=None, random_state=42, use_gpu=False):
         self.X = X
         self.y = y
         self.n_trials = n_trials
         self.n_splits = n_splits
         self.early_stopping_rounds = early_stopping_rounds
         self.random_state = random_state
-        self.best_params = None
-        self.optuna_params = optuna_params or {}
+        self.use_gpu = use_gpu  
+        self.model_saver = ModelSaver()
+        self.logger = CosmosDbLogger()
 
-    def objective(self, trial):
-        params = {
-            "learning_rate": trial.suggest_float("learning_rate", *self.optuna_params.get("learning_rate", (0.01, 0.3))),
-            "depth": trial.suggest_int("depth", *self.optuna_params.get("depth", (4, 10))),
-            "l2_leaf_reg": trial.suggest_float("l2_leaf_reg", *self.optuna_params.get("l2_leaf_reg", (1.0, 10.0))),
-            "bagging_temperature": trial.suggest_float("bagging_temperature", *self.optuna_params.get("bagging_temperature", (0.0, 1.0))),
-            "border_count": trial.suggest_int("border_count", *self.optuna_params.get("border_count", (32, 255))),
-            "random_strength": trial.suggest_float("random_strength", *self.optuna_params.get("random_strength", (1e-9, 10.0))),
-            "verbose": 0
+        self.optuna_params = optuna_params or {
+            "learning_rate": (0.01, 0.3),
+            "depth": (4, 10),
+            "l2_leaf_reg": (1.0, 10.0),
+            "bagging_temperature": (0.0, 1.0),
+            "border_count": (32, 255),
+            "random_strength": (1e-9, 10.0)
         }
 
+    def suggest_param(self, trial, name, config):
+        if isinstance(config, dict):
+            param_type = config.get("type")
+            if param_type == "float":
+                return trial.suggest_float(name, config["low"], config["high"])
+            elif param_type == "int":
+                return trial.suggest_int(name, config["low"], config["high"])
+            elif param_type == "categorical":
+                return trial.suggest_categorical(name, config["choices"])
+            else:
+                raise ValueError(f"Unsupported param type: {param_type}")
+        elif isinstance(config, tuple) and len(config) == 2:
+            if all(isinstance(i, int) for i in config):
+                return trial.suggest_int(name, config[0], config[1])
+            else:
+                return trial.suggest_float(name, config[0], config[1])
+        else:
+            raise ValueError(f"Invalid parameter format for '{name}': {config}")
+
+
+
+
+    def objective(self, trial):
+        # Suggest bootstrap_type first (needed for conditional logic)
+        bootstrap_type = trial.suggest_categorical("bootstrap_type", ["Bayesian", "Bernoulli", "MVS"])
+
+        # Build params dict
+        params = {
+            "learning_rate": trial.suggest_float("learning_rate", 0.01, 0.3),
+            "depth": trial.suggest_int("depth", 4, 10),
+            "l2_leaf_reg": trial.suggest_float("l2_leaf_reg", 1.0, 10.0),
+            "border_count": trial.suggest_int("border_count", 32, 255),
+            "random_strength": trial.suggest_float("random_strength", 0.0, 10.0),
+            "grow_policy": trial.suggest_categorical("grow_policy", ["SymmetricTree", "Depthwise", "Lossguide"]),
+            "min_data_in_leaf": trial.suggest_int("min_data_in_leaf", 1, 20),
+            "leaf_estimation_iterations": trial.suggest_int("leaf_estimation_iterations", 1, 10),
+            "leaf_estimation_method": trial.suggest_categorical("leaf_estimation_method", ["Newton", "Gradient"]),
+            "bootstrap_type": bootstrap_type,
+        }
+
+        # Conditional param only for Bayesian bootstrap
+        if bootstrap_type == "Bayesian":
+            params["bagging_temperature"] = trial.suggest_float("bagging_temperature", 0.0, 1.0)
+
+        params["verbose"] = 0
+        if self.use_gpu:
+            params["task_type"] = "GPU"
+
+        # Cross-validation setup
         kf = KFold(n_splits=self.n_splits, shuffle=True, random_state=self.random_state)
-        scores = []
+        scores, models, evals = [], [], []
 
         for train_idx, valid_idx in kf.split(self.X):
             X_train, X_valid = self.X.iloc[train_idx], self.X.iloc[valid_idx]
             y_train, y_valid = self.y.iloc[train_idx], self.y.iloc[valid_idx]
 
             model = CatBoostRegressor(**params)
-            model.fit(X_train, y_train, eval_set=(X_valid, y_valid),
-                      early_stopping_rounds=self.early_stopping_rounds, verbose=0)
-            
+            model.fit(
+                X_train,
+                y_train,
+                eval_set=(X_valid, y_valid),
+                early_stopping_rounds=self.early_stopping_rounds,
+                verbose=0
+            )
+
             preds = model.predict(X_valid)
             rmse = np.sqrt(mean_squared_error(y_valid, preds))
             scores.append(rmse)
+            models.append(model)
+            evals.append((X_valid, y_valid, preds))
+
+        # Use best performing fold
+        best_fold_idx = int(np.argmin(scores))
+        best_model = models[best_fold_idx]
+        X_eval, y_eval, y_pred = evals[best_fold_idx]
+
+        # Evaluate on validation fold
+        evaluator = ModelEvaluator(model_name=f"CatBoost_Trial_{trial.number}")
+        global_metrics_test, metrics_by_range = evaluator.evaluate(
+            y_eval, y_pred, bins=[0, 200000, 400000, 600000, 1000000]
+        )
+        evaluator.print_evaluation(y_eval, y_pred, bins=[0, 200000, 400000, 600000, 1000000])
+
+        # Evaluate on training fold (best fold train part)
+        y_train_best = self.y.iloc[kf.split(self.X).__next__()[0]]  # Ou garder l'index train du fold choisi ?
+        X_train_best = self.X.iloc[kf.split(self.X).__next__()[0]]
+
+        # Attention ici, il faut récupérer les indices du fold best_fold_idx pour le train
+        # Pour simplifier, tu peux faire :
+        train_indices, _ = list(kf.split(self.X))[best_fold_idx]
+        X_train_best = self.X.iloc[train_indices]
+        y_train_best = self.y.iloc[train_indices]
+
+        global_metrics_train, _ = evaluator.evaluate(
+            y_train_best, best_model.predict(X_train_best), bins=[0, 200000, 400000, 600000, 1000000]
+        )
+
+        # Déterminer si le modèle est parfait
+
+        is_perfect = ModelEvaluator.is_model_perfect(evaluator, y_train_best, best_model.predict(X_train_best), y_eval, y_pred)
+        
+        # Save best model
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M")
+        model_name = f"catboost_trial_{trial.number}_{timestamp}{'_TEST' if TEST_MODE else ''}"
+
+
+        model_path = self.model_saver.save_model_and_features(
+            model=best_model,
+            features=self.X.columns.tolist(),
+            model_name=model_name,
+            metrics=global_metrics_test,
+            metrics_by_price_range=metrics_by_range
+        )
+
+        # Log dans CSV
+        from utils.train_test_metrics_logger import TrainTestMetricsLogger
+        csv_logger = TrainTestMetricsLogger()
+        csv_logger.log(
+            model_name=model_name,
+            experiment_name="optuna_best_trial",
+            mae_train=global_metrics_train["mae"],
+            rmse_train=global_metrics_train["rmse"],
+            r2_train=global_metrics_train["r2"],
+            mae_test=global_metrics_test["mae"],
+            rmse_test=global_metrics_test["rmse"],
+            r2_test=global_metrics_test["r2"],
+            n_features=self.X.shape[1],
+            data_file=ML_READY_DATA_FILE,
+            test_mode=TEST_MODE,
+            is_perfect=is_perfect
+        )
+
+        # Log experiment in CosmosDB
+        self.logger.log_experiment({
+            "type": "optuna_trial",
+            "trial_number": trial.number,
+            "model_name": model_name,
+            "model_file": model_path,
+            "params": params,
+            "metrics": global_metrics_test,
+            "is_perfect": is_perfect
+        })
 
         return np.mean(scores)
+
+
+
 
     def run_study(self):
         study = optuna.create_study(direction="minimize")

@@ -233,3 +233,18 @@ def read_root():
 @app.post("/echo")
 def echo_input(data: dict):
     return {"received": data}
+
+
+@app.post("/get_model_parameters")
+def get_model_parameters():
+    try:
+        parameters = model_all.feature_names_
+        logger.info(f"Sending model parameters to agent. Count: {len(parameters)}")
+        return {
+            "model_name": "catboost_optuna_all",
+            "feature_count": len(parameters),
+            "features": parameters,
+        }
+    except Exception as e:
+        logger.exception("Failed to get model parameters")
+        raise HTTPException(status_code=500, detail=str(e))

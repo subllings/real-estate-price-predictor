@@ -1,7 +1,0 @@
-{
-  "model": "CatBoost + Optuna CV (Top RF Features \u2013 R\u00b2 gap evaluated)_20250712_0238.pkl",
-  "mae": 62577.32343904488,
-  "rmse": 92611.45301374648,
-  "r2": 0.8034363162176451,
-  "timestamp": "2025-07-12 02:38:07"
-}

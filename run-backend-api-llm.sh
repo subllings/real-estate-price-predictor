@@ -8,7 +8,7 @@ clear
 # === Config ===
 HOST=${HOST:-127.0.0.1}
 PORT=${PORT:-8010}
-BACKEND_DIR="app/backend-api-llm"
+BACKEND_DIR="app/backend-api-llm-v2"
 ENTRYPOINT="main:app"
 
 # === Activate venv (Windows Git Bash)

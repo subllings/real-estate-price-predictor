@@ -2,6 +2,8 @@ import os
 from datetime import datetime
 from azure.cosmos import CosmosClient, PartitionKey, exceptions
 from dotenv import load_dotenv
+from utils.constants import ML_READY_DATA_FILE, TEST_MODE
+
 
 load_dotenv()
 
@@ -80,3 +82,65 @@ class CosmosDbLogger:
         for item in items:
             self.container.delete_item(item["id"], partition_key=item["model_name"])
         print(f"[✔] Deleted {len(items)} items for model: {model_name}")
+
+    def get_best_run_hyperparams(self, model_name: str) -> dict:
+        """
+        Retrieve the hyperparameters of the best run (highest r2_test) for a given model.
+        """
+        best_run = self.get_best_run(model_name)
+        if not best_run:
+            print(f"[!] No runs found for model '{model_name}' with agent_finetuning_ready = true.")
+            return {}
+
+        # Extract hyperparameters - assumed to be under key 'hyperparameters'
+        hyperparams = best_run.get("hyperparameters", {})
+        print(f"[✔] Best hyperparameters retrieved for model '{model_name}': {hyperparams}")
+        return hyperparams
+
+
+    def log_best_trial(self, trial):
+        if TEST_MODE:
+            print("[TEST_MODE] Skipping logging to Cosmos DB.")
+            return
+
+        log_data = {
+            "id": f"best_trial_{datetime.utcnow().isoformat()}",
+            "type": "best_trial",
+            "timestamp": datetime.utcnow().isoformat(),
+            "rmse": trial.value,
+            "params": trial.params
+        }
+        self.container.upsert_item(log_data)
+
+    def log_llm_response(self, source: str, model_name: str, payload: dict, response: str):
+        try:
+            log_data = {
+                "id": f"llm_response_{datetime.utcnow().isoformat()}",
+                "type": "llm_response",
+                "timestamp": datetime.utcnow().isoformat(),
+                "source": source,
+                "model_name": model_name,
+                "payload": payload,
+                "response": response
+            }
+            self.container.create_item(body=log_data)
+            print("[✔] LLM response logged to Cosmos DB.")
+        except Exception as e:
+            print(f"[✘] Failed to log LLM response: {e}")     
+
+
+    def log_experiment(self, data: dict):
+        if TEST_MODE:
+            print("[TEST_MODE] Skipping log_experiment to Cosmos DB.")
+            return
+
+        try:
+            if "run_id" not in data:
+                data["run_id"] = f"exp_{datetime.utcnow().isoformat()}"
+            if "id" not in data:
+                data["id"] = data["run_id"]
+            data["timestamp"] = datetime.utcnow().isoformat()
+            self.container.create_item(body=data)
+            print("[✔] Experiment log successfully pushed to Cosmos DB.")
+        except Exception as e:
+            print(f"[✘] Failed to log experiment to Cosmos DB: {e}")

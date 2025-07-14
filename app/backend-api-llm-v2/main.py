@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from dotenv import load_dotenv
 import requests
+import json
 
 # Load environment variables
 load_dotenv()
@@ -72,6 +73,9 @@ class CommentRequest(BaseModel):
     predictionAll: float
     predictionTop: float
     userProfile: UserProfile
+
+class LLMParamRequest(BaseModel):
+    model_name: str
 
 # === Utility Function ===
 
@@ -141,3 +145,38 @@ def generate_comments(request: CommentRequest):
     comments = [c.strip() for c in response_text.strip().split('\n') if c.strip()]
     return {"comments": comments}
 
+@app.post("/llm-tuner/suggest-space", tags=["LLM Tuner"])
+def suggest_param_space(request: LLMParamRequest):
+    model_name = request.model_name.strip()
+
+    prompt = f"""
+    You are an expert in machine learning and hyperparameter tuning.
+
+    Suggest a well-structured Optuna search space in JSON format for the model: '{model_name}'.
+    Do not include any parameter that is incompatible with CatBoost on GPU, like 'rsm'.
+    Return only a clean JSON object, no explanations, with each parameter name as a key and a dict as value.
+    Each dict must include: "type" (float, int, categorical), "low" and "high" (if applicable), or "choices".
+
+    Example output:
+    {{
+        "learning_rate": {{"type": "float", "low": 0.01, "high": 0.3}},
+        "max_depth": {{"type": "int", "low": 3, "high": 12}},
+        "subsample": {{"type": "float", "low": 0.5, "high": 1.0}},
+        "booster": {{"type": "categorical", "choices": ["gbtree", "dart"]}}
+    }}
+    """
+
+    response_text = call_azure_openai_chat(
+        messages=[
+            {"role": "system", "content": "You are a helpful AI assistant that generates Optuna parameter spaces."},
+            {"role": "user", "content": prompt}
+        ],
+        temperature=0.3,
+        max_tokens=500
+    )
+
+    try:
+        param_space = json.loads(response_text)
+        return {"model": model_name, "param_space": param_space}
+    except json.JSONDecodeError:
+        raise HTTPException(status_code=500, detail=f"Invalid JSON returned by LLM:\n{response_text}")

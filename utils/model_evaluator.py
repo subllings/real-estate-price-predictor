@@ -113,3 +113,29 @@ class ModelEvaluator:
         Compute the root of the mean squared error.
         """
         return np.sqrt(mean_squared_error(y_true, y_pred))
+
+
+
+    @staticmethod
+    def is_model_perfect(evaluator, y_true_train, y_pred_train, y_true_test, y_pred_test) -> bool:
+        global_metrics_train, _ = evaluator.evaluate(y_true_train, y_pred_train)
+        global_metrics_test, _ = evaluator.evaluate(y_true_test, y_pred_test)
+
+        r2_train = global_metrics_train["r2"]
+        r2_test = global_metrics_test["r2"]
+        mae_test = global_metrics_test["mae"]
+        rmse_test = global_metrics_test["rmse"]
+
+        r2_gap = abs(r2_train - r2_test)
+
+        PERFECT_R2 = 0.90
+        MAX_R2_GAP = 0.05
+        MAX_MAE = 25000
+        MAX_RMSE = 30000
+
+        return (
+            r2_test >= PERFECT_R2 and
+            r2_gap <= MAX_R2_GAP and
+            mae_test <= MAX_MAE and
+            rmse_test <= MAX_RMSE
+        )
