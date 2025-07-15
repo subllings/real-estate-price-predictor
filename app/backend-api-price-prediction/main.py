@@ -4,11 +4,13 @@ import joblib
 import pandas as pd
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
-from typing import Dict, Any
+from typing import Dict, Any, List
 import logging
 
+from services.model_manager import model_registry
+
 # Initialize FastAPI app
-app = FastAPI()
+app = FastAPI(title="Real Estate Price Prediction API", version="2.0.0")
 
 # Configure logging (important pour afficher le contenu reçu)
 logging.basicConfig(level=logging.INFO)
@@ -26,17 +28,65 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Load both models at startup
-MODEL_ALL_PATH = "models/pkl/catboost_optuna_all_20250703_0914.pkl"
-MODEL_TOP30_PATH = "models/pkl/catboost_optuna_top30_20250703_0914.pkl"
+# Smart model loading - use available models or fallback
+try:
+    available_models = model_registry.list_models()
+    if available_models:
+        # Try to find best models for each variant
+        best_all_features = None
+        best_top_features = None
+        
+        for model in available_models:
+            if model["variant"] == "all_features":
+                if not best_all_features or (model.get("r2", 0) > best_all_features.get("r2", 0)):
+                    best_all_features = model
+            elif model["variant"] == "top_features":
+                if not best_top_features or (model.get("r2", 0) > best_top_features.get("r2", 0)):
+                    best_top_features = model
+        
+        # Load the best available models
+        if best_all_features:
+            model_all = model_registry.load_model(best_all_features["model_id"])
+            model_all_info = best_all_features
+            logger.info(f"Loaded best all-features model: {best_all_features['model_id']}")
+        else:
+            logger.warning("No all-features model found")
+            model_all = None
+            model_all_info = None
+        
+        if best_top_features:
+            model_top30 = model_registry.load_model(best_top_features["model_id"])
+            model_top30_info = best_top_features
+            logger.info(f"Loaded best top-features model: {best_top_features['model_id']}")
+        else:
+            logger.warning("No top-features model found")
+            model_top30 = None
+            model_top30_info = None
+    else:
+        logger.error("No models found in registry")
+        model_all = model_top30 = None
+        model_all_info = model_top30_info = None
+        
+except Exception as e:
+    logger.error(f"Failed to load models from registry: {e}")
+    # Fallback to hardcoded paths if available
+    MODEL_ALL_PATH = "models/pkl/catboost_optuna_all_20250703_0914.pkl"
+    MODEL_TOP30_PATH = "models/pkl/catboost_optuna_top30_20250703_0914.pkl"
+    
+    try:
+        with open(MODEL_ALL_PATH, "rb") as f:
+            model_all = joblib.load(f)
+        with open(MODEL_TOP30_PATH, "rb") as f:
+            model_top30 = joblib.load(f)
+        model_all_info = {"model_id": "fallback_all", "name": "Fallback All Features"}
+        model_top30_info = {"model_id": "fallback_top30", "name": "Fallback Top 30"}
+        logger.info("Loaded fallback models")
+    except Exception as fallback_error:
+        logger.error(f"Fallback loading also failed: {fallback_error}")
+        model_all = model_top30 = None
+        model_all_info = model_top30_info = None
 
-with open(MODEL_ALL_PATH, "rb") as f:
-    model_all = joblib.load(f)
-
-with open(MODEL_TOP30_PATH, "rb") as f:
-    model_top30 = joblib.load(f)
-
-print("Both models loaded.")
+print(f"Model loading complete. All-features: {'✓' if model_all else '✗'}, Top-features: {'✓' if model_top30 else '✗'}")
 
 # Input schema for full feature model
 class InputDataAll(BaseModel):
@@ -172,6 +222,9 @@ def predict_all(data: InputDataAll):
 """
 @app.post("/predict_all")
 async def predict_all(data: Dict[str, Any]):
+    if not model_all:
+        raise HTTPException(status_code=503, detail="All-features model not available")
+        
     try:
         logger.info("----")
         logger.info("Received payload for prediction:")
@@ -202,7 +255,15 @@ async def predict_all(data: Dict[str, Any]):
         # Prediction
         prediction = model_all.predict(input_df)
         logger.info("Prediction: %s", prediction)
-        return {"prediction": float(prediction[0])}
+        return {
+            "prediction": float(prediction[0]),
+            "model_info": {
+                "model_id": model_all_info.get("model_id") if model_all_info else "unknown",
+                "model_name": model_all_info.get("name") if model_all_info else "Unknown Model",
+                "r2_score": model_all_info.get("r2") if model_all_info else None,
+                "mae": model_all_info.get("mae") if model_all_info else None
+            }
+        }
 
     except HTTPException as he:
         raise he  # Let FastAPI handle it properly
@@ -214,6 +275,9 @@ async def predict_all(data: Dict[str, Any]):
 # Endpoint for top 30 features model
 @app.post("/predict_top30")
 def predict_top30(data: InputDataTop30):
+    if not model_top30:
+        raise HTTPException(status_code=503, detail="Top-features model not available")
+        
     try:
         input_dict = data.dict(by_alias=True)
         for k, v in input_dict.items():
@@ -221,14 +285,22 @@ def predict_top30(data: InputDataTop30):
                 raise ValueError(f"Invalid value for key '{k}': nested dict detected ({v})")
         input_df = pd.DataFrame([input_dict])
         prediction = model_top30.predict(input_df)
-        return {"prediction": float(prediction[0])}
+        return {
+            "prediction": float(prediction[0]),
+            "model_info": {
+                "model_id": model_top30_info.get("model_id") if model_top30_info else "unknown",
+                "model_name": model_top30_info.get("name") if model_top30_info else "Unknown Model",
+                "r2_score": model_top30_info.get("r2") if model_top30_info else None,
+                "mae": model_top30_info.get("mae") if model_top30_info else None
+            }
+        }
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
 
 @app.get("/")
 def read_root():
-    return {"message": "Real estate price predictor API is up and running"}
+    return {"message": "Real Estate Prediction API", "version": "2.0.0", "models_available": len(model_registry.list_models())}
 
 @app.post("/echo")
 def echo_input(data: dict):
@@ -237,14 +309,67 @@ def echo_input(data: dict):
 
 @app.post("/get_model_parameters")
 def get_model_parameters():
+    if not model_all:
+        raise HTTPException(status_code=503, detail="Model not available")
+        
     try:
         parameters = model_all.feature_names_
         logger.info(f"Sending model parameters to agent. Count: {len(parameters)}")
         return {
-            "model_name": "catboost_optuna_all",
+            "model_name": model_all_info.get("model_id") if model_all_info else "unknown",
             "feature_count": len(parameters),
             "features": parameters,
         }
     except Exception as e:
         logger.exception("Failed to get model parameters")
+        raise HTTPException(status_code=500, detail=str(e))
+
+# === NEW MODEL MANAGEMENT ENDPOINTS ===
+
+@app.get("/models")
+def list_models():
+    """Liste tous les modèles disponibles"""
+    try:
+        model_registry.refresh_registry()
+        models = model_registry.list_models()
+        return {
+            "models": models,
+            "count": len(models)
+        }
+    except Exception as e:
+        logger.exception("Failed to list models")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/models/{model_id}")
+def get_model_details(model_id: str):
+    """Obtient les détails d'un modèle spécifique"""
+    try:
+        model_info = model_registry.get_model_info(model_id)
+        if not model_info:
+            raise HTTPException(status_code=404, detail=f"Model {model_id} not found")
+        return model_info
+    except Exception as e:
+        logger.exception(f"Failed to get model details for {model_id}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/models/{model_id}/promote")
+def promote_model(model_id: str, variant: str = "all_features"):
+    """Promeut un modèle en production"""
+    try:
+        model_registry.set_production_model(model_id, variant)
+        
+        # Recharger les modèles actifs
+        global model_all, model_top30, model_all_info, model_top30_info
+        
+        model_info = model_registry.get_model_info(model_id)
+        if model_info["variant"] == "all_features":
+            model_all = model_registry.load_model(model_id)
+            model_all_info = model_info
+        elif model_info["variant"] == "top_features":
+            model_top30 = model_registry.load_model(model_id)
+            model_top30_info = model_info
+        
+        return {"message": f"Model {model_id} promoted to production", "variant": variant}
+    except Exception as e:
+        logger.exception(f"Failed to promote model {model_id}")
         raise HTTPException(status_code=500, detail=str(e))

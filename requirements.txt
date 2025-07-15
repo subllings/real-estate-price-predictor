@@ -55,7 +55,15 @@ pytest-cov==5.0.0
 azureml-core==1.55.0
 # azureml-mlflow==1.55.0
 # azure-ai-ml==1.17.0
-# azure-identity==1.16.0
+azure-identity==1.16.0
+azure-storage-blob>=12.19.0
+azure-cosmos==4.6.0
+
+# Enhanced ML tracking (optional)
+optuna-integration>=3.5.0
+
+# Database drivers for Optuna cloud backend (optional)
+psycopg2-binary>=2.9.7  # For PostgreSQL Optuna backend
 
 # Terminal output / UX
 rich==13.7.1

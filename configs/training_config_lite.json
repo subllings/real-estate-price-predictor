@@ -1,0 +1,34 @@
+{
+  "optuna": {
+    "n_trials": 25,
+    "direction": "maximize", 
+    "study_name": "real_estate_lite",
+    "timeout": 1800,
+    "cpu_only": true
+  },
+  "model": {
+    "type": "catboost",
+    "cv_folds": 3,
+    "test_size": 0.2,
+    "random_seed": 42,
+    "force_cpu": true,
+    "max_memory": "4GB"
+  },
+  "cloud": {
+    "enable_blob_storage": false,
+    "enable_cosmos_logging": false,
+    "production_threshold": 0.82,
+    "auto_deploy": true
+  },
+  "training": {
+    "batch_size": 500,
+    "max_iterations": 1000,
+    "early_stopping": 100,
+    "verbose": false
+  },
+  "hardware": {
+    "gpu_disabled": true,
+    "max_threads": 4,
+    "memory_limit": "4GB"
+  }
+}

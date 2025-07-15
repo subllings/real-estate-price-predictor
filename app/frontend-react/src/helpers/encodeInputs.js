@@ -46,11 +46,13 @@ const allFeatures = {
   "buildingCondition_JUST_RENOVATED": 0,
   "buildingCondition_TO_BE_DONE_UP": 0,
   "buildingCondition_TO_RENOVATE": 0,
+  "buildingCondition_RENOVATION_NEEDED": 0,
   "buildingCondition_TO_RESTORE": 0,
   "buildingCondition_nan": 0,
 
   // Flood zones
   "floodZoneType_NON_FLOOD_ZONE": 0,
+  "floodZoneType_FLOOD_ZONE": 0,
   "floodZoneType_POSSIBLE_FLOOD_ZONE": 0,
   "floodZoneType_RECOGNIZED_FLOOD_ZONE": 0,
   "floodZoneType_nan": 0,
@@ -67,6 +69,8 @@ const allFeatures = {
 
   // Kitchen types
   "kitchenType_HYPER_EQUIPPED": 0,
+  "kitchenType_EQUIPPED": 0,
+  "kitchenType_SIMPLE": 0,
   "kitchenType_INSTALLED": 0,
   "kitchenType_SEMI_EQUIPPED": 0,
   "kitchenType_USA_HYPER_EQUIPPED": 0,

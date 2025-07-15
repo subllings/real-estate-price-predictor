@@ -1,31 +1,54 @@
 .resultCard {
-  padding: 1rem;
-  background-color: #e6ffe6;
+  padding: 0.75rem;
+  background-color: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-left: 4px solid #22c55e;
   border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   flex: 1;
-  border-left: 6px solid #2e8b57;
+  transition: border-color 0.2s;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  min-height: 60px;
+  max-height: 80px;
+}
+
+.resultCard:hover {
+  border-color: #007bff;
 }
 
 .title {
-  font-size: 1.2rem;
-  color: #215c42;
+  font-size: 1.1rem;
+  color: #333;
   margin-bottom: 0.5rem;
-  font-weight: normal; /* ⚠️ Ici normal, pour ne pas tout mettre en gras */
+  font-weight: 600;
 }
 
 .boldTitle {
-  font-size: 1.4rem;
+  font-size: 1.1rem;
   font-weight: bold;
+  color: #007bff;
 }
 
 .price {
-  font-size: 1.2rem;
-  color: #000;
-  font-weight: normal;
+  font-size: 0.875rem;
+  color: #374151;
+  font-weight: 500;
+  margin: 0;
+  text-align: center;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  white-space: nowrap;
 }
 
 .priceValue {
   font-weight: bold;
-  font-size: 1.4rem;
+  font-size: 0.875rem;
+  color: #22c55e;
+  text-align: center;
 }

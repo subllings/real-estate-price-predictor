@@ -1,0 +1,757 @@
+.sidepanel {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 100vh;
+  background-color: #ffffff;
+  box-shadow: 4px 0 20px rgba(0, 0, 0, 0.15);
+  border-right: 3px solid #4caf50;
+  display: flex;
+  flex-direction: column;
+  transition: width 0.3s ease;
+  z-index: 1000;
+  font-family: Arial, sans-serif;
+}
+
+.sidepanel.collapsed {
+  width: 40px;
+  overflow: hidden;
+}
+
+.sidepanel.expanded {
+  width: 600px;
+}
+
+.sidepanel-header {
+  background: linear-gradient(135deg, #4caf50 0%, #45a049 100%);
+  color: white;
+  padding: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  position: sticky;
+  top: 0;
+  z-index: 1001;
+  flex-shrink: 0;
+}
+
+/* Main content area with scroll */
+.sidepanel-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0;
+  min-height: 0;
+}
+
+/* Input area fixed at bottom */
+.chat-input-container {
+  background: #f8f9fa;
+  padding: 20px;
+  border-top: 1px solid #e9ecef;
+  position: sticky;
+  bottom: 0;
+  flex-shrink: 0;
+}
+
+.toggle-btn,
+.close-btn {
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  color: white;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 1.2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s;
+  flex-shrink: 0;
+}
+
+.toggle-btn:hover,
+.close-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* Content sections styling similar to ESGPanel */
+.comments-header {
+  background: #f8f9fa;
+  padding: 20px;
+  border-bottom: 1px solid #e9ecef;
+  flex-shrink: 0;
+}
+
+.comments-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.badge-icon {
+  font-size: 1.2rem;
+}
+
+.badge-text {
+  background: #4caf50;
+  color: white;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.comments-meta {
+  color: #6c757d;
+  font-size: 0.9rem;
+}
+
+.comments-list {
+  flex: 1;
+  padding: 0 20px 20px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #ccc #f1f1f1;
+}
+
+.comments-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.comments-list::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+.comments-list::-webkit-scrollbar-thumb {
+  background: #ccc;
+  border-radius: 3px;
+}
+
+.comments-list::-webkit-scrollbar-thumb:hover {
+  background: #999;
+}
+
+.prediction-header {
+  font-weight: bold;
+  color: #2196F3;
+  background-color: #e3f2fd;
+  padding: 8px;
+  border-radius: 4px;
+  margin: 10px 0 5px 0;
+  border-left: 4px solid #2196F3;
+}
+
+.comment-text {
+  margin: 5px 0;
+  padding: 8px;
+  background-color: #f8f9fa;
+  border-radius: 4px;
+  border-left: 2px solid #6c757d;
+}
+
+/* Clear history button for PropertyForm */
+.clear-history-button {
+  background-color: #ff9800;
+  color: white;
+  border: none;
+  padding: 10px 15px;
+  border-radius: 4px;
+  cursor: pointer;
+  margin: 0 5px;
+}
+
+.clear-history-button:hover {
+  background-color: #f57c00;
+}
+
+.clear-history-button:disabled {
+  background-color: #cccccc;
+  cursor: not-allowed;
+}
+
+/* Comment header with Clear History button */
+.comment-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.comment-header h4 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #374151;
+}
+
+.clear-comment-btn {
+  background-color: #ef4444;
+  color: white;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.clear-comment-btn:hover {
+  background-color: #dc2626;
+  transform: translateY(-1px);
+}
+
+/* Input area fixed at bottom */
+.chat-input {
+  border-top: 1px solid #e9ecef;
+  background-color: #f8f9fa; /* Gris très clair comme le header */
+  padding: 10px;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-shrink: 0; /* Ne se rétrécit pas */
+}
+
+.chat-input input {
+  flex: 1;
+  padding: 8px 12px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 0.9rem;
+}
+
+.chat-input button {
+  background-color: #007bff;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+/* Commentary section */
+.llm-comment {
+  margin-bottom: 20px;
+}
+
+.llm-comment h4 {
+  margin: 0 0 10px 0;
+  padding: 8px;
+  background-color: #e8f4f8;
+  border-radius: 4px;
+  border-left: 4px solid #2196F3;
+}
+
+/* Chat section */
+.chat-section {
+  margin-bottom: 10px;
+}
+
+.chat-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+  padding: 8px;
+  background-color: #f0f8f0;
+  border-radius: 4px;
+  border-left: 4px solid #4CAF50;
+}
+
+.chat-header h4 {
+  margin: 0;
+}
+
+.chat-messages {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+/* Message styling */
+.message {
+  margin-bottom: 8px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  max-width: 90%;
+  word-wrap: break-word;
+}
+
+.user-msg {
+  background-color: #dcf8c6;
+  align-self: flex-end;
+  margin-left: auto;
+}
+
+.agent-msg {
+  background-color: #f1f1f1;
+  align-self: flex-start;
+  margin-right: auto;
+}
+
+/* Style spécial pour les messages de prédiction */
+.prediction-msg {
+  background-color: #e8f5e8 !important; /* Vert très clair pour les prédictions */
+  border-left: 4px solid #4caf50; /* Barre verte à gauche */
+  font-style: italic;
+}
+
+/* Style pour les titres de prédiction - garder en vert */
+.prediction-title {
+  background-color: #e8f5e8 !important; /* Vert très clair */
+  border-left: 4px solid #4caf50 !important; /* Barre verte à gauche */
+  font-weight: 600; /* Un peu plus gras pour le titre */
+}
+
+/* Style pour les commentaires de prédiction - couleur grise comme les dropdowns */
+.prediction-comment {
+  background-color: #f8f9fa !important; /* Gris clair comme les dropdowns */
+  border-left: 4px solid #dee2e6 !important; /* Barre grise à gauche */
+  color: #495057; /* Texte gris foncé */
+}
+
+/* Style pour les titres d'analyse ESG - couleur bleue */
+.esg-title {
+  background-color: #e3f2fd !important; /* Bleu très clair */
+  border-left: 4px solid #2196f3 !important; /* Barre bleue à gauche */
+  font-weight: 600; /* Un peu plus gras pour le titre */
+  color: #1565c0; /* Texte bleu foncé */
+}
+
+/* Chat input area at bottom */
+.chat-input-area {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.chat-input-area input {
+  flex: 1;
+  padding: 8px 12px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 0.9rem;
+}
+
+.chat-input-area .send-btn {
+  padding: 8px 16px;
+  background-color: #007bff;
+  border: none;
+  border-radius: 4px;
+  color: white;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.send-btn:hover {
+  background-color: #0056b3;
+}
+
+/* Clear buttons */
+.clear-chat-btn {
+  background-color: #ff6b6b;
+  color: white;
+  border: none;
+  padding: 4px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.8rem;
+}
+
+.clear-chat-btn:hover {
+  background-color: #ff5252;
+}
+
+/* Comment formatting */
+.comments-list {
+  margin-bottom: 15px;
+  max-height: 300px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #ccc #f1f1f1;
+}
+
+.comments-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.comments-list::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+.comments-list::-webkit-scrollbar-thumb {
+  background: #ccc;
+  border-radius: 3px;
+}
+
+.comments-list::-webkit-scrollbar-thumb:hover {
+  background: #999;
+}
+
+.prediction-header {
+  font-weight: bold;
+  color: #2196F3;
+  background-color: #e3f2fd;
+  padding: 8px;
+  border-radius: 4px;
+  margin: 10px 0 5px 0;
+  border-left: 4px solid #2196F3;
+}
+
+.comment-text {
+  margin: 5px 0;
+  padding: 8px;
+  background-color: #f8f9fa;
+  border-radius: 4px;
+  border-left: 2px solid #6c757d;
+}
+
+/* Clear history button for PropertyForm */
+.clear-history-button {
+  background-color: #ff9800;
+  color: white;
+  border: none;
+  padding: 10px 15px;
+  border-radius: 4px;
+  cursor: pointer;
+  margin: 0 5px;
+}
+
+.clear-history-button:hover {
+  background-color: #f57c00;
+}
+
+.clear-history-button:disabled {
+  background-color: #cccccc;
+  cursor: not-allowed;
+}
+
+/* Comment header with Clear History button */
+.comment-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.comment-header h4 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #374151;
+}
+
+.clear-comment-btn {
+  background-color: #ef4444;
+  color: white;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.clear-comment-btn:hover {
+  background-color: #dc2626;
+  transform: translateY(-1px);
+}
+
+/* Input area fixed at bottom */
+.chat-input {
+  border-top: 1px solid #e9ecef;
+  background-color: #f8f9fa; /* Gris très clair comme le header */
+  padding: 10px;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-shrink: 0; /* Ne se rétrécit pas */
+}
+
+.chat-input input {
+  flex: 1;
+  padding: 8px 12px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 0.9rem;
+}
+
+.chat-input button {
+  background-color: #007bff;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+/* Commentary section */
+.llm-comment {
+  margin-bottom: 20px;
+}
+
+.llm-comment h4 {
+  margin: 0 0 10px 0;
+  padding: 8px;
+  background-color: #e8f4f8;
+  border-radius: 4px;
+  border-left: 4px solid #2196F3;
+}
+
+/* Chat section */
+.chat-section {
+  margin-bottom: 10px;
+}
+
+.chat-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+  padding: 8px;
+  background-color: #f0f8f0;
+  border-radius: 4px;
+  border-left: 4px solid #4CAF50;
+}
+
+.chat-header h4 {
+  margin: 0;
+}
+
+.chat-messages {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+/* Message styling */
+.message {
+  margin-bottom: 8px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  max-width: 90%;
+  word-wrap: break-word;
+}
+
+.user-msg {
+  background-color: #dcf8c6;
+  align-self: flex-end;
+  margin-left: auto;
+}
+
+.agent-msg {
+  background-color: #f1f1f1;
+  align-self: flex-start;
+  margin-right: auto;
+}
+
+/* Style spécial pour les messages de prédiction */
+.prediction-msg {
+  background-color: #e8f5e8 !important; /* Vert très clair pour les prédictions */
+  border-left: 4px solid #4caf50; /* Barre verte à gauche */
+  font-style: italic;
+}
+
+/* Style pour les titres de prédiction - garder en vert */
+.prediction-title {
+  background-color: #e8f5e8 !important; /* Vert très clair */
+  border-left: 4px solid #4caf50 !important; /* Barre verte à gauche */
+  font-weight: 600; /* Un peu plus gras pour le titre */
+}
+
+/* Style pour les commentaires de prédiction - couleur grise comme les dropdowns */
+.prediction-comment {
+  background-color: #f8f9fa !important; /* Gris clair comme les dropdowns */
+  border-left: 4px solid #dee2e6 !important; /* Barre grise à gauche */
+  color: #495057; /* Texte gris foncé */
+}
+
+/* Style pour les titres d'analyse ESG - couleur bleue */
+.esg-title {
+  background-color: #e3f2fd !important; /* Bleu très clair */
+  border-left: 4px solid #2196f3 !important; /* Barre bleue à gauche */
+  font-weight: 600; /* Un peu plus gras pour le titre */
+  color: #1565c0; /* Texte bleu foncé */
+}
+
+/* Chat input area at bottom */
+.chat-input-area {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.chat-input-area input {
+  flex: 1;
+  padding: 8px 12px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 0.9rem;
+}
+
+.chat-input-area .send-btn {
+  padding: 8px 16px;
+  background-color: #007bff;
+  border: none;
+  border-radius: 4px;
+  color: white;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.send-btn:hover {
+  background-color: #0056b3;
+}
+
+/* Clear buttons */
+.clear-chat-btn {
+  background-color: #ff6b6b;
+  color: white;
+  border: none;
+  padding: 4px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.8rem;
+}
+
+.clear-chat-btn:hover {
+  background-color: #ff5252;
+}
+
+/* Comment formatting */
+.comments-list {
+  margin-bottom: 15px;
+  max-height: 300px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #ccc #f1f1f1;
+}
+
+.comments-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.comments-list::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+.comments-list::-webkit-scrollbar-thumb {
+  background: #ccc;
+  border-radius: 3px;
+}
+
+.comments-list::-webkit-scrollbar-thumb:hover {
+  background: #999;
+}
+
+.prediction-header {
+  font-weight: bold;
+  color: #2196F3;
+  background-color: #e3f2fd;
+  padding: 8px;
+  border-radius: 4px;
+  margin: 10px 0 5px 0;
+  border-left: 4px solid #2196F3;
+}
+
+.comment-text {
+  margin: 5px 0;
+  padding: 8px;
+  background-color: #f8f9fa;
+  border-radius: 4px;
+  border-left: 2px solid #6c757d;
+}
+
+/* Clear history button for PropertyForm */
+.clear-history-button {
+  background-color: #ff9800;
+  color: white;
+  border: none;
+  padding: 10px 15px;
+  border-radius: 4px;
+  cursor: pointer;
+  margin: 0 5px;
+}
+
+.clear-history-button:hover {
+  background-color: #f57c00;
+}
+
+.clear-history-button:disabled {
+  background-color: #cccccc;
+  cursor: not-allowed;
+}
+
+/* Comment header with Clear History button */
+.comment-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.comment-header h4 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #374151;
+}
+
+.clear-comment-btn {
+  background-color: #ef4444;
+  color: white;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.clear-comment-btn:hover {
+  background-color: #dc2626;
+  transform: translateY(-1px);
+}
+
+/* Input area fixed at bottom */
+.chat-input {
+  border-top: 1px solid #e9ecef;
+  background-color: #f8f9fa; /* Gris très clair comme le header */
+  padding: 10px;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-shrink: 0; /* Ne se rétrécit pas */
+}
+
+.chat-input input {
+  flex: 1;
+  padding: 8px 12px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 0.9rem;
+}
+
+.chat-input button {
+  background-color: #007bff;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 500;
+}

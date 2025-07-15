@@ -1,0 +1,22 @@
+# Additional requirements for cloud integration
+# Add these to your existing requirements.txt
+
+# Azure SDK for Python
+azure-storage-blob>=12.19.0
+azure-cosmos>=4.5.0
+azure-identity>=1.15.0
+
+# Enhanced ML tracking (optional)
+mlflow>=2.8.0
+optuna-integration>=3.5.0
+
+# Data processing
+pandas>=2.0.0
+numpy>=1.24.0
+
+# Database drivers for Optuna cloud backend (optional)
+psycopg2-binary>=2.9.7  # For PostgreSQL Optuna backend
+
+# Development and testing
+pytest>=7.4.0
+python-dotenv>=1.0.0

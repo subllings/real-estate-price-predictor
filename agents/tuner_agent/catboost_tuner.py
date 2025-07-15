@@ -185,7 +185,7 @@ class CatBoostTuner:
                     else:
                         params[param_name] = trial.suggest_categorical(param_name, param_config["choices"])
 
-        # Override final pour task_type (sécurité supplémentaire)
+        # Final override for task_type (additional security)
         if "task_type" not in params:
             params["task_type"] = "CPU"  # Toujours forcer CPU pour éviter les segfaults
         else:

@@ -1,0 +1,48 @@
+{
+  "optuna": {
+    "n_trials": 50,
+    "direction": "maximize",
+    "study_name": "real_estate_optimization",
+    "timeout": 3600
+  },
+  "model": {
+    "type": "catboost",
+    "cv_folds": 5,
+    "test_size": 0.2,
+    "random_seed": 42
+  },
+  "cloud": {
+    "enable_blob_storage": true,
+    "enable_cosmos_logging": true,
+    "production_threshold": 0.84,
+    "auto_deploy": false
+  },
+  "azure": {
+    "storage_container": "models",
+    "cosmos_database": "realestate",
+    "cosmos_container": "model_registry"
+  },
+  "features": {
+    "required_features": [
+      "surface",
+      "rooms", 
+      "bedrooms",
+      "bathrooms",
+      "garden",
+      "terrace",
+      "pool",
+      "garage",
+      "fireplace",
+      "location_score"
+    ],
+    "feature_engineering": {
+      "enable_scaling": true,
+      "enable_polynomial": false
+    }
+  },
+  "validation": {
+    "min_r2_score": 0.80,
+    "max_mae_threshold": 20000,
+    "min_samples": 1000
+  }
+}
