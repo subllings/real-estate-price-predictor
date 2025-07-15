@@ -3,6 +3,7 @@
 # This script assumes it was already made executable with: chmod +x scripts/run_loop_tuner_agent.sh
 # Run with: ./scripts/run_loop_tuner_agent.sh <model_name> [--no-time-limit | --stop-hour <H> --stop-minute <M>]
 # Run with: ./scripts/run_loop_tuner_agent.sh catboost --no-time-limit
+# Run with: ./scripts/run_loop_tuner_agent.sh xgboost --no-time-limit
 
 clear
 set -e

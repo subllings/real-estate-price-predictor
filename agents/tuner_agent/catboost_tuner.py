@@ -31,17 +31,17 @@ class CatBoostTuner:
         self.n_splits = n_splits
         self.early_stopping_rounds = early_stopping_rounds
         self.random_state = random_state
-        # Forcer CPU pour éviter les segmentation faults
-        self.use_gpu = False  # Temporairement désactivé pour éviter les segfaults
+        # Force CPU to avoid segmentation faults
+        self.use_gpu = False  # Temporarily disabled to avoid segfaults
         self.model_saver = ModelSaver()
         self.logger = CosmosDbLogger()
 
         print(f"[INFO] GPU usage forced to: {self.use_gpu} (for stability)")
 
-        # Si optuna_params est fourni, l'utiliser directement (vient de l'API LLM)
-        # Sinon utiliser les paramètres par défaut
+        # If optuna_params is provided, use it directly (comes from LLM API)
+        # Otherwise use default parameters
         if optuna_params is not None:
-            # Si optuna_params contient une structure avec "param_space", l'extraire
+            # If optuna_params contains a structure with "param_space", extract it
             if isinstance(optuna_params, dict) and "param_space" in optuna_params:
                 self.optuna_params = optuna_params["param_space"]
                 print(f"[INFO] Using parameter space from API (extracted): {list(self.optuna_params.keys())}")
@@ -49,33 +49,33 @@ class CatBoostTuner:
                 self.optuna_params = optuna_params
                 print(f"[INFO] Using parameter space from API: {list(optuna_params.keys())}")
         else:
-            # Version étendue des paramètres par défaut pour une optimisation plus complète
+            # Extended version of default parameters for more complete optimization
             self.optuna_params = {
-                # Paramètres d'apprentissage principaux
+                # Main learning parameters
                 "learning_rate": {"low": 0.01, "high": 0.3, "type": "float", "method": "suggest_loguniform"},
                 "depth": {"low": 4, "high": 10, "type": "int", "method": "suggest_int"},
                 "iterations": {"low": 100, "high": 2000, "type": "int", "method": "suggest_int"},
                 
-                # Régularisation
+                # Regularization
                 "l2_leaf_reg": {"low": 1.0, "high": 10.0, "type": "float", "method": "suggest_loguniform"},
                 "random_strength": {"low": 1e-9, "high": 10.0, "type": "float", "method": "suggest_uniform"},
                 
-                # Structure de l'arbre
+                # Tree structure
                 "border_count": {"low": 32, "high": 255, "type": "int", "method": "suggest_int"},
                 "min_data_in_leaf": {"low": 1, "high": 20, "type": "int", "method": "suggest_int"},
                 
-                # Méthodes d'estimation et croissance
+                # Estimation and growth methods
                 "grow_policy": {"choices": ["SymmetricTree", "Depthwise", "Lossguide"], "type": "categorical", "method": "suggest_categorical"},
                 "leaf_estimation_method": {"choices": ["Newton", "Gradient"], "type": "categorical", "method": "suggest_categorical"},
                 "leaf_estimation_iterations": {"low": 1, "high": 10, "type": "int", "method": "suggest_int"},
                 
-                # Sampling et bagging
+                # Sampling and bagging
                 "bootstrap_type": {"choices": ["Bayesian", "Bernoulli", "MVS"], "type": "categorical", "method": "suggest_categorical"},
                 "subsample": {"low": 0.6, "high": 1.0, "type": "float", "method": "suggest_uniform"},
                 "bagging_temperature": {"low": 0.0, "high": 1.0, "type": "float", "method": "suggest_uniform"},
                 "colsample_bylevel": {"low": 0.5, "high": 1.0, "type": "float", "method": "suggest_uniform"},
                 
-                # Early stopping (important pour éviter l'overfitting)
+                # Early stopping (important to avoid overfitting)
                 "od_type": {"choices": ["IncToDec", "Iter"], "type": "categorical", "method": "suggest_categorical"},
                 "od_wait": {"low": 10, "high": 50, "type": "int", "method": "suggest_int"}
             }
@@ -89,36 +89,43 @@ class CatBoostTuner:
         self.mae_test = None
         self.rmse_test = None
 
-    def validate_trial_params(self, param_space, trial_params):
+    def validate_trial_params(self, param_space, trial_params, removed_params=None):
+        """Validate trial parameters, skipping those that were intentionally removed"""
+        if removed_params is None:
+            removed_params = []
+            
         for key, spec in param_space.items():
             if key not in trial_params:
-                print(f"[WARNING] Missing param in trial: {key}")
+                if key in removed_params:
+                    print(f"[INFO] Parameter '{key}' intentionally removed due to compatibility constraint")
+                else:
+                    print(f"[WARNING] Missing param in trial: {key}")
             else:
                 val = trial_params[key]
                 
-                # Validation pour les valeurs fixes
+                # Validation for fixed values
                 if spec.get("method") == "fixed_value":
                     expected_value = spec["value"]
-                    # Ne pas afficher de warning pour task_type car on force CPU pour la stabilité
+                    # Don't display warning for task_type as we force CPU for stability
                     if val != expected_value and key != "task_type":
                         print(f"[WARNING] Fixed param '{key}' has wrong value: {val} (expected {expected_value})")
                     elif key == "task_type" and val != expected_value:
                         print(f"[INFO] task_type overridden to {val} for stability (API suggested {expected_value})")
                 
-                # Validation pour les paramètres numériques (int/float)
+                # Validation for numerical parameters (int/float)
                 elif "low" in spec and "high" in spec:
                     low = spec["low"]
                     high = spec["high"]
                     if not (low <= val <= high):
                         print(f"[WARNING] Out of bounds param '{key}': {val} (expected {low}–{high})")
                 
-                # Validation pour les paramètres catégoriels
+                # Validation for categorical parameters
                 elif "choices" in spec:
                     choices = spec["choices"]
                     if val not in choices:
                         print(f"[WARNING] Invalid choice for param '{key}': {val} (expected one of {choices})")
                 
-                # Si ni low/high ni choices ne sont présents, on passe
+                # If neither low/high nor choices are present, skip
                 else:
                     print(f"[DEBUG] No validation rules for param '{key}': {val}")
 
@@ -146,17 +153,17 @@ class CatBoostTuner:
 
 
     def objective(self, trial):
-        # Utiliser les paramètres fournis dynamiquement par l'API LLM
+        # Use parameters provided dynamically by the LLM API
         params = {
             "loss_function": "RMSE",
             "verbose": 0,
             "random_state": self.random_state,
         }
 
-        # Ajouter tous les paramètres définis dans self.optuna_params
+        # Add all parameters defined in self.optuna_params
         for param_name, param_config in self.optuna_params.items():
             if isinstance(param_config, dict):
-                # Gérer les valeurs fixes (comme task_type)
+                # Handle fixed values (like task_type)
                 if param_config.get("method") == "fixed_value":
                     params[param_name] = param_config["value"]
                 elif param_config.get("type") == "float" or param_config.get("method") in ["suggest_uniform", "suggest_loguniform"]:
@@ -167,13 +174,13 @@ class CatBoostTuner:
                 elif param_config.get("type") == "int" or param_config.get("method") == "suggest_int":
                     params[param_name] = trial.suggest_int(param_name, param_config["low"], param_config["high"])
                 elif param_config.get("type") == "categorical" or param_config.get("method") == "suggest_categorical":
-                    # Attention spéciale pour task_type - forcer CPU pour éviter les segfaults
+                    # Special attention for task_type - force CPU to avoid segfaults
                     if param_name == "task_type":
                         # Si l'utilisateur veut utiliser GPU ET que GPU est dans les choix
                         if self.use_gpu and "GPU" in param_config.get("choices", []):
                             params[param_name] = "GPU"
                         else:
-                            # Forcer CPU pour éviter les segfaults
+                            # Force CPU to avoid segfaults
                             params[param_name] = "CPU"
                     else:
                         params[param_name] = trial.suggest_categorical(param_name, param_config["choices"])
@@ -186,11 +193,17 @@ class CatBoostTuner:
             params["task_type"] = "CPU"
             
         # Filtrer les paramètres problématiques pour éviter les erreurs CatBoost
+        removed_params = []  # Track removed parameters to avoid validation warnings
         problematic_combinations = {
             # subsample ne fonctionne qu'avec certains bootstrap_type
             ("subsample", "bootstrap_type"): {
                 "remove_if": lambda params: params.get("bootstrap_type") == "Bayesian",
                 "reason": "subsample incompatible avec bootstrap_type=Bayesian"
+            },
+            # bagging_temperature ne fonctionne qu'avec bootstrap_type=Bayesian
+            ("bagging_temperature", "bootstrap_type"): {
+                "remove_if": lambda params: params.get("bootstrap_type") != "Bayesian",
+                "reason": "bagging_temperature available for bayesian bootstrap only"
             },
             # colsample_bylevel peut causer des problèmes avec certaines configurations
             ("colsample_bylevel", "grow_policy"): {
@@ -202,12 +215,13 @@ class CatBoostTuner:
         for (param, related_param), rule in problematic_combinations.items():
             if param in params and rule["remove_if"](params):
                 print(f"[WARNING] Removing {param} parameter: {rule['reason']}")
+                removed_params.append(param)
                 del params[param]
 
-        # Validation des paramètres générés
-        self.validate_trial_params(self.optuna_params, params)
+        # Validation of generated parameters (skip removed params)
+        self.validate_trial_params(self.optuna_params, params, removed_params=removed_params)
 
-        # Cross-validation avec gestion d'erreur robuste pour éviter les segfaults
+        # Cross-validation with robust error handling to avoid segfaults
         kf = KFold(n_splits=self.n_splits, shuffle=True, random_state=self.random_state)
         fold_scores = []
         
@@ -271,7 +285,7 @@ class CatBoostTuner:
                     
             except Exception as e2:
                 print(f"[ERROR] Even safe parameters failed: {e2}")
-                return float('inf')  # Échec total pour ce trial
+                return float('inf')  # Total failure for this trial
         
         if not fold_scores:
             print("[ERROR] No fold scores obtained")
@@ -365,7 +379,7 @@ class CatBoostTuner:
             is_perfect=is_perfect,
         )
 
-        # Logging dans CosmosDB
+        # Logging to CosmosDB
         self.logger.log_experiment({
             "type": "optuna_trial",
             "trial_number": study.best_trial.number,
