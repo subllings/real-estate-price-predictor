@@ -1,11 +1,69 @@
 import numpy as np
 import pandas as pd
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+from sklearn.model_selection import cross_val_score
+from sklearn.base import clone
 
 class ModelEvaluator:
     def __init__(self, model_name):
         # Store the model identifier for printouts
         self.model_name = model_name
+
+    def evaluate_model(self, model, X, y, bins=None, cv=3):
+        """
+        Evaluate a model using cross-validation and return comprehensive metrics.
+        
+        Args:
+            model: The sklearn-compatible model to evaluate
+            X: Feature matrix
+            y: Target values
+            bins: Optional price bins for segmented evaluation
+            cv: Number of cross-validation folds
+            
+        Returns:
+            dict: Evaluation results including global metrics and CV scores
+        """
+        try:
+            # Clone the model to avoid modifying the original
+            model_clone = clone(model)
+            
+            # Fit the model on full data for predictions
+            model_clone.fit(X, y)
+            y_pred = model_clone.predict(X)
+            
+            # Get global metrics
+            global_metrics = self._compute_global_metrics(y, y_pred)
+            
+            # Get cross-validation scores for more robust evaluation
+            cv_scores = cross_val_score(model, X, y, cv=cv, scoring='neg_mean_squared_error')
+            cv_rmse_scores = np.sqrt(-cv_scores)
+            
+            # Compile results
+            evaluation_results = {
+                'global_metrics': global_metrics,
+                'cv_rmse_mean': cv_rmse_scores.mean(),
+                'cv_rmse_std': cv_rmse_scores.std(),
+                'cv_scores': cv_rmse_scores.tolist(),
+                'model_name': self.model_name
+            }
+            
+            # Add segmented metrics if bins provided
+            if bins:
+                range_metrics = self._compute_metrics_by_price_range(y, y_pred, bins)
+                evaluation_results['range_metrics'] = range_metrics
+            
+            return evaluation_results
+            
+        except Exception as e:
+            print(f"[ERROR] Model evaluation failed for {self.model_name}: {e}")
+            return {
+                'global_metrics': {'mae': float('inf'), 'rmse': float('inf'), 'r2': -float('inf')},
+                'cv_rmse_mean': float('inf'),
+                'cv_rmse_std': float('inf'),
+                'cv_scores': [],
+                'model_name': self.model_name,
+                'error': str(e)
+            }
 
     def evaluate(self, y_true, y_pred, bins=None, dataset_type=None):
         """

@@ -175,16 +175,121 @@ def suggest_param_space(request: SuggestionRequest):
             for t in trials
         ])
 
-    # Construct prompt for LLM
-    prompt = f"""
-You are an expert in hyperparameter tuning using Optuna.
-Here are previous trials for the model '{model_name}':
+    # Construct model-specific prompts
+    if model_name.lower() == "catboost":
+        prompt = f"""
+        You are an expert in hyperparameter tuning using Optuna for CatBoost regression models.
 
-{trial_summary}
+        You are optimizing a CatBoostRegressor for real estate price prediction. The model uses CPU processing for stability and we want to reduce overfitting while maintaining good performance.
 
-Based on this history, suggest a refined Optuna parameter space in JSON format.
-Only output valid JSON. No explanations.
-"""
+        Here are previous trials for the model '{model_name}':
+
+        {trial_summary}
+
+        Based on this, suggest a comprehensive Optuna parameter space in JSON format that includes ALL important CatBoost parameters:
+
+        REQUIRED PARAMETERS TO INCLUDE:
+        - learning_rate (suggest_loguniform: 0.01-0.3)
+        - depth (suggest_int: 4-10) 
+        - iterations (suggest_int: 100-2000)
+        - l2_leaf_reg (suggest_loguniform: 1.0-10.0)
+        - border_count (suggest_int: 32-255)
+        - random_strength (suggest_uniform: 0.1-10.0)
+        - min_data_in_leaf (suggest_int: 1-20)
+        - bootstrap_type (suggest_categorical: ["Bayesian", "Bernoulli", "MVS"])
+        - subsample (suggest_uniform: 0.6-1.0) - ONLY if bootstrap_type != "Bayesian"
+        - grow_policy (suggest_categorical: ["SymmetricTree", "Depthwise", "Lossguide"])
+        - leaf_estimation_method (suggest_categorical: ["Newton", "Gradient"])
+        - leaf_estimation_iterations (suggest_int: 1-10)
+        - bagging_temperature (suggest_uniform: 0.0-1.0)
+        - colsample_bylevel (suggest_uniform: 0.5-1.0)
+        - od_type (suggest_categorical: ["IncToDec", "Iter"])
+        - od_wait (suggest_int: 10-50)
+        - task_type (fixed_value: "CPU")
+
+        IMPORTANT RULES:
+        1. Use "method" field to specify suggest_loguniform, suggest_uniform, suggest_int, suggest_categorical, or fixed_value
+        2. Include "low" and "high" for numeric parameters
+        3. Include "choices" for categorical parameters  
+        4. Include "value" for fixed_value parameters
+        5. Focus on anti-overfitting: lower learning rates, higher regularization, reasonable depth
+
+        OUTPUT FORMAT:
+        {{
+            "model": "{model_name}",
+            "param_space": {{
+                "parameter_name": {{"method": "suggest_type", "low": X, "high": Y}},
+                "categorical_param": {{"method": "suggest_categorical", "choices": [...]}}
+            }}
+        }}
+
+        Only output valid JSON. No markdown, no explanations, no additional text.
+        """
+    
+    elif model_name.lower() == "xgboost":
+        prompt = f"""
+        You are an expert in hyperparameter tuning using Optuna for XGBoost regression models.
+
+        You are optimizing an XGBRegressor for real estate price prediction. The model uses CPU processing for stability (tree_method='auto') and we want to reduce overfitting while maintaining good performance.
+
+        Here are previous trials for the model '{model_name}':
+
+        {trial_summary}
+
+        Based on this, suggest a comprehensive Optuna parameter space in JSON format that includes ALL important XGBoost parameters:
+
+        REQUIRED PARAMETERS TO INCLUDE:
+        - learning_rate (suggest_float: 0.01-0.3)
+        - max_depth (suggest_int: 3-10)
+        - min_child_weight (suggest_float: 1.0-10.0)
+        - subsample (suggest_float: 0.5-1.0)
+        - colsample_bytree (suggest_float: 0.5-1.0)
+        - colsample_bylevel (suggest_float: 0.5-1.0)
+        - colsample_bynode (suggest_float: 0.5-1.0)
+        - gamma (suggest_float: 0.0-5.0)
+        - reg_alpha (suggest_float: 0.0-1.0)
+        - reg_lambda (suggest_float: 0.0-2.0)
+        - n_estimators (suggest_int: 100-2000)
+        - max_delta_step (suggest_int: 0-10)
+        - grow_policy (suggest_categorical: ["depthwise", "lossguide"])
+        - max_leaves (suggest_int: 0-256) - ONLY if grow_policy == "lossguide"
+
+        IMPORTANT RULES:
+        1. Use "method" field to specify suggest_float, suggest_int, or suggest_categorical
+        2. Include "low" and "high" for numeric parameters
+        3. Include "choices" for categorical parameters
+        4. Focus on anti-overfitting: lower learning rates, higher regularization, reasonable depth
+        5. Tree method will be set to 'auto' (CPU) for stability
+        6. ALWAYS include n_estimators parameter - it's required!
+
+        OUTPUT FORMAT (MUST include n_estimators):
+        {{
+            "model": "{model_name}",
+            "param_space": {{
+                "learning_rate": {{"method": "suggest_float", "low": 0.01, "high": 0.3}},
+                "max_depth": {{"method": "suggest_int", "low": 3, "high": 10}},
+                "n_estimators": {{"method": "suggest_int", "low": 100, "high": 2000}},
+                "min_child_weight": {{"method": "suggest_float", "low": 1.0, "high": 10.0}},
+                "subsample": {{"method": "suggest_float", "low": 0.5, "high": 1.0}},
+                "colsample_bytree": {{"method": "suggest_float", "low": 0.5, "high": 1.0}},
+                "colsample_bylevel": {{"method": "suggest_float", "low": 0.5, "high": 1.0}},
+                "colsample_bynode": {{"method": "suggest_float", "low": 0.5, "high": 1.0}},
+                "gamma": {{"method": "suggest_float", "low": 0.0, "high": 5.0}},
+                "reg_alpha": {{"method": "suggest_float", "low": 0.0, "high": 1.0}},
+                "reg_lambda": {{"method": "suggest_float", "low": 0.0, "high": 2.0}},
+                "max_delta_step": {{"method": "suggest_int", "low": 0, "high": 10}},
+                "grow_policy": {{"method": "suggest_categorical", "choices": ["depthwise", "lossguide"]}}
+            }}
+        }}
+
+        Only output valid JSON. No markdown, no explanations, no additional text.
+        """
+    
+    else:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unsupported model: {model_name}. Supported models: catboost, xgboost"
+        )
 
     logger.info("=== Prompt reveived by the API & to be sent to GPT-4.1 ===")
     logger.info(prompt)

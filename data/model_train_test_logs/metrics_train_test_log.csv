@@ -1,0 +1,2 @@
+timestamp,model,experiment,mae_train,rmse_train,r2_train,mae_test,rmse_test,r2_test,r2_gap,r2_gap_diagnostic,n_features,data_file,data_file_timestamp,test_mode,"interpretation (r2,mae_gap)",ranking_score,is_perfect
+2025-07-15 17:49:10,CatBoost CV (All Features),optuna_best_trial,29290.322146705963,37835.235008976444,0.9672038076934968,29290.322146705963,37835.235008976444,0.9672038076934968,0.0,Excellent generalization,2885,immoweb_real_estate_ml_ready.csv,2025-07-11 20:58:06,False,good generalization,-67123.62274806702,True

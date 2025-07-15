@@ -16,6 +16,7 @@ class OptunaParamLoader:
                 "grow_policy": {"type": "categorical", "choices": ["SymmetricTree", "Depthwise", "Lossguide"]},
                 "min_data_in_leaf": {"type": "int", "low": 1, "high": 20},
                 "leaf_estimation_iterations": {"type": "int", "low": 1, "high": 10},
+                "iterations": {"type": "int", "low": 100, "high": 2000}
             }
         elif self.model_name == "xgboost":
             # Define XGBoost parameter space...

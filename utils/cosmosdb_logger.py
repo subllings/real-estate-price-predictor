@@ -109,6 +109,40 @@ class CosmosDbLogger:
         return hyperparams
 
 
+    def log_trial(self, trial_info: dict):
+        """
+        Log trial information from hyperparameter tuning with enriched metrics.
+        Compatible with both CatBoost and XGBoost tuners.
+        """
+        try:
+            # Générer un ID unique et run_id si absent
+            timestamp = datetime.utcnow().isoformat()
+            trial_number = trial_info.get("trial_number", "unknown")
+            model_type = trial_info.get("model_type", "unknown")
+            
+            if "run_id" not in trial_info:
+                trial_info["run_id"] = f"{model_type}_trial_{trial_number}_{timestamp}"
+            if "id" not in trial_info:
+                trial_info["id"] = trial_info["run_id"]
+            
+            # Ajouter métadonnées standards
+            trial_info.update({
+                "type": "optuna_trial",
+                "timestamp": timestamp,
+                "source": "TunerAgent",
+                "model_name": model_type
+            })
+            
+            # Conversion JSON-compatible pour toutes les nouvelles métriques
+            clean_data = self._convert_np_types(trial_info)
+            
+            # Écriture en base Cosmos DB
+            self.container.create_item(body=clean_data)
+            print(f"[✔] Trial {trial_number} ({model_type}) logged to Cosmos DB with enriched metrics.")
+            
+        except Exception as e:
+            print(f"[✘] Failed to log trial to Cosmos DB: {e}")
+
     def log_best_trial(self, trial):
 
         log_data = {
@@ -212,11 +246,11 @@ class CosmosDbLogger:
 
     def get_trials_for_model(self, model_name: str, limit: int = 10) -> list:
         """
-        Retrieve the last 'limit' trials based on 'base_model'.
+        Retrieve the last 'limit' trials based on 'model_name' with all enriched metrics.
         """
         query = """
         SELECT TOP @limit * FROM c
-        WHERE STARTSWITH(c.model_name, @model_name) AND c.type = 'optuna_trial'
+        WHERE c.model_name = @model_name AND c.type = 'optuna_trial'
         ORDER BY c.timestamp DESC
         """
         parameters = [
@@ -224,14 +258,47 @@ class CosmosDbLogger:
             {"name": "@model_name", "value": model_name}
         ]
         try:
-            return list(self.container.query_items(
+            trials = list(self.container.query_items(
                 query=query,
                 parameters=parameters,
                 enable_cross_partition_query=True
             ))
+            print(f"[✔] Retrieved {len(trials)} trials for model '{model_name}' with enriched metrics.")
+            return trials
         except Exception as e:
             print(f"[✘] Error fetching trials from CosmosDB: {e}")
             return []
+
+    def get_trial_performance_analytics(self, model_name: str, limit: int = 50) -> dict:
+        """
+        Get performance analytics for trials including training times, iterations, etc.
+        """
+        trials = self.get_trials_for_model(model_name, limit)
+        
+        if not trials:
+            return {}
+        
+        # Extraire les métriques pour analyse
+        training_times = [t.get("training_time_seconds", 0) for t in trials if t.get("training_time_seconds")]
+        trial_durations = [t.get("trial_duration_seconds", 0) for t in trials if t.get("trial_duration_seconds")]
+        best_iterations = [t.get("best_iteration", 0) for t in trials if t.get("best_iteration")]
+        rmse_scores = [t.get("mean_rmse", float('inf')) for t in trials if t.get("mean_rmse")]
+        
+        analytics = {
+            "model_name": model_name,
+            "total_trials": len(trials),
+            "avg_training_time": np.mean(training_times) if training_times else 0,
+            "avg_trial_duration": np.mean(trial_durations) if trial_durations else 0,
+            "avg_best_iteration": np.mean(best_iterations) if best_iterations else 0,
+            "best_rmse": min(rmse_scores) if rmse_scores else float('inf'),
+            "avg_rmse": np.mean(rmse_scores) if rmse_scores else float('inf'),
+            "feature_selection_methods": list(set([t.get("feature_selection_method", "unknown") for t in trials])),
+            "cv_strategies": list(set([t.get("cv_strategy", "unknown") for t in trials])),
+            "timestamp": datetime.utcnow().isoformat()
+        }
+        
+        print(f"[✔] Generated performance analytics for {model_name}: {len(trials)} trials analyzed.")
+        return analytics
 
 
     def get_distinct_model_names(self, source="LLMTunerAgent") -> list:

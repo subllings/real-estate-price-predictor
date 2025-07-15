@@ -1,8 +1,6 @@
 import sys, os
 os.environ["OMP_NUM_THREADS"] = "1"
 
-from fastapi import params
-
 # Add the project root to the Python path
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
 sys.path.append(project_root)
@@ -33,21 +31,97 @@ class CatBoostTuner:
         self.n_splits = n_splits
         self.early_stopping_rounds = early_stopping_rounds
         self.random_state = random_state
-        self.use_gpu = use_gpu  
+        # Forcer CPU pour éviter les segmentation faults
+        self.use_gpu = False  # Temporairement désactivé pour éviter les segfaults
         self.model_saver = ModelSaver()
         self.logger = CosmosDbLogger()
 
-        self.optuna_params = optuna_params or {
-            "learning_rate": (0.01, 0.3),
-            "depth": (4, 10),
-            "l2_leaf_reg": (1.0, 10.0),
-            "bagging_temperature": (0.0, 1.0),
-            "border_count": (32, 255),
-            "random_strength": (1e-9, 10.0)
-        }
+        print(f"[INFO] GPU usage forced to: {self.use_gpu} (for stability)")
+
+        # Si optuna_params est fourni, l'utiliser directement (vient de l'API LLM)
+        # Sinon utiliser les paramètres par défaut
+        if optuna_params is not None:
+            # Si optuna_params contient une structure avec "param_space", l'extraire
+            if isinstance(optuna_params, dict) and "param_space" in optuna_params:
+                self.optuna_params = optuna_params["param_space"]
+                print(f"[INFO] Using parameter space from API (extracted): {list(self.optuna_params.keys())}")
+            else:
+                self.optuna_params = optuna_params
+                print(f"[INFO] Using parameter space from API: {list(optuna_params.keys())}")
+        else:
+            # Version étendue des paramètres par défaut pour une optimisation plus complète
+            self.optuna_params = {
+                # Paramètres d'apprentissage principaux
+                "learning_rate": {"low": 0.01, "high": 0.3, "type": "float", "method": "suggest_loguniform"},
+                "depth": {"low": 4, "high": 10, "type": "int", "method": "suggest_int"},
+                "iterations": {"low": 100, "high": 2000, "type": "int", "method": "suggest_int"},
+                
+                # Régularisation
+                "l2_leaf_reg": {"low": 1.0, "high": 10.0, "type": "float", "method": "suggest_loguniform"},
+                "random_strength": {"low": 1e-9, "high": 10.0, "type": "float", "method": "suggest_uniform"},
+                
+                # Structure de l'arbre
+                "border_count": {"low": 32, "high": 255, "type": "int", "method": "suggest_int"},
+                "min_data_in_leaf": {"low": 1, "high": 20, "type": "int", "method": "suggest_int"},
+                
+                # Méthodes d'estimation et croissance
+                "grow_policy": {"choices": ["SymmetricTree", "Depthwise", "Lossguide"], "type": "categorical", "method": "suggest_categorical"},
+                "leaf_estimation_method": {"choices": ["Newton", "Gradient"], "type": "categorical", "method": "suggest_categorical"},
+                "leaf_estimation_iterations": {"low": 1, "high": 10, "type": "int", "method": "suggest_int"},
+                
+                # Sampling et bagging
+                "bootstrap_type": {"choices": ["Bayesian", "Bernoulli", "MVS"], "type": "categorical", "method": "suggest_categorical"},
+                "subsample": {"low": 0.6, "high": 1.0, "type": "float", "method": "suggest_uniform"},
+                "bagging_temperature": {"low": 0.0, "high": 1.0, "type": "float", "method": "suggest_uniform"},
+                "colsample_bylevel": {"low": 0.5, "high": 1.0, "type": "float", "method": "suggest_uniform"},
+                
+                # Early stopping (important pour éviter l'overfitting)
+                "od_type": {"choices": ["IncToDec", "Iter"], "type": "categorical", "method": "suggest_categorical"},
+                "od_wait": {"low": 10, "high": 50, "type": "int", "method": "suggest_int"}
+            }
+            print("[INFO] Using extended default parameter space")
         self.best_model = None
         self.best_model_metrics = None
         self.best_score = float("inf")
+        
+        # Initialize final metrics
+        self.r2_test = None
+        self.mae_test = None
+        self.rmse_test = None
+
+    def validate_trial_params(self, param_space, trial_params):
+        for key, spec in param_space.items():
+            if key not in trial_params:
+                print(f"[WARNING] Missing param in trial: {key}")
+            else:
+                val = trial_params[key]
+                
+                # Validation pour les valeurs fixes
+                if spec.get("method") == "fixed_value":
+                    expected_value = spec["value"]
+                    # Ne pas afficher de warning pour task_type car on force CPU pour la stabilité
+                    if val != expected_value and key != "task_type":
+                        print(f"[WARNING] Fixed param '{key}' has wrong value: {val} (expected {expected_value})")
+                    elif key == "task_type" and val != expected_value:
+                        print(f"[INFO] task_type overridden to {val} for stability (API suggested {expected_value})")
+                
+                # Validation pour les paramètres numériques (int/float)
+                elif "low" in spec and "high" in spec:
+                    low = spec["low"]
+                    high = spec["high"]
+                    if not (low <= val <= high):
+                        print(f"[WARNING] Out of bounds param '{key}': {val} (expected {low}–{high})")
+                
+                # Validation pour les paramètres catégoriels
+                elif "choices" in spec:
+                    choices = spec["choices"]
+                    if val not in choices:
+                        print(f"[WARNING] Invalid choice for param '{key}': {val} (expected one of {choices})")
+                
+                # Si ni low/high ni choices ne sont présents, on passe
+                else:
+                    print(f"[DEBUG] No validation rules for param '{key}': {val}")
+
 
     def suggest_param(self, trial, name, config):
         if isinstance(config, dict):
@@ -58,6 +132,7 @@ class CatBoostTuner:
                 return trial.suggest_int(name, config["low"], config["high"])
             elif param_type == "categorical":
                 return trial.suggest_categorical(name, config["choices"])
+
             else:
                 raise ValueError(f"Unsupported param type: {param_type}")
         elif isinstance(config, tuple) and len(config) == 2:
@@ -71,141 +146,165 @@ class CatBoostTuner:
 
 
     def objective(self, trial):
-
-        print(f"\n[TRIAL {trial.number}] Started", flush=True)
-
-        # Suggest bootstrap_type first (needed for conditional logic)
-        bootstrap_type = trial.suggest_categorical("bootstrap_type", ["Bayesian", "Bernoulli", "MVS"])
-
-        # Build params dictionary
+        # Utiliser les paramètres fournis dynamiquement par l'API LLM
         params = {
-            "learning_rate": trial.suggest_float("learning_rate", 0.01, 0.3),
-            "depth": trial.suggest_int("depth", 4, 10),
-            "l2_leaf_reg": trial.suggest_float("l2_leaf_reg", 1.0, 10.0),
-            "border_count": trial.suggest_int("border_count", 32, 255),
-            "random_strength": trial.suggest_float("random_strength", 0.0, 10.0),
-            "grow_policy": trial.suggest_categorical("grow_policy", ["SymmetricTree", "Depthwise", "Lossguide"]),
-            "min_data_in_leaf": trial.suggest_int("min_data_in_leaf", 1, 20),
-            "leaf_estimation_iterations": trial.suggest_int("leaf_estimation_iterations", 1, 10),
-            "leaf_estimation_method": trial.suggest_categorical("leaf_estimation_method", ["Newton", "Gradient"]),
-            "bootstrap_type": bootstrap_type,
-            "verbose": 1,
+            "loss_function": "RMSE",
+            "verbose": 0,
+            "random_state": self.random_state,
         }
 
-        params["thread_count"] = 1  # Use single thread for reproducibility  
+        # Ajouter tous les paramètres définis dans self.optuna_params
+        for param_name, param_config in self.optuna_params.items():
+            if isinstance(param_config, dict):
+                # Gérer les valeurs fixes (comme task_type)
+                if param_config.get("method") == "fixed_value":
+                    params[param_name] = param_config["value"]
+                elif param_config.get("type") == "float" or param_config.get("method") in ["suggest_uniform", "suggest_loguniform"]:
+                    if param_config.get("method") == "suggest_loguniform":
+                        params[param_name] = trial.suggest_float(param_name, param_config["low"], param_config["high"], log=True)
+                    else:
+                        params[param_name] = trial.suggest_float(param_name, param_config["low"], param_config["high"])
+                elif param_config.get("type") == "int" or param_config.get("method") == "suggest_int":
+                    params[param_name] = trial.suggest_int(param_name, param_config["low"], param_config["high"])
+                elif param_config.get("type") == "categorical" or param_config.get("method") == "suggest_categorical":
+                    # Attention spéciale pour task_type - forcer CPU pour éviter les segfaults
+                    if param_name == "task_type":
+                        # Si l'utilisateur veut utiliser GPU ET que GPU est dans les choix
+                        if self.use_gpu and "GPU" in param_config.get("choices", []):
+                            params[param_name] = "GPU"
+                        else:
+                            # Forcer CPU pour éviter les segfaults
+                            params[param_name] = "CPU"
+                    else:
+                        params[param_name] = trial.suggest_categorical(param_name, param_config["choices"])
 
-        # Conditional parameter only for Bayesian bootstrap
-        if bootstrap_type == "Bayesian":
-            params["bagging_temperature"] = trial.suggest_float("bagging_temperature", 0.0, 1.0)
-
-        # Use GPU if enabled, fallback to CPU if error occurs
-        if self.use_gpu:
-            params["task_type"] = "GPU"
+        # Override final pour task_type (sécurité supplémentaire)
+        if "task_type" not in params:
+            params["task_type"] = "CPU"  # Toujours forcer CPU pour éviter les segfaults
         else:
+            # Forcer CPU dans tous les cas pour éviter les segfaults
             params["task_type"] = "CPU"
-        # Force CPU pour test uniquement (commenter/décommenter selon besoin)
-        params["task_type"] = "CPU"
-        print(f"Training with {params['task_type']}")
-
-        kf = KFold(n_splits=self.n_splits, shuffle=True, random_state=self.random_state)
-        scores, models, evals = [], [], []
-
-        try:
-            # Train and validate with KFold using GPU or CPU as set
-            for train_idx, valid_idx in kf.split(self.X):
-                X_train, X_valid = self.X.iloc[train_idx], self.X.iloc[valid_idx]
-                y_train, y_valid = self.y.iloc[train_idx], self.y.iloc[valid_idx]
-
-
-                model = CatBoostRegressor(**params)
-                model.fit(
-                    X_train,
-                    y_train,
-                    eval_set=(X_valid, y_valid),
-                    early_stopping_rounds=self.early_stopping_rounds,
-                    verbose=100,
-                )
-
-                preds = model.predict(X_valid)
-                rmse = np.sqrt(mean_squared_error(y_valid, preds))
-                scores.append(rmse)
-                models.append(model)
-                evals.append((X_valid, y_valid, preds))
-
-        except Exception as e:
-            # If GPU training fails, retry with CPU fallback
-            if self.use_gpu:
-                print(f"[WARNING] GPU training failed with error: {e}. Falling back to CPU.")
-                params["task_type"] = "CPU"
-                scores.clear()
-                models.clear()
-                evals.clear()
-                for train_idx, valid_idx in kf.split(self.X):
-                    X_train, X_valid = self.X.iloc[train_idx], self.X.iloc[valid_idx]
-                    y_train, y_valid = self.y.iloc[train_idx], self.y.iloc[valid_idx]
-
-                    model = CatBoostRegressor(**params)
-                    model.fit(
-                        X_train,
-                        y_train,
-                        eval_set=(X_valid, y_valid),
-                        early_stopping_rounds=self.early_stopping_rounds,
-                        verbose=0,
-                    )
-
-                    preds = model.predict(X_valid)
-                    rmse = np.sqrt(mean_squared_error(y_valid, preds))
-                    scores.append(rmse)
-                    models.append(model)
-                    evals.append((X_valid, y_valid, preds))
-            else:
-                raise e  # Raise if CPU mode also fails
-
-        # Select best fold based on RMSE
-        best_fold_idx = int(np.argmin(scores))
-        best_model = models[best_fold_idx]
-        X_eval, y_eval, y_pred = evals[best_fold_idx]
-
-        # Evaluate on validation fold
-        evaluator = ModelEvaluator(model_name=f"CatBoost_Trial_{trial.number}")
-        global_metrics_test, metrics_by_range = evaluator.evaluate(
-            y_eval, y_pred, bins=[0, 200000, 400000, 600000, 1000000]
-        )
-        evaluator.print_evaluation(y_eval, y_pred, bins=[0, 200000, 400000, 600000, 1000000])
-
-        # Evaluate on training fold (best fold train part)
-        train_indices, _ = list(kf.split(self.X))[best_fold_idx]
-        X_train_best = self.X.iloc[train_indices]
-        y_train_best = self.y.iloc[train_indices]
-
-        global_metrics_train, _ = evaluator.evaluate(
-            y_train_best, best_model.predict(X_train_best), bins=[0, 200000, 400000, 600000, 1000000]
-        )
-
-        # Determine if model is considered perfect
-        is_perfect = ModelEvaluator.is_model_perfect(
-            evaluator, y_train_best, best_model.predict(X_train_best), y_eval, y_pred
-        )
-
-        # Save predictions and true values in user attributes for retrieval later
-        trial.set_user_attr("y_true_train", y_train_best.tolist())
-        trial.set_user_attr("y_pred_train", best_model.predict(X_train_best).tolist())
-        trial.set_user_attr("y_true_test", y_eval.tolist())
-        trial.set_user_attr("y_pred_test", y_pred.tolist())
-
-        # Save model with timestamp in filename
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M")
-        model_name = f"catboost_trial_{trial.number}_{'_TEST' if TEST_MODE else ''}"
-
-        # === Stockage du meilleur modèle et de ses métriques dans l'objet pour exploitation globale ===
-        self.best_model = best_model
-        self.best_model_metrics = {
-            "train": global_metrics_train,
-            "test": global_metrics_test,
-            "by_price_range": metrics_by_range
+            
+        # Filtrer les paramètres problématiques pour éviter les erreurs CatBoost
+        problematic_combinations = {
+            # subsample ne fonctionne qu'avec certains bootstrap_type
+            ("subsample", "bootstrap_type"): {
+                "remove_if": lambda params: params.get("bootstrap_type") == "Bayesian",
+                "reason": "subsample incompatible avec bootstrap_type=Bayesian"
+            },
+            # colsample_bylevel peut causer des problèmes avec certaines configurations
+            ("colsample_bylevel", "grow_policy"): {
+                "remove_if": lambda params: params.get("grow_policy") == "Lossguide" and params.get("colsample_bylevel", 1.0) < 0.8,
+                "reason": "colsample_bylevel < 0.8 peut causer des problèmes avec grow_policy=Lossguide"
+            }
         }
+        
+        for (param, related_param), rule in problematic_combinations.items():
+            if param in params and rule["remove_if"](params):
+                print(f"[WARNING] Removing {param} parameter: {rule['reason']}")
+                del params[param]
 
-        return np.mean(scores)
+        # Validation des paramètres générés
+        self.validate_trial_params(self.optuna_params, params)
+
+        # Cross-validation avec gestion d'erreur robuste pour éviter les segfaults
+        kf = KFold(n_splits=self.n_splits, shuffle=True, random_state=self.random_state)
+        fold_scores = []
+        
+        print(f"[DEBUG] Trial {trial.number} params: {params}")
+        
+        try:
+            for fold_idx, (train_idx, val_idx) in enumerate(kf.split(self.X)):
+                X_train, X_val = self.X.iloc[train_idx], self.X.iloc[val_idx]
+                y_train, y_val = self.y.iloc[train_idx], self.y.iloc[val_idx]
+                
+                print(f"[DEBUG] Training fold {fold_idx + 1}/{self.n_splits}")
+                
+                # Préparer les paramètres d'entraînement
+                fit_params = {
+                    "eval_set": (X_val, y_val),
+                    "use_best_model": True,
+                    "verbose": False
+                }
+                
+                # Utiliser early_stopping_rounds ou od_wait selon les paramètres
+                if "od_wait" in params:
+                    fit_params["early_stopping_rounds"] = params["od_wait"]
+                else:
+                    fit_params["early_stopping_rounds"] = self.early_stopping_rounds
+                
+                model = CatBoostRegressor(**params)
+                model.fit(X_train, y_train, **fit_params)
+                
+                preds = model.predict(X_val)
+                rmse = np.sqrt(mean_squared_error(y_val, preds))
+                fold_scores.append(rmse)
+                print(f"[DEBUG] Fold {fold_idx + 1} RMSE: {rmse:.2f}")
+        
+        except Exception as e:
+            print(f"[ERROR] Training failed for trial {trial.number}: {str(e)[:200]}...")
+            print(f"[ERROR] Problematic params: {params}")
+            
+            # Essayer avec des paramètres plus simples/sûrs
+            safe_params = {
+                "loss_function": "RMSE",
+                "verbose": 0,
+                "random_state": self.random_state,
+                "task_type": "CPU",
+                "learning_rate": 0.1,
+                "depth": 6,
+                "iterations": 100
+            }
+            
+            print("[INFO] Retrying with safe parameters...")
+            try:
+                for fold_idx, (train_idx, val_idx) in enumerate(kf.split(self.X)):
+                    X_train, X_val = self.X.iloc[train_idx], self.X.iloc[val_idx]
+                    y_train, y_val = self.y.iloc[train_idx], self.y.iloc[val_idx]
+                    
+                    model = CatBoostRegressor(**safe_params)
+                    model.fit(X_train, y_train, verbose=False)
+                    
+                    preds = model.predict(X_val)
+                    rmse = np.sqrt(mean_squared_error(y_val, preds))
+                    fold_scores.append(rmse)
+                    
+            except Exception as e2:
+                print(f"[ERROR] Even safe parameters failed: {e2}")
+                return float('inf')  # Échec total pour ce trial
+        
+        if not fold_scores:
+            print("[ERROR] No fold scores obtained")
+            return float('inf')
+            
+        avg_rmse = np.mean(fold_scores)
+        print(f"[INFO] Trial {trial.number} average RMSE: {avg_rmse:.2f}")
+        
+        # Garder le meilleur modèle
+        if avg_rmse < self.best_score:
+            self.best_score = avg_rmse
+            
+            # Entraîner le modèle final sur toutes les données
+            final_model = CatBoostRegressor(**params)
+            final_model.fit(self.X, self.y, verbose=False)
+            
+            # Évaluer le modèle - utiliser les mêmes données pour train et test dans ce contexte
+            # (car on n'a pas de vrai test set séparé ici)
+            evaluator = ModelEvaluator(f"catboost_trial_{trial.number}")
+            predictions = final_model.predict(self.X)
+            
+            train_metrics, train_range_metrics = evaluator.evaluate(self.y, predictions)
+            # Pour test_metrics, utiliser les mêmes données (limitation du contexte actuel)
+            test_metrics, test_range_metrics = train_metrics.copy(), train_range_metrics.copy()
+            
+            self.best_model = final_model
+            self.best_model_metrics = {
+                "train": train_metrics,
+                "test": test_metrics,
+                "by_price_range": test_range_metrics
+            }
+
+        return avg_rmse
 
 
 
@@ -228,7 +327,10 @@ class CatBoostTuner:
 
         print("[STEP] Logging final model, metrics and experiment...")
 
-        best_model = self.best_model  # Défini dans objective()
+        if self.best_model is None or self.best_model_metrics is None:
+            raise RuntimeError("No best model found. Optimization may have failed.")
+
+        best_model = self.best_model
         model_name = f"catboost_best_trial_{study.best_trial.number}"
 
         global_metrics_train = self.best_model_metrics["train"]

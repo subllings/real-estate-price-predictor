@@ -5,14 +5,8 @@ from utils.cosmosdb_logger import CosmosDbLogger
 from utils.data_loader import DataLoader
 from utils.constants import ML_READY_DATA_FILE, TEST_MODE
 from utils.model_evaluator import ModelEvaluator
-from agents.tuner_agent.optuna_param_loader import OptunaParamLoader
+from utils.model_saver import ModelSaver
 import optuna
-from utils.constants import (
-    PERFECT_R2_THRESHOLD,
-    PERFECT_MAE_THRESHOLD,
-    PERFECT_RMSE_THRESHOLD,
-    DELTA_R2_THRESHOLD
-)
 
 class TunerAgentOrchestrator:
     def __init__(self, model_name: str):
@@ -40,7 +34,6 @@ class TunerAgentOrchestrator:
 
         # Step 2 – Get parameter search space from LLM agent (ChatGPT)
         print("[STEP] Loading parameter space via ChatGPT...")
-        # Instead of OptunaParamLoader, use LLMTunerAgent or similar to get a refined search space
         llm_agent = LLMTunerAgent(self.model_name)
         search_space = llm_agent.suggest_param_space()
         print("[✔] Parameter space loaded.")
@@ -48,55 +41,41 @@ class TunerAgentOrchestrator:
         # Step 3 – Initialize the tuner based on the model type
         if self.model_name == "catboost":
             tuner = CatBoostTuner(
-                X, y, self.n_trials, self.n_splits, self.early_stopping_rounds,
-                search_space, self.random_state, self.use_gpu
+                X=X, 
+                y=y, 
+                n_trials=self.n_trials, 
+                n_splits=self.n_splits, 
+                early_stopping_rounds=self.early_stopping_rounds,
+                optuna_params=search_space, 
+                random_state=self.random_state,
+                use_gpu=self.use_gpu
             )
         elif self.model_name == "xgboost":
             tuner = XGBoostTuner(
-                X, y, self.n_trials, self.n_splits, self.early_stopping_rounds,
-                search_space, self.random_state, self.use_gpu
+                X=X, 
+                y=y, 
+                n_trials=self.n_trials, 
+                n_splits=self.n_splits, 
+                early_stopping_rounds=self.early_stopping_rounds,
+                use_gpu=self.use_gpu,
+                optuna_params=search_space, 
+                random_state=self.random_state,
+                feature_selection_method="all_features"  # Peut être configuré dynamiquement
             )
         else:
             raise ValueError(f"Unsupported model: {self.model_name}")
 
-        # Step 4 – Run optimization (run_study handles the tuning loop)
+        # Step 4 – Run optimization
         print("[STEP] Starting optimization...")
-        best_trial = tuner.run_study()
+        best_params = tuner.run_study()
 
-        print(f"\n✅ Best trial – RMSE: {best_trial.value:.2f}")
-
-        # Retrieve final metrics from tuner
-        final_metrics = tuner.get_final_metrics()
-        r2 = final_metrics.get("r2_test", 0)
-        mae = final_metrics.get("mae_test", float("inf"))
-        rmse = final_metrics.get("rmse_test", float("inf"))
-
-        print(f"Final metrics:\n  R²: {r2:.4f}\n  MAE: {mae:.2f}\n  RMSE: {rmse:.2f}")
-
-        # Return the best trial and a flag indicating perfection (False for now)
-        return best_trial, False
-
-
-    def _tune_model(self, search_space, X, y):
-        common_args = {
-            "X": X,
-            "y": y,
-            "n_trials": self.n_trials,
-            "n_splits": self.n_splits,
-            "early_stopping_rounds": self.early_stopping_rounds,
-            "use_gpu": self.use_gpu,
-            "optuna_params": search_space,
-            "random_state": self.random_state,
-        }
-
-        if self.model_name == "xgboost":
-            tuner = XGBoostTuner(**common_args)
-        elif self.model_name == "catboost":
-            tuner = CatBoostTuner(**common_args)
+        if best_params:
+            print(f"\n✅ Optimization completed successfully!")
+            print(f"Best parameters: {best_params}")
+            return best_params, False
         else:
-            raise ValueError(f"[ERROR] Unsupported model: {self.model_name}")
-
-        return tuner.run_study()
+            print("❌ Optimization failed!")
+            return None, False
 
 
     def _load_training_data(self):
