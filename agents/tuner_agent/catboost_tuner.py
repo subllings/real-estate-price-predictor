@@ -26,17 +26,7 @@ from utils.constants import ML_READY_DATA_FILE, TEST_MODE
 
     
 class CatBoostTuner:
-    def __init__(
-        self,
-        X,
-        y,
-        n_trials: int,
-        n_splits: int,
-        early_stopping_rounds: int,
-        optuna_params: Optional[Dict[str, Any]] = None,
-        random_state: int = 42,
-        use_gpu: bool = False,
-    ):
+    def __init__(self, X, y, n_trials: int, n_splits: int, early_stopping_rounds: int, optuna_params: Optional[Dict[str, Any]] = None, random_state: int = 42, use_gpu: bool = False):
         self.X = X
         self.y = y
         self.n_trials = n_trials
@@ -55,6 +45,9 @@ class CatBoostTuner:
             "border_count": (32, 255),
             "random_strength": (1e-9, 10.0)
         }
+        self.best_model = None
+        self.best_model_metrics = None
+        self.best_score = float("inf")
 
     def suggest_param(self, trial, name, config):
         if isinstance(config, dict):
@@ -99,10 +92,7 @@ class CatBoostTuner:
             "verbose": 1,
         }
 
-
         params["thread_count"] = 1  # Use single thread for reproducibility  
-
-
 
         # Conditional parameter only for Bayesian bootstrap
         if bootstrap_type == "Bayesian":
@@ -207,6 +197,46 @@ class CatBoostTuner:
         timestamp = datetime.now().strftime("%Y%m%d_%H%M")
         model_name = f"catboost_trial_{trial.number}_{'_TEST' if TEST_MODE else ''}"
 
+        # === Stockage du meilleur modèle et de ses métriques dans l'objet pour exploitation globale ===
+        self.best_model = best_model
+        self.best_model_metrics = {
+            "train": global_metrics_train,
+            "test": global_metrics_test,
+            "by_price_range": metrics_by_range
+        }
+
+        return np.mean(scores)
+
+
+
+    
+    def run_study(self):
+        print("\n[STEP] Creating Optuna study...")
+        study = optuna.create_study(direction="minimize")
+
+        print("[STEP] Starting optimization...")
+        study.optimize(self.objective, n_trials=self.n_trials, n_jobs=1)
+
+        print("[STEP] Optimization complete.")
+        print(f"Best trial: {study.best_trial.number}")
+        print(f"Best parameters: {study.best_trial.params}")
+
+        self.best_params = study.best_trial.params
+        self.best_params["verbose"] = 0
+
+        # === LOGGING AND SAVING ONLY FOR THE BEST MODEL ===
+
+        print("[STEP] Logging final model, metrics and experiment...")
+
+        best_model = self.best_model  # Défini dans objective()
+        model_name = f"catboost_best_trial_{study.best_trial.number}"
+
+        global_metrics_train = self.best_model_metrics["train"]
+        global_metrics_test = self.best_model_metrics["test"]
+        metrics_by_range = self.best_model_metrics["by_price_range"]
+        is_perfect = global_metrics_test["r2"] >= 0.90  # ou autre critère de ton choix
+
+        # Sauvegarde du modèle + features
         model_path = self.model_saver.save_model_and_features(
             model=best_model,
             features=self.X.columns.tolist(),
@@ -215,7 +245,7 @@ class CatBoostTuner:
             metrics_by_price_range=metrics_by_range,
         )
 
-        # Log metrics to CSV
+        # Logging CSV
         from utils.train_test_metrics_logger import TrainTestMetricsLogger
         csv_logger = TrainTestMetricsLogger()
         csv_logger.log(
@@ -233,46 +263,28 @@ class CatBoostTuner:
             is_perfect=is_perfect,
         )
 
-        # Log experiment to Cosmos DB
-        self.logger.log_experiment(
-            {
-                "type": "optuna_trial",
-                "trial_number": trial.number,
-                "model_name": model_name,
-                "model_file": model_path,
-                "params": params,
-                "metrics": {
-                    "train": global_metrics_train,
-                    "test": global_metrics_test,
-                    "delta_r2": global_metrics_train["r2"] - global_metrics_test["r2"],
-                    "delta_rmse": global_metrics_train["rmse"] - global_metrics_test["rmse"]
-                },
-                "metrics_by_price_range": metrics_by_range,
-                "is_perfect": is_perfect
-            }
-        )
+        # Logging dans CosmosDB
+        self.logger.log_experiment({
+            "type": "optuna_trial",
+            "trial_number": study.best_trial.number,
+            "model_name": model_name,
+            "model_file": model_path,
+            "params": study.best_trial.params,
+            "metrics": {
+                "train": global_metrics_train,
+                "test": global_metrics_test,
+                "delta_r2": global_metrics_train["r2"] - global_metrics_test["r2"],
+                "delta_rmse": global_metrics_train["rmse"] - global_metrics_test["rmse"]
+            },
+            "metrics_by_price_range": metrics_by_range
+        })
+
+        
 
         self.r2_test = global_metrics_test["r2"]
         self.mae_test = global_metrics_test["mae"]
         self.rmse_test = global_metrics_test["rmse"]
 
-        return np.mean(scores)
-
-
-    
-    def run_study(self):
-        print("\n[STEP] Creating Optuna study...")
-        study = optuna.create_study(direction="minimize")
-        
-        print("[STEP] Starting optimization...")
-        study.optimize(self.objective, n_trials=self.n_trials, n_jobs=1) 
-
-        print("[STEP] Optimization complete.")
-        print(f"Best trial: {study.best_trial.number}")
-        print(f"Best parameters: {study.best_trial.params}")
-
-        self.best_params = study.best_params
-        self.best_params["verbose"] = 0
         return study.best_trial
 
 

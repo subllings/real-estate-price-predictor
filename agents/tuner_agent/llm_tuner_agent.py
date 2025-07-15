@@ -12,15 +12,21 @@ class LLMTunerAgent:
 
     def run(self):
         print(f"[INFO] Running LLM tuning for model: {self.model_name}")
-        best_hyperparams = self.get_best_run_hyperparams()
-        if not best_hyperparams:
-            print(f"[!] No valid hyperparameters found for model: {self.model_name}")
-            return
 
-        suggested_params = self.suggest_param_space()
-        print(f"[INFO] Suggested parameter space for model {self.model_name}: {suggested_params}")
+        try:
+            suggested_params = self.suggest_and_log_param_space()
+            print(f"[INFO] Suggested parameter space for model '{self.model_name}': {suggested_params}")
+        except Exception as e:
+            print(f"[❌] Error during parameter suggestion: {e}")
 
     
+
+    def suggest_and_log_param_space(self) -> dict:
+        best_hyperparams = self.get_best_run_hyperparams()
+        if not best_hyperparams:
+            print("[⚠️] No best run found, continuing anyway.")
+        return self.suggest_param_space()
+
 
     def suggest_param_space(self) -> dict:
         """
@@ -32,6 +38,9 @@ class LLMTunerAgent:
         print(f"[INFO] Retrieved {len(previous_trials)} previous trials for model '{self.model_name}'")
         for idx, trial in enumerate(previous_trials, 1):
             print(f"Trial {idx}: {trial}")
+
+        print("\n==================== Previous trials: ====================")
+        print("previous_trials:", previous_trials)
 
         payload = {
             "model_name": self.model_name,
@@ -87,3 +96,5 @@ class LLMTunerAgent:
         hyperparams = best_run.get("hyperparameters", {})
         print(f"[✔] Best hyperparameters retrieved for model '{self.model_name}': {hyperparams}")
         return hyperparams
+
+

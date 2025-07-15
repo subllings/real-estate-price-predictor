@@ -1,4 +1,5 @@
 import os
+import re
 from typing import List
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -111,6 +112,7 @@ def call_azure_openai_chat(messages: List[dict], temperature: float = 0.7, max_t
 
 # === Routes ===
 
+
 @app.get("/", tags=["Health"])
 def root():
     return {"message": "API LLM V2 is running..."}
@@ -184,7 +186,7 @@ Based on this history, suggest a refined Optuna parameter space in JSON format.
 Only output valid JSON. No explanations.
 """
 
-    logger.info("=== Prompt sent to ChatGPT ===")
+    logger.info("=== Prompt reveived by the API & to be sent to GPT-4.1 ===")
     logger.info(prompt)
 
     # Call Azure OpenAI chat endpoint
@@ -197,14 +199,14 @@ Only output valid JSON. No explanations.
         max_tokens=700
     )
 
-    logger.info("=== Response received from ChatGPT ===")
+    logger.info("=== Response received from from GPT-4.1 ===")
     logger.info(response_text)
 
-
+    cleaned = re.sub(r"^```json\s*|\s*```$", "", response_text.strip(), flags=re.IGNORECASE)
 
     # Attempt to parse JSON response
     try:
-        param_space = json.loads(response_text)
+        param_space = json.loads(cleaned)
         return {"model": model_name, "param_space": param_space}
     except json.JSONDecodeError:
         raise HTTPException(

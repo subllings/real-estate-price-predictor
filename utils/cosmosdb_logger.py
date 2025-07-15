@@ -212,11 +212,11 @@ class CosmosDbLogger:
 
     def get_trials_for_model(self, model_name: str, limit: int = 10) -> list:
         """
-        Retrieve the last 'limit' trials for a given model.
+        Retrieve the last 'limit' trials based on 'base_model'.
         """
         query = """
         SELECT TOP @limit * FROM c
-        WHERE c.model_name = @model_name AND c.type = 'metrics'
+        WHERE STARTSWITH(c.model_name, @model_name) AND c.type = 'optuna_trial'
         ORDER BY c.timestamp DESC
         """
         parameters = [
@@ -232,3 +232,15 @@ class CosmosDbLogger:
         except Exception as e:
             print(f"[✘] Error fetching trials from CosmosDB: {e}")
             return []
+
+
+    def get_distinct_model_names(self, source="LLMTunerAgent") -> list:
+        """
+        Retrieve all distinct model names from the database, filtered by source.
+        """
+        query = {
+            "query": f"SELECT DISTINCT c.model_name FROM c WHERE c.source = @source",
+            "parameters": [{"name": "@source", "value": source}]
+        }
+        results = self.container.query_items(query=query, enable_cross_partition_query=True)
+        return [item["model_name"] for item in results]
