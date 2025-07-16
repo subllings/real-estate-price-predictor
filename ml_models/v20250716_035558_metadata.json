@@ -1,0 +1,50 @@
+{
+  "model_name": "real_estate_predictor",
+  "model_type": "catboost",
+  "version": "v20250716_035558",
+  "created_at": "2025-07-16T03:55:58.421263",
+  "performance": {
+    "r2_score": 0.8756639149027101,
+    "mae": 41139.79653427668,
+    "rmse": 51487.01065201154,
+    "validation_samples": 400
+  },
+  "feature_importance": {
+    "surface": 68.39892981345773,
+    "rooms": 5.941403088318865,
+    "bedrooms": 0.644652132880298,
+    "bathrooms": 0.3618327410229603,
+    "garden": 2.2243709552069424,
+    "terrace": 0.18573413704523,
+    "pool": 1.6211136155988506,
+    "garage": 0.31003047959739227,
+    "fireplace": 0.1773913794407331,
+    "location_score": 20.134541657431
+  },
+  "features": [
+    "surface",
+    "rooms",
+    "bedrooms",
+    "bathrooms",
+    "garden",
+    "terrace",
+    "pool",
+    "garage",
+    "fireplace",
+    "location_score"
+  ],
+  "n_features": 10,
+  "optuna_study": {
+    "n_trials": 50,
+    "best_trial": 39,
+    "best_params": {
+      "learning_rate": 0.043169514672658206,
+      "depth": 4,
+      "l2_leaf_reg": 2.1279720986822803,
+      "iterations": 546
+    },
+    "study_name": "no-name-6087d933-ccf6-4194-abe5-4bef1e47e296"
+  },
+  "status": "candidate",
+  "deployment_ready": true
+}

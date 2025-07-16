@@ -77,7 +77,7 @@ const AdminPage = () => {
                 e.target.style.color = '#28a745';
               }}
             >
-              Back to App
+              🏠 Back to App
             </button>
           </nav>
         </div>

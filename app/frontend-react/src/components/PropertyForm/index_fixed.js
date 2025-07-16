@@ -439,7 +439,7 @@ const handleSubmit = async (e) => {
 
         {results.all && results.top && (
           <div className="results-container">
-            <ResultCard title="" value={results.all} className="price-estimate" />
+            <ResultCard title="Prediction using all features" value={results.all} />
             <ResultCard title="Prediction using top 30 features" value={results.top} />
           </div>
         )}

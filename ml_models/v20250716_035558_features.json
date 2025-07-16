@@ -1,0 +1,14 @@
+{
+  "features": [
+    "surface",
+    "rooms",
+    "bedrooms",
+    "bathrooms",
+    "garden",
+    "terrace",
+    "pool",
+    "garage",
+    "fireplace",
+    "location_score"
+  ]
+}

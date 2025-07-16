@@ -1,7 +1,7 @@
 import React from "react";
 import styles from "./ResultCard.module.css";
 
-const ResultCard = ({ title, value, className }) => {
+const ResultCard = ({ title, value }) => {
   const formattedValue = value
     .toFixed(0)
     .replace(/\B(?=(\d{3})+(?!\d))/g, " ");
@@ -10,15 +10,14 @@ const ResultCard = ({ title, value, className }) => {
   const [prefix, boldPart] = title.split(/(all features|top 30 features)/i);
 
   return (
-    <div className={`${styles.resultCard} ${className || ''}`}>
+    <div className={styles.resultCard}>
       <h3 className={styles.title}>
         {prefix}
         <span className={styles.boldTitle}>{boldPart}</span>
       </h3>
-      <div className={styles.price}>
-        <span>Estimated Price (€):</span>
-        <span className={styles.priceValue}>{formattedValue}</span>
-      </div>
+      <p className={styles.price}>
+        Estimated Price (€): <span className={styles.priceValue}>{formattedValue}</span>
+      </p>
     </div>
   );
 };

@@ -3,34 +3,52 @@
  * Specialized AI assistant for sustainability and regulatory compliance
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
-const BelgianESGAgent = () => {
+const BelgianESGAgent = ({ propertyData, estimatedPrice, onAnalysisComplete }) => {
   const [messages, setMessages] = useState([
     {
       type: 'agent',
-      content: "Hello! I'm your Belgian real estate ESG advisor. I can help you with:\n\nEnergy Performance (EPC)\nGrants and subsidies\nValue impact\nSustainable renovations\nRegulatory compliance\n\nWhat's your question?"
+      content: propertyData ? 
+        `🏠 **ESG Analysis Ready**\n\nProperty: ${propertyData.habitableSurface}m² ${propertyData.propertyType} in ${propertyData.locality}\nEstimated Value: €${estimatedPrice?.toLocaleString()}\nEPC Score: ${propertyData.epcScore}\n\n📊 Generating detailed ESG analysis...` :
+        "👋 Hello! I'm your Belgian real estate ESG advisor. I can help you with:\n\n🏠 Energy Performance (EPC)\n💰 Grants and subsidies\n📈 Value impact\n🌡️ Sustainable renovations\n⚖️ Regulatory compliance\n\nWhat's your question?"
     }
   ]);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
+  // Auto-generate ESG analysis when property data is available
+  useEffect(() => {
+    if (propertyData && estimatedPrice) {
+      setTimeout(() => {
+        const analysis = generateDetailedESGAnalysis(propertyData, estimatedPrice);
+        setMessages(prev => [...prev, {
+          type: 'agent',
+          content: analysis
+        }]);
+        if (onAnalysisComplete) {
+          onAnalysisComplete(analysis);
+        }
+      }, 1500); // Simulate processing time
+    }
+  }, [propertyData, estimatedPrice, onAnalysisComplete]);
+
   // Predefined scenarios for demo
   const demoScenarios = [
     {
-      label: "1960 House Class F",
+      label: "🏠 1960 House Class F",
       query: "I have a 1960 house rated F in Brussels. What's the price impact and what should I do?"
     },
     {
-      label: "Insulation Grants",
+      label: "💡 Insulation Grants",
       query: "What grants can I get for insulating a house in Wallonia?"
     },
     {
-      label: "Heat Pump ROI",
+      label: "🔥 Heat Pump ROI",
       query: "ROI of a heat pump vs gas boiler for 100m² apartment"
     },
     {
-      label: "2030 Deadlines",
+      label: "⚠️ 2030 Deadlines",
       query: "My rental property is class G, what happens in 2030?"
     }
   ];
@@ -55,7 +73,7 @@ const BelgianESGAgent = () => {
     const lowerQuery = query.toLowerCase();
     
     if (lowerQuery.includes('class f') || lowerQuery.includes('1960')) {
-      return `**1960 House Class F Analysis - Brussels**
+      return `🏠 **1960 House Class F Analysis - Brussels**
 
 📉 **Current Price Impact**
 - Depreciation: -15 to -20% vs class C
@@ -86,7 +104,7 @@ Plan renovation before 2028 to optimize grants and value.`;
     if (lowerQuery.includes('grant') || lowerQuery.includes('subsidy') || lowerQuery.includes('wallonia')) {
       return `💰 **Wallonia Insulation Grants 2025**
 
-**Housing Grants**
+🏠 **Housing Grants**
 - Roof insulation: 15-30€/m² (max 3000€)
 - Wall insulation: 25-50€/m² (max 5000€) 
 - Floor insulation: 10-20€/m² (max 2000€)
@@ -187,7 +205,7 @@ Especially with grants and 2030 perspective!`;
 
 Thank you for your question! As a Belgian real estate ESG specialist, I can help you with:
 
-**Energy Performance**
+🏠 **Energy Performance**
 - EPC audit and certification
 - Energy class improvement
 - Sale/rental price impact
@@ -208,6 +226,76 @@ Thank you for your question! As a Belgian real estate ESG specialist, I can help
 - Innovative technologies
 
 Can you specify your situation (property type, location, EPC class) for a personalized analysis?`;
+  };
+
+  const generateDetailedESGAnalysis = (propertyData, estimatedPrice) => {
+    const epcScore = propertyData.epcScore;
+    const surface = propertyData.habitableSurface;
+    const year = propertyData.buildingConstructionYear;
+    const locality = propertyData.locality;
+    const province = propertyData.province;
+    
+    // Calculate energy efficiency metrics
+    const isOldBuilding = year < 1980;
+    const isEnergyEfficient = ['A_plus', 'A', 'B'].includes(epcScore);
+    const needsRenovation = ['E', 'F', 'G'].includes(epcScore);
+    
+    // Calculate potential savings and renovations
+    const yearlyEnergyCost = needsRenovation ? surface * 25 : surface * 15;
+    const potentialSavings = needsRenovation ? yearlyEnergyCost * 0.6 : yearlyEnergyCost * 0.3;
+    const renovationCost = needsRenovation ? surface * 250 : surface * 100;
+
+    return `📊 **Detailed ESG Analysis - ${locality}, ${province}**
+
+🏠 **Property Overview**
+• ${surface}m² ${propertyData.propertyType.toLowerCase()} built in ${year}
+• Current EPC: **${epcScore.replace('_', '+')}**
+• Estimated Value: **€${estimatedPrice.toLocaleString()}**
+
+⚡ **Energy Performance**
+${isEnergyEfficient ? 
+  `✅ **Excellent Performance!**
+• Low energy costs (~€${Math.round(yearlyEnergyCost)}/year)
+• High market value retention
+• Compliant with 2030+ regulations` :
+  needsRenovation ?
+  `⚠️ **Renovation Needed**
+• High energy costs (~€${Math.round(yearlyEnergyCost)}/year)
+• Potential savings: €${Math.round(potentialSavings)}/year
+• Regulatory risk for rentals post-2030` :
+  `✅ **Good Performance**
+• Moderate energy costs (~€${Math.round(yearlyEnergyCost)}/year)
+• Room for improvement: €${Math.round(potentialSavings)}/year savings`
+}
+
+💰 **Financial Impact**
+• Current impact: ${needsRenovation ? '-15% to -20%' : isEnergyEfficient ? '+5% to +10%' : 'neutral to +5%'}
+• Post-renovation value: +€${Math.round(renovationCost * 0.8).toLocaleString()}
+• ROI timeline: ${needsRenovation ? '7-10 years' : '10-15 years'}
+
+🔧 **Renovation Recommendations**
+${needsRenovation ? 
+  `Priority investments:
+• Insulation (roof/walls): €${Math.round(surface * 80)}-${Math.round(surface * 120)}
+• High-efficiency heating: €${Math.round(surface * 60)}-${Math.round(surface * 100)}
+• Windows replacement: €${Math.round(surface * 40)}-${Math.round(surface * 80)}` :
+  `Optimization opportunities:
+• Smart heating control: €2,000-5,000
+• Solar panels: €8,000-15,000
+• Ventilation upgrade: €3,000-7,000`
+}
+
+🎯 **Belgian Grants Available**
+• ${province} region: Up to €4,000 base grant
+• Federal tax deduction: 30% on energy works
+• Municipality bonus: €500-2,000 additional
+
+📈 **Market Outlook**
+• Energy-efficient homes: +5-8% demand growth
+• ESG compliance: Critical for rental market
+• Carbon footprint: ${isEnergyEfficient ? 'Low' : needsRenovation ? 'High - action needed' : 'Moderate'}
+
+**Next Steps:** ${needsRenovation ? 'Schedule energy audit → Apply for grants → Execute renovations' : 'Consider optimization upgrades for added value'}`;
   };
 
   return (

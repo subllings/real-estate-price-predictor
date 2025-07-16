@@ -82,45 +82,13 @@ class ModelSaver:
         features,
         model_name: str,
         metrics: dict = None,
-        metrics_by_price_range: list = None,
-        upload_to_azure: bool = True
+        metrics_by_price_range: list = None
     ):
         model_filename = self.save_model(model, model_name)
-        full_model_path = os.path.join(self.pkl_dir, model_filename)
-        
         self.save_features(features, model_filename)
         if metrics:
             self.save_metrics(metrics, model_filename)
         if metrics_by_price_range:
             self.save_metrics_by_price_range(metrics_by_price_range, model_filename)
-        
-        # Upload automatique vers Azure si demandé
-        if upload_to_azure and not TEST_MODE:
-            try:
-                from utils.azure_model_storage import upload_model_to_azure
-                
-                # Préparer métadonnées complètes pour Azure
-                azure_metadata = {
-                    "model_name": model_name,
-                    "model_filename": model_filename,
-                    "features": features,
-                    "n_features": len(features) if features else 0,
-                    "timestamp": self.run_timestamp,
-                    **(metrics or {}),
-                    "metrics_by_price_range": metrics_by_price_range
-                }
-                
-                azure_url = upload_model_to_azure(full_model_path, azure_metadata)
-                if azure_url:
-                    print(f"[✅] Modèle automatiquement uploadé sur Azure")
-                    return full_model_path, azure_url
-                else:
-                    print(f"[⚠️] Upload Azure échoué, modèle sauvé localement uniquement")
-                    
-            except ImportError:
-                print(f"[⚠️] Azure storage non configuré, modèle sauvé localement uniquement")
-            except Exception as e:
-                print(f"[⚠️] Erreur upload Azure: {e}")
-        
-        return full_model_path
+        return model_filename
 

@@ -1,6 +1,6 @@
 import os
 import re
-from typing import List, Optional
+from typing import List
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -75,7 +75,7 @@ class UserProfile(BaseModel):
 class CommentRequest(BaseModel):
     formData: FormData
     predictionAll: float
-    predictionTop: Optional[float] = None  # Make it optional
+    predictionTop: float
     userProfile: UserProfile
 
 class LLMParamRequest(BaseModel):
@@ -84,29 +84,6 @@ class LLMParamRequest(BaseModel):
 class SuggestionRequest(BaseModel):
     model_name: str
     previous_trials: list
-
-class ESGUserProfile(BaseModel):
-    name: str
-    type: str
-    objectives: List[str]
-    language: str
-
-class ESGAnalysisRequest(BaseModel):
-    propertyType: str
-    subtype: Optional[str] = None
-    province: str
-    locality: str
-    postCode: Optional[str] = None
-    constructionYear: Optional[int] = None
-    surface: Optional[float] = None
-    condition: Optional[str] = None
-    epcScore: Optional[str] = None
-    heatingType: Optional[str] = None
-    estimatedPrice: float
-    userProfile: ESGUserProfile
-
-class ESGAnalysisResponse(BaseModel):
-    comments: List[str]
 
 # === Utility Function ===
 
@@ -155,17 +132,13 @@ def generate_comments(request: CommentRequest):
     form = request.formData
     profile = request.userProfile
 
-    # Build prediction information based on available models
-    prediction_info = f"Model (all features) predicted: {request.predictionAll} EUR"
-    if request.predictionTop is not None:
-        prediction_info += f"\nModel (top 30 features) predicted: {request.predictionTop} EUR"
-    
     prompt = f"""
     You are a real estate data assistant for a user profile of type '{profile.type}', 
     with objectives: {', '.join(profile.objectives)}. 
     The property is located in {form.locality}, {form.province}, {form.region}.
     
-    {prediction_info}
+    Model 1 (all features) predicted: {request.predictionAll} EUR  
+    Model 2 (top 30 features) predicted: {request.predictionTop} EUR  
     Model scores: MAE = {form.scoreMeta.mae}, RMSE = {form.scoreMeta.rmse}, R² = {form.scoreMeta.r2}
 
     Based on this, generate 2-3 smart, business-oriented comments tailored to the user's profile.
@@ -345,120 +318,6 @@ def suggest_param_space(request: SuggestionRequest):
             status_code=500,
             detail=f"Invalid JSON returned by LLM:\n{response_text}"
         )
-
-@router.post("/esg-analysis", tags=["ESG Analysis"], response_model=ESGAnalysisResponse)
-def perform_esg_analysis(request: ESGAnalysisRequest):
-    """
-    Provides intelligent ESG analysis for real estate properties.
-    Analyzes energy efficiency, sustainability, and 2030 compliance.
-    """
-    
-    # Build property context
-    property_context = f"""
-    Property Type: {request.propertyType}
-    Location: {request.locality}, {request.province}
-    Construction Year: {request.constructionYear or 'Unknown'}
-    Surface: {request.surface or 'Unknown'} m²
-    Condition: {request.condition or 'Unknown'}
-    EPC Score: {request.epcScore or 'Unknown'}
-    Heating Type: {request.heatingType or 'Unknown'}
-    Estimated Price: €{request.estimatedPrice:,.0f}
-    """
-
-    # Create comprehensive ESG analysis prompt
-    prompt = f"""
-    You are an expert ESG (Environmental, Social, Governance) analyst specializing in Belgian real estate.
-    
-    Analyze this property for energy efficiency, sustainability, and 2030 compliance:
-    
-    {property_context}
-    
-    Provide a comprehensive ESG analysis focusing on:
-    
-    1. **Energy Performance Assessment**
-       - Current EPC rating analysis and implications
-       - Energy consumption estimates
-       - Heating system efficiency evaluation
-    
-    2. **2030 Compliance & Regulations**
-       - Belgian energy performance requirements
-       - Rental restrictions for low-performing properties
-       - Timeline for mandatory improvements
-    
-    3. **Renovation Recommendations**
-       - Priority improvements for energy efficiency
-       - Estimated costs and ROI
-       - Available grants and subsidies in {request.province}
-    
-    4. **Market Impact Analysis**
-       - Effect of energy performance on property value
-       - Future marketability considerations
-       - Green premium potential
-    
-    5. **Financial Projections**
-       - Energy cost savings potential
-       - Renovation investment requirements
-       - Long-term value preservation
-    
-    Provide practical, actionable insights in a conversational tone. Focus on specific recommendations for this property type and location.
-    
-    Structure your response as distinct analysis points, each 2-3 sentences long.
-    """
-
-    try:
-        # Call Azure OpenAI for ESG analysis
-        response_text = call_azure_openai_chat(
-            messages=[
-                {"role": "system", "content": "You are an expert ESG analyst for Belgian real estate, providing practical energy efficiency and sustainability advice."},
-                {"role": "user", "content": prompt}
-            ],
-            temperature=0.3,  # Lower temperature for more consistent analysis
-            max_tokens=1000   # Longer response for comprehensive analysis
-        )
-        
-        logger.info(f"ESG Analysis completed for {request.propertyType} in {request.locality}")
-        
-        # Split response into logical analysis points
-        analysis_points = []
-        
-        # Split by paragraphs and clean up
-        paragraphs = [p.strip() for p in response_text.split('\n\n') if p.strip()]
-        
-        for paragraph in paragraphs:
-            # Further split long paragraphs by sentences if needed
-            sentences = paragraph.split('. ')
-            if len(sentences) > 3:
-                # Group sentences into chunks of 2-3
-                for i in range(0, len(sentences), 3):
-                    chunk = '. '.join(sentences[i:i+3])
-                    if chunk and len(chunk) > 50:  # Minimum meaningful length
-                        analysis_points.append(chunk.rstrip('.') + '.')
-            else:
-                if len(paragraph) > 50:  # Minimum meaningful length
-                    analysis_points.append(paragraph)
-        
-        # Ensure we have meaningful analysis points
-        if not analysis_points:
-            analysis_points = [
-                f"Energy Performance: Property in {request.locality} shows potential for efficiency improvements.",
-                f"2030 Compliance: Based on {request.constructionYear or 'age'}, renovation planning recommended.",
-                f"Market Value: Energy upgrades can enhance property value in {request.province} market."
-            ]
-        
-        return ESGAnalysisResponse(comments=analysis_points)
-        
-    except Exception as e:
-        logger.error(f"ESG Analysis failed: {str(e)}")
-        
-        # Provide fallback analysis based on available data
-        fallback_comments = [
-            f"Property Assessment: {request.propertyType} in {request.locality} requires detailed energy evaluation.",
-            f"Regulatory Context: Belgian 2030 energy standards impact properties built before 2010.",
-            f"Investment Opportunity: Energy efficiency improvements can enhance both comfort and value.",
-            f"Next Steps: Professional EPC assessment recommended for {request.surface or 'this'} m² property."
-        ]
-        
-        return ESGAnalysisResponse(comments=fallback_comments)
 
 
 app.include_router(router)

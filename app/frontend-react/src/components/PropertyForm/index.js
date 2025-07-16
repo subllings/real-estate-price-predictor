@@ -3,9 +3,8 @@ import axios from "axios";
 import ResultCard from "../ResultCard";
 import SidePanel from "../SidePanel/SidePanel.jsx";
 import ESGIntegrationPrompt from "../ESGIntegrationPrompt";
-import ESGPanel from "../ESGPanel";
 import encodeInputs from "../../helpers/encodeInputs";
-import { PREDICTION_API_URL, COMMENT_API_URL, ESG_ANALYSIS_API_URL } from "../../config/api";
+import { PREDICTION_API_URL, COMMENT_API_URL } from "../../config/api";
 import "./PropertyForm.css";
 
 const initialFormData = {
@@ -30,10 +29,8 @@ const initialFormData = {
   hasTerrace: true,
 };
 
-const PropertyForm = () => {
+const PropertyForm = ({ onDataChange, onPriceEstimate }) => {
   const [isSidePanelExpanded, setIsSidePanelExpanded] = useState(false);
-  const [isESGPanelOpen, setIsESGPanelOpen] = useState(false);
-  const [esgAnalysis, setEsgAnalysis] = useState([]);
   const [formData, setFormData] = useState(initialFormData);
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState({ all: null, top: null });
@@ -134,11 +131,6 @@ const handleSubmit = async (e) => {
   setError(null);
   // Don't clear comments - keep accumulating them
 
-  // Auto-open side panel if it's closed when predicting
-  if (!isSidePanelExpanded) {
-    setIsSidePanelExpanded(true);
-  }
-
   try {
     const encodedPayload = encodeInputs(formData);
     console.log("Encoded payload:", encodedPayload); // Debug log
@@ -154,6 +146,14 @@ const handleSubmit = async (e) => {
       top: null, // Remove top30 predictions
     });
 
+    // Call parent callbacks to update other components
+    if (onDataChange) {
+      onDataChange(formData);
+    }
+    if (onPriceEstimate) {
+      onPriceEstimate(resAll.data.prediction);
+    }
+
     // Prepare data to send to LLM
     const llmPayload = {
       formData: {
@@ -163,16 +163,15 @@ const handleSubmit = async (e) => {
           scoreType: "prediction",
           confidence: "medium",
           accuracy: "85%",
-          mae: resAll.data.model_info?.mae || 15000,
+          mae: 15000,
           rmse: 25000,
-          r2: resAll.data.model_info?.r2_score || 0.85
+          r2: 0.85
         }
       },
       predictionAll: resAll.data.prediction,
-      predictionTop: resAll.data.prediction, // Use same prediction for both since we only have one model
       userProfile: {
         name: "User",
-        type: "individual", 
+        type: "individual",
         preferences: "detailed_analysis",
         objectives: ["buy"],
         language: "en"
@@ -189,7 +188,7 @@ const handleSubmit = async (e) => {
 
       // Create timestamp for this prediction
       const timestamp = new Date().toLocaleTimeString();
-      const predictionHeader = `${formData.propertyType} in ${formData.locality} - ${timestamp}`;
+      const predictionHeader = `=== Prediction ${timestamp} ===`;
 
       // Extract comments from response and add to existing comments
       if (commentaryResponse.data.comments && Array.isArray(commentaryResponse.data.comments)) {
@@ -201,21 +200,11 @@ const handleSubmit = async (e) => {
       } else {
         setComments(prev => [...prev, predictionHeader, "Analysis completed. Detailed recommendations are available."]);
       }
-
-      // ESG Analysis will be triggered by "Detailed Analysis" button
-      // ESG analysis moved to dedicated function below
     } catch (llmError) {
       console.warn("LLM API failed, but predictions are available:", llmError);
-      // Add a more informative message about the LLM service status
+      // Add a default message instead of showing error
       const timestamp = new Date().toLocaleTimeString();
-      const predictionHeader = `${formData.propertyType} in ${formData.locality} - ${timestamp}`;
-      const errorMessage = llmError.response?.status === 404 
-        ? "AI Commentary service is currently unavailable."
-        : llmError.code === 'ECONNREFUSED' || llmError.message?.includes('Network Error')
-        ? "AI Commentary service is offline. Please check if the LLM backend is running."
-        : "AI Commentary temporarily unavailable. Property prediction completed successfully.";
-      
-      setComments(prev => [...prev, predictionHeader, errorMessage]);
+      setComments(prev => [...prev, `=== Prediction ${timestamp} ===`, "Analysis in progress... Detailed recommendations will be available shortly."]);
     }
 
   } catch (err) {
@@ -260,93 +249,11 @@ const handleSubmit = async (e) => {
   }
 };
 
-  // Fonction dédiée pour l'analyse ESG (appelée par le bouton "Detailed Analysis")
-  const performESGAnalysis = async () => {
-    if (!results.all) {
-      console.warn("No price prediction available for ESG analysis");
-      return;
-    }
-
-    // Ouvrir le panel ESG droit
-    setIsESGPanelOpen(true);
-
-    try {
-      const esgPayload = {
-        propertyType: formData.propertyType,
-        subtype: formData.subtype,
-        province: formData.province,
-        locality: formData.locality,
-        postCode: formData.postCode,
-        constructionYear: formData.buildingConstructionYear,
-        surface: formData.habitableSurface,
-        condition: formData.buildingCondition,
-        epcScore: formData.epcScore,
-        heatingType: formData.heatingType,
-        estimatedPrice: results.all,
-        userProfile: {
-          name: "User",
-          type: "individual",
-          objectives: ["esg_analysis", "energy_efficiency"],
-          language: "en"
-        }
-      };
-
-      console.log("ESG Analysis Payload:", esgPayload);
-      console.log("Making ESG API call to:", ESG_ANALYSIS_API_URL);
-
-      const esgResponse = await axios.post(ESG_ANALYSIS_API_URL, esgPayload);
-      console.log("ESG Response:", esgResponse.data);
-
-      // Stocker l'analyse ESG dans le state dédié
-      if (esgResponse.data.comments && Array.isArray(esgResponse.data.comments)) {
-        setEsgAnalysis(esgResponse.data.comments);
-      } else if (esgResponse.data.comment) {
-        const esgCommentText = esgResponse.data.comment;
-        const newEsgComment = typeof esgCommentText === 'string' ? esgCommentText : JSON.stringify(esgCommentText);
-        setEsgAnalysis([newEsgComment]);
-      } else {
-        setEsgAnalysis(["ESG analysis completed. Energy efficiency recommendations are available."]);
-      }
-    } catch (esgError) {
-      console.warn("ESG Analysis API failed:", esgError);
-      const esgErrorMessage = esgError.response?.status === 404 
-        ? "ESG Analysis service is currently unavailable."
-        : esgError.code === 'ECONNREFUSED' || esgError.message?.includes('Network Error')
-        ? "ESG Analysis service is offline. Please check if the backend is running."
-        : "ESG Analysis temporarily unavailable.";
-      
-      setEsgAnalysis([esgErrorMessage]);
-    }
-  };
 
   return (
     <>
       <form className="property-form" onSubmit={handleSubmit}>
-        {/* Action buttons at the top */}
-        <div className="form-actions-top">
-          <button
-            type="button"
-            className="reset-button"
-            onClick={() => {
-              setFormData(initialFormData);
-              setResults({ all: null, top: null });
-              setError(null);
-            }}
-            disabled={loading}
-          >
-            Reset
-          </button>
-          <button type="submit" className="submit-button" disabled={loading}>
-            Predict
-          </button>
-          
-          {loading && (
-            <span className="loading-text">
-              <span className="spinner" />
-              Calling API...
-            </span>
-          )}
-        </div>
+        <h2 className="form-title">Property Information</h2>
 
         <div className="form-grid">
           {/* Location Section - Priority fields */}
@@ -534,55 +441,89 @@ const handleSubmit = async (e) => {
             </select>
           </div>
 
-          {/* EPC Score, Additional Features, and Prediction - In a row */}
-          <div className="form-field epc-features-prediction-row">
-            {/* EPC Score */}
-            <div className="epc-section">
-              <label>EPC Score (Energy Class)</label>
-              <select name="epcScore" value={formData.epcScore} onChange={handleChange}>
-                <option value="A_plus">A+</option>
-                <option value="A">A</option>
-                <option value="B">B</option>
-                <option value="C">C</option>
-                <option value="D">D</option>
-                <option value="E">E</option>
-                <option value="F">F</option>
-                <option value="G">G</option>
-              </select>
-            </div>
-
-            {/* Additional Features */}
-            <div className="features-section">
-              <label className="form-label">Additional Features</label>
-              <div className="checkbox-inline">
-                <label className="checkbox-item">
-                  <input
-                    type="checkbox"
-                    name="hasLivingRoom"
-                    checked={formData.hasLivingRoom}
-                    onChange={handleChange}
-                  />
-                  Has Living Room
-                </label>
-                <label className="checkbox-item">
-                  <input
-                    type="checkbox"
-                    name="hasTerrace"
-                    checked={formData.hasTerrace}
-                    onChange={handleChange}
-                  />
-                  Has Terrace
-                </label>
-              </div>
-            </div>
-
-            {/* Prediction Results */}
-            {results.all && (
-              <div className="prediction-section">
-                <ResultCard title="" value={results.all} className="price-estimate" />
-              </div>
-            )}
+          {/* EPC Score - Important for ESG */}
+          <div className="form-field price-field">
+            <label>EPC Score (Energy Class)</label>
+            <select name="epcScore" value={formData.epcScore} onChange={handleChange}>
+              <option value="A_plus">A+</option>
+              <option value="A">A</option>
+              <option value="B">B</option>
+              <option value="C">C</option>
+              <option value="D">D</option>
+              <option value="E">E</option>
+              <option value="F">F</option>
+              <option value="G">G</option>
+            </select>
           </div>
+
+          {/* Features checkboxes - Full width */}
+          <div className="form-field features-section">
+            <label className="form-label">Additional Features</label>
+            <div className="checkbox-inline">
+              <label className="checkbox-item">
+                <input
+                  type="checkbox"
+                  name="hasLivingRoom"
+                  checked={formData.hasLivingRoom}
+                  onChange={handleChange}
+                />
+                Has Living Room
+              </label>
+              <label className="checkbox-item">
+                <input
+                  type="checkbox"
+                  name="hasTerrace"
+                  checked={formData.hasTerrace}
+                  onChange={handleChange}
+                />
+                Has Terrace
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <div className="form-actions">
+          <button
+            type="button"
+            className="reset-button"
+            onClick={() => {
+              setFormData(initialFormData);
+              setResults({ all: null, top: null });
+              setError(null);
+            }}
+            disabled={loading}
+          >
+            Reset
+          </button>
+          <button
+            type="button"
+            className="clear-history-button"
+            onClick={() => {
+              setComments([]);
+            }}
+            disabled={loading}
+            title="Clear commentary history"
+          >
+            Clear History
+          </button>
+          <button
+            type="button"
+            className="admin-button"
+            onClick={() => window.open('/admin', '_blank')}
+            title="Open Admin Dashboard"
+          >
+            🔧 Admin
+          </button>
+          <button type="submit" className="submit-button" disabled={loading}>
+            Predict
+          </button>
+
+          {loading && (
+            <span className="loading-text">
+              <span className="spinner" />
+              Calling API...
+            </span>
+          )}
         </div>
 
         {error && (
@@ -591,9 +532,11 @@ const handleSubmit = async (e) => {
           </div>
         )}
 
-        {/* ESG Integration - Full width below the form */}
         {results.all && (
-          <div className="esg-integration-container">
+          <div className="results-container">
+            <ResultCard title="Prediction using all features" value={results.all} />
+            
+            {/* ESG Integration Component */}
             <ESGIntegrationPrompt 
               propertyData={{
                 constructionYear: formData.buildingConstructionYear,
@@ -605,7 +548,6 @@ const handleSubmit = async (e) => {
                 condition: formData.buildingCondition
               }}
               estimatedPrice={results.all}
-              onDetailedAnalysis={performESGAnalysis}
             />
           </div>
         )}
@@ -617,23 +559,8 @@ const handleSubmit = async (e) => {
       onToggle={() => setIsSidePanelExpanded(!isSidePanelExpanded)}
       onClose={() => setIsSidePanelExpanded(false)}
       comments={comments}
-      clearComments={() => setComments([])}
     />
 
-    <ESGPanel
-      isOpen={isESGPanelOpen}
-      onClose={() => setIsESGPanelOpen(false)}
-      onToggle={() => setIsESGPanelOpen(!isESGPanelOpen)}
-      esgAnalysis={esgAnalysis}
-      propertyData={{
-        propertyType: formData.propertyType,
-        locality: formData.locality,
-        province: formData.province,
-        constructionYear: formData.buildingConstructionYear,
-        surface: formData.habitableSurface,
-        epcScore: formData.epcScore
-      }}
-    />
 
     </>
   );

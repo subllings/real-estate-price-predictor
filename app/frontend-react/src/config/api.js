@@ -7,8 +7,7 @@ const DEV_CONFIG = {
   PREDICTION_API_URL: "http://127.0.0.1:8000",
   LLM_API_URL: "http://127.0.0.1:8010",
   CHAT_API_URL: "http://127.0.0.1:8010/chat",
-  COMMENT_API_URL: "http://127.0.0.1:8010/comment",
-  ESG_ANALYSIS_API_URL: "http://127.0.0.1:8010/esg-analysis"
+  COMMENT_API_URL: "http://127.0.0.1:8010/comment"
 };
 
 // Production URLs (Azure)
@@ -16,8 +15,7 @@ const PROD_CONFIG = {
   PREDICTION_API_URL: "https://realestate-api.azurewebsites.net",
   LLM_API_URL: "https://realestate-api-llm-v2.azurewebsites.net",
   CHAT_API_URL: "https://realestate-api-llm-v2.azurewebsites.net/chat",
-  COMMENT_API_URL: "https://realestate-api-llm-v2.azurewebsites.net/comment",
-  ESG_ANALYSIS_API_URL: "https://realestate-api-llm-v2.azurewebsites.net/esg-analysis"
+  COMMENT_API_URL: "https://realestate-api-llm-v2.azurewebsites.net/comment"
 };
 
 // Export the appropriate configuration based on environment
@@ -27,8 +25,7 @@ export const {
   PREDICTION_API_URL,
   LLM_API_URL,
   CHAT_API_URL,
-  COMMENT_API_URL,
-  ESG_ANALYSIS_API_URL
+  COMMENT_API_URL
 } = API_CONFIG;
 
 export default API_CONFIG;

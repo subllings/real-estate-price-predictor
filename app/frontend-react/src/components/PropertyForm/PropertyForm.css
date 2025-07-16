@@ -239,8 +239,8 @@
 .form-field.location-field input,
 .form-field.location-field select,
 .form-field.price-field input {
-  border-color: #d1d5db;
-  background-color: #f9fafb;
+  border-color: #3b82f6;
+  background-color: #eff6ff;
 }
 
 .results-container {
@@ -353,7 +353,7 @@
 }
 /* Submit Button déjà défini dans ton CSS, juste fixer la largeur */
 .submit-button {
-  width: auto; /* largeur automatique pour s'adapter au contenu */
+  width: 100px; /* même largeur que reset-button */
   text-align: center;
 }
 
@@ -387,141 +387,4 @@
   cursor: not-allowed;
   transform: none;
   box-shadow: none;
-}
-
-/* Form actions at the top */
-.form-actions-top {
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-  gap: 1rem;
-  margin-bottom: 1.5rem;
-  padding-bottom: 1rem;
-  border-bottom: 1px solid #e5e7eb;
-  flex-wrap: wrap;
-}
-
-.form-actions-top .submit-button {
-  background-color: #3b82f6;
-  color: white;
-  padding: 0.5rem 1.25rem;
-  font-size: 0.875rem;
-  font-weight: 600;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  height: 40px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.form-actions-top .submit-button:hover:not(:disabled) {
-  background-color: #2563eb;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
-}
-
-.form-actions-top .reset-button {
-  background-color: #6b7280;
-  color: white;
-  padding: 0.5rem 1.25rem;
-  font-size: 0.875rem;
-  font-weight: 500;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  height: 40px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.form-actions-top .reset-button:hover:not(:disabled) {
-  background-color: #4b5563;
-}
-
-/* EPC, Features, and Prediction row */
-.epc-features-prediction-row {
-  grid-column: 1 / -1;
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 1.5rem;
-  align-items: center;
-  width: 100%;
-}
-
-@media (max-width: 1024px) {
-  .epc-features-prediction-row {
-    grid-template-columns: 1fr 1fr;
-  }
-  
-  .epc-features-prediction-row .prediction-section {
-    grid-column: 1 / -1;
-  }
-}
-
-@media (max-width: 640px) {
-  .epc-features-prediction-row {
-    grid-template-columns: 1fr;
-  }
-}
-
-.epc-section,
-.features-section {
-  padding: 0;
-  background-color: transparent;
-  border: none;
-  border-radius: 0;
-  width: 100%;
-  min-width: 0;
-  flex: 1;
-}
-
-.prediction-section {
-  padding: 0;
-  background-color: transparent;
-  border: none;
-  border-radius: 0;
-  width: 100%;
-  min-width: 0;
-  flex: 1;
-  margin-top: 0.75rem;
-}
-
-.epc-section label,
-.features-section .form-label {
-  margin-bottom: 0.25rem;
-  font-weight: 600;
-  font-size: 0.875rem;
-  color: #374151;
-  text-transform: capitalize;
-  display: block;
-}
-
-.epc-section select {
-  width: 100%;
-  max-width: 250px;
-  padding: 0.5rem;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
-  font-size: 0.875rem;
-  background-color: #f9fafb;
-  transition: all 0.2s ease;
-  height: 40px;
-  box-sizing: border-box;
-}
-
-.epc-section select:focus {
-  background-color: #ffffff;
-  outline: none;
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
-}
-
-/* ESG Integration container */
-.esg-integration-container {
-  margin-top: 2rem;
 }
