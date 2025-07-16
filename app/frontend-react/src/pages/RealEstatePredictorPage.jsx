@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import PropertyForm from "../components/PropertyForm/PropertyForm.js";
-import GlobalMegaMenu from "../components/GlobalMegaMenu";
 
 const RealEstatePredictorPage = () => {
   const [showAdmin, setShowAdmin] = useState(false);
@@ -11,8 +10,6 @@ const RealEstatePredictorPage = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <GlobalMegaMenu onAdminToggle={handleAdminToggle} />
-      
       <div className="pt-6 pb-6">
         <div className="max-w-4xl mx-auto px-4">
           <div className="text-center mb-8">
