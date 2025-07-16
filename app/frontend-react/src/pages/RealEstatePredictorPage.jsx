@@ -37,6 +37,10 @@ const RealEstatePredictorPage = () => {
     setComments([]);
   };
 
+  const handlePredictionComment = (newComments) => {
+    setComments(prev => [...prev, ...newComments]);
+  };
+
   const user = {
     profile: "Yves"
   };
@@ -73,7 +77,10 @@ const RealEstatePredictorPage = () => {
             </p>
           </div>
           
-          <PropertyForm />
+          <PropertyForm 
+            onPredictionComment={handlePredictionComment}
+            onToggleSidePanel={handleSidePanelToggle}
+          />
           
           {showAdmin && (
             <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">

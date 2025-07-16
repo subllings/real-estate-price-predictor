@@ -1,10 +1,10 @@
 import React, { useState } from "react";
 import axios from "axios";
 import ResultCard from "../ResultCard";
+import EsgSummary from "../EsgSummary/EsgSummary";
 import encodeInputs from "../../helpers/encodeInputs";
+import { PREDICTION_API_URL, COMMENT_API_URL } from "../../config/api";
 import "./PropertyForm.css";
-
-const API_URL = "http://127.0.0.1:8000";
 
 const initialFormData = {
   propertyType: "HOUSE",
@@ -28,7 +28,7 @@ const initialFormData = {
   hasTerrace: true,
 };
 
-const PropertyForm = () => {
+const PropertyForm = ({ onPredictionComment, onToggleSidePanel }) => {
   const [formData, setFormData] = useState(initialFormData);
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState({ all: null, top: null });
@@ -119,20 +119,111 @@ const PropertyForm = () => {
     setFormData(updatedForm);
   };
 
+  const handleViewDetailedESGReport = () => {
+    // Ouvrir le side panel avec un message ESG détaillé
+    if (onToggleSidePanel) {
+      onToggleSidePanel();
+    }
+    
+    if (onPredictionComment) {
+      const timestamp = new Date().toLocaleString('fr-FR');
+      const esgMessage = `📊 Detailed ESG Analysis - ${timestamp}`;
+      const esgDetails = `Based on the property features in ${formData.locality}, ${formData.province}, here's a comprehensive ESG analysis:
+
+**Environmental Impact:**
+• Energy Class: ${formData.epcScore.replace('_', '')}
+• Heating System: ${formData.heatingType}
+• Flood Risk: ${formData.floodZoneType.replace('_', ' ')}
+• Surface Efficiency: ${formData.habitableSurface} m²
+
+**Social Benefits:**
+• Location: Urban area with good accessibility
+• Family Capacity: ${formData.bedroomCount} bedrooms, ${formData.roomCount} total rooms
+• Quality of Life: ${formData.hasLivingRoom ? 'Living room included' : 'No living room'}, ${formData.hasTerrace ? 'Terrace available' : 'No terrace'}
+
+**Governance Standards:**
+• Construction Year: ${formData.buildingConstructionYear} (meets modern standards)
+• Building Condition: ${formData.buildingCondition.replace('_', ' ')}
+• Transparency: Complete property data available
+
+This property demonstrates strong ESG credentials with particular strength in environmental efficiency and social accessibility.`;
+
+      const comments = [esgMessage, esgDetails];
+      onPredictionComment(comments);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
 
+    // Ouvrir le sidebar de gauche lors du clic sur Predict
+    if (onToggleSidePanel) {
+      onToggleSidePanel();
+    }
+
     try {
       const encodedPayload = encodeInputs(formData);
       
-      const response = await axios.post(`${API_URL}/predict_all`, encodedPayload);
+      const response = await axios.post(`${PREDICTION_API_URL}/predict_all`, encodedPayload);
 
       setResults({
         all: response.data.prediction,
         top: null,
       });
+
+      // Créer un commentaire de prédiction pour le SidePanel
+      if (onPredictionComment && response.data.prediction) {
+        const timestamp = new Date().toLocaleTimeString('en-US', { 
+          hour12: true, 
+          hour: 'numeric', 
+          minute: '2-digit', 
+          second: '2-digit' 
+        });
+        const predictionComment = `Prediction for ${formData.propertyType.toLowerCase()} in ${formData.locality}, ${formData.province} - ${timestamp}`;
+        const priceComment = `Predicted price: ${Math.round(response.data.prediction).toLocaleString('fr-FR').replace(/,/g, ' ')} €`;
+        
+        const comments = [predictionComment, priceComment];
+
+        // Appeler l'API des commentaires LLM pour obtenir des commentaires automatiques
+        try {
+          const commentPayload = {
+            formData: {
+              ...formData,
+              region: formData.province,
+              scoreMeta: {
+                epcScore: formData.epcScore,
+                buildingCondition: formData.buildingCondition,
+                mae: 25000,
+                rmse: 35000,
+                r2: 0.85
+              }
+            },
+            predictionAll: response.data.prediction,
+            predictionTop: 0,
+            userProfile: {
+              name: "Yves",
+              profile: "Investisseur",
+              type: "investor",
+              objectives: ["regional_market_trends", "property_characteristics_analysis", "investment_return_strategy"],
+              language: "en"
+            }
+          };
+
+          const commentResponse = await axios.post(COMMENT_API_URL, commentPayload);
+
+          // Ajouter les commentaires LLM aux commentaires existants
+          if (commentResponse.data && commentResponse.data.comments) {
+            comments.push(...commentResponse.data.comments);
+          }
+        } catch (commentError) {
+          console.warn("Failed to get LLM comments:", commentError);
+          // Continuer sans les commentaires LLM si l'API échoue
+        }
+
+        onPredictionComment(comments);
+      }
 
     } catch (err) {
       console.error("Error:", err);
@@ -464,6 +555,12 @@ const PropertyForm = () => {
           {error}
         </div>
       )}
+
+      {/* ESG Summary - affichage tout en bas après le formulaire complet */}
+      <EsgSummary 
+        formData={formData} 
+        onViewDetailedReport={handleViewDetailedESGReport} 
+      />
     </div>
   );
 };

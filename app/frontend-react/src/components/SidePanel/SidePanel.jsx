@@ -32,14 +32,20 @@ const SidePanel = ({ user, isExpanded, onToggle, onClose, comments, clearComment
           from: "agent",
           text: comment,
           type: "prediction",
-          subtype: subtype
+          subtype: subtype,
+          timestamp: new Date().toISOString()
         };
       });
 
       setMessages(prev => {
-        // Éviter les doublons en filtrant les messages de prédiction existants
-        const withoutPredictions = prev.filter(msg => msg.type !== "prediction");
-        return [...withoutPredictions, ...newComments];
+        // Garder tous les messages existants et ajouter les nouveaux
+        // Éviter les doublons en filtrant seulement les messages de prédiction identiques
+        const existingTexts = prev.filter(msg => msg.type === "prediction").map(msg => msg.text);
+        const uniqueNewComments = newComments.filter(newComment => 
+          !existingTexts.includes(newComment.text)
+        );
+        
+        return [...prev, ...uniqueNewComments];
       });
     }
   }, [comments]);
@@ -69,26 +75,82 @@ const SidePanel = ({ user, isExpanded, onToggle, onClose, comments, clearComment
     const userMessage = { role: "user", content: chatInput };
 
     // Ajout côté UI (affichage)
-    setMessages(prev => [...prev, { from: "user", text: chatInput }]);
+    setMessages(prev => [...prev, { from: "user", text: chatInput, timestamp: new Date().toISOString() }]);
     setChatInput("");
 
     try {
+      // Préparer l'historique des conversations (derniers 20 messages)
+      const conversationHistory = messages.slice(-20).map(msg => ({
+        role: msg.from === "user" ? "user" : "assistant",
+        content: msg.text
+      }));
+
+      // Ajouter le message actuel
+      conversationHistory.push(userMessage);
+
+      // Ajouter un message système avec contexte pour l'IA
+      const messagesWithContext = [
+        {
+          role: "system",
+          content: "You are a helpful real estate AI assistant. You have access to conversation history and can provide contextual responses based on previous property predictions and discussions. Keep responses concise, helpful, and professional. You can reference earlier predictions and continue conversations naturally."
+        },
+        ...conversationHistory
+      ];
+
       const response = await axios.post(CHAT_API_URL, {
-        messages: [userMessage]
+        messages: messagesWithContext
       });
 
       // La réponse attendue dans response.data.response
       setMessages(prev => [
         ...prev,
-        { from: "agent", text: response.data.response || "No response from assistant." }
+        { from: "agent", text: response.data.response || "No response from assistant.", timestamp: new Date().toISOString() }
       ]);
     } catch (err) {
       console.error("Chat error:", err.response?.data || err.message || err);
       setMessages(prev => [
         ...prev,
-        { from: "agent", text: "Sorry, I couldn't reach the assistant." }
+        { from: "agent", text: "Sorry, I couldn't reach the assistant.", timestamp: new Date().toISOString() }
       ]);
     }
+  };
+
+  // Fonction pour convertir le markdown simple (**texte**) en HTML
+  const formatMessageText = (text) => {
+    if (!text) return { __html: '' };
+    
+    let formattedText = text.toString();
+    
+    // 1. D'ABORD convertir **texte** en <strong>texte</strong> (plus restrictif)
+    formattedText = formattedText.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+    
+    // 2. Convertir les séparateurs markdown en lignes de séparation
+    formattedText = formattedText.replace(/---+/g, '<hr style="border: none; border-top: 1px solid #ddd; margin: 10px 0;"/>');
+    
+    // 3. Convertir les titres markdown # ## ### en titres HTML (SUPPRIMER complètement les #)
+    formattedText = formattedText.replace(/^#{1}\s+(.*?)$/gm, '<h3 style="margin: 15px 0 10px 0; font-weight: bold; color: #2563eb; font-size: 18px;">$1</h3>');
+    formattedText = formattedText.replace(/^#{2}\s+(.*?)$/gm, '<h4 style="margin: 12px 0 8px 0; font-weight: bold; color: #333; font-size: 16px;">$1</h4>');
+    formattedText = formattedText.replace(/^#{3}\s+(.*?)$/gm, '<h5 style="margin: 8px 0 6px 0; font-weight: bold; color: #444; font-size: 14px;">$1</h5>');
+    
+    // 4. Convertir les puces • + - en listes HTML compactes (AUCUN margin)
+    formattedText = formattedText.replace(/^[•\+\-]\s*(.*?)$/gm, '<div style="margin: 0; padding: 0 0 0 15px; line-height: 1.3;">• $1</div>');
+    
+    // 5. Nettoyer les sauts de ligne AVANT de les convertir
+    formattedText = formattedText.replace(/\n\s*\n\s*\n/g, '\n\n'); // Supprimer les triple+ sauts de ligne
+    
+    // 6. Convertir les sauts de ligne simples en <br/> mais éviter autour des balises HTML
+    formattedText = formattedText.replace(/\n(?!\s*<)/g, '<br/>');
+    
+    // 7. Nettoyer les <br/> en trop autour des éléments HTML
+    formattedText = formattedText.replace(/(<br\/>){3,}/g, '<br/><br/>');
+    formattedText = formattedText.replace(/<br\/>\s*(<h[1-6])/g, '$1');
+    formattedText = formattedText.replace(/(<\/h[1-6]>)\s*<br\/>/g, '$1');
+    formattedText = formattedText.replace(/<br\/>\s*(<hr)/g, '$1');
+    formattedText = formattedText.replace(/(<\/hr>)\s*<br\/>/g, '$1');
+    formattedText = formattedText.replace(/<br\/>\s*(<div)/g, '$1');
+    formattedText = formattedText.replace(/(<\/div>)\s*<br\/>/g, '$1');
+    
+    return { __html: formattedText };
   };
 
   return (
@@ -131,9 +193,8 @@ const SidePanel = ({ user, isExpanded, onToggle, onClose, comments, clearComment
                       key={idx}
                       className={`message ${msg.from === "user" ? "user-msg" : "agent-msg"} ${msg.type === "prediction" ? "prediction-msg" : ""} ${msg.subtype === "prediction-title" ? "prediction-title" 
                         : ""} ${msg.subtype === "esg-title" ? "esg-title" : ""} ${msg.subtype === "prediction-comment" ? "prediction-comment" : ""}`}
-                    >
-                      {msg.text}
-                    </div>
+                      dangerouslySetInnerHTML={formatMessageText(msg.text)}
+                    />
                   ))}
                 </div>
               </section>

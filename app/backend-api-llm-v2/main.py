@@ -87,7 +87,7 @@ class SuggestionRequest(BaseModel):
 
 # === Utility Function ===
 
-def call_azure_openai_chat(messages: List[dict], temperature: float = 0.7, max_tokens: int = 300):
+def call_azure_openai_chat(messages: List[dict], temperature: float = 0.7, max_tokens: int = 1500):
     url = f"{AZURE_OPENAI_ENDPOINT}/openai/deployments/{AZURE_OPENAI_DEPLOYMENT}/chat/completions?api-version={AZURE_OPENAI_API_VERSION}"
     
     headers = {
@@ -133,15 +133,21 @@ def generate_comments(request: CommentRequest):
     profile = request.userProfile
 
     prompt = f"""
-    You are a real estate data assistant for a user profile of type '{profile.type}', 
+    You are a real estate investment advisor for a user profile of type '{profile.type}', 
     with objectives: {', '.join(profile.objectives)}. 
     The property is located in {form.locality}, {form.province}, {form.region}.
     
-    Model 1 (all features) predicted: {request.predictionAll} EUR  
-    Model 2 (top 30 features) predicted: {request.predictionTop} EUR  
-    Model scores: MAE = {form.scoreMeta.mae}, RMSE = {form.scoreMeta.rmse}, R² = {form.scoreMeta.r2}
+    Predicted property value: {request.predictionAll:,.0f} € (use European format: space as thousand separator, € after amount)
+    Model performance: MAE = {form.scoreMeta.mae:,.0f} €, RMSE = {form.scoreMeta.rmse:,.0f} €, R² = {form.scoreMeta.r2:.2f}
 
-    Based on this, generate 2-3 smart, business-oriented comments tailored to the user's profile.
+    Focus on:
+    1. Regional market trends and investment potential for {form.region}
+    2. Property characteristics analysis and investment return strategy
+    3. Market insights specific to {form.locality}
+
+    IMPORTANT: When mentioning prices or amounts, always use European format: "417 675 €" (space as thousand separator, € symbol after the amount), NOT "€417,675".
+
+    Generate 2-3 concise, investment-focused comments in English. Each comment should be practical and actionable for real estate investment decisions.
     """
 
     response_text = call_azure_openai_chat(
