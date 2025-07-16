@@ -244,26 +244,43 @@ class CosmosDbLogger:
 
 
 
-    def get_trials_for_model(self, model_name: str, limit: int = 10) -> list:
+    def get_trials_for_model(self, model_name: str, limit: int = 10, include_data_leakage: bool = False) -> list:
         """
         Retrieve the last 'limit' trials based on 'model_name' with all enriched metrics.
+        By default, excludes trials marked with data_leakage = true.
         """
-        query = """
-        SELECT TOP @limit * FROM c
-        WHERE c.model_name = @model_name AND c.type = 'optuna_trial'
-        ORDER BY c.timestamp DESC
-        """
-        parameters = [
-            {"name": "@limit", "value": limit},
-            {"name": "@model_name", "value": model_name}
-        ]
+        if include_data_leakage:
+            # Include all trials (for analysis purposes)
+            query = """
+            SELECT TOP @limit * FROM c
+            WHERE c.model_name = @model_name AND c.type = 'optuna_trial'
+            ORDER BY c.timestamp DESC
+            """
+            parameters = [
+                {"name": "@limit", "value": limit},
+                {"name": "@model_name", "value": model_name}
+            ]
+        else:
+            # Exclude trials with data leakage (default behavior)
+            query = """
+            SELECT TOP @limit * FROM c
+            WHERE c.model_name = @model_name AND c.type = 'optuna_trial'
+            AND (NOT IS_DEFINED(c.data_leakage) OR c.data_leakage != true)
+            ORDER BY c.timestamp DESC
+            """
+            parameters = [
+                {"name": "@limit", "value": limit},
+                {"name": "@model_name", "value": model_name}
+            ]
+        
         try:
             trials = list(self.container.query_items(
                 query=query,
                 parameters=parameters,
                 enable_cross_partition_query=True
             ))
-            print(f"[✔] Retrieved {len(trials)} trials for model '{model_name}' with enriched metrics.")
+            exclusion_note = "" if include_data_leakage else " (excluding data leakage trials)"
+            print(f"[✔] Retrieved {len(trials)} trials for model '{model_name}'{exclusion_note}.")
             return trials
         except Exception as e:
             print(f"[✘] Error fetching trials from CosmosDB: {e}")
@@ -311,3 +328,71 @@ class CosmosDbLogger:
         }
         results = self.container.query_items(query=query, enable_cross_partition_query=True)
         return [item["model_name"] for item in results]
+
+    def mark_trials_with_data_leakage(self, r2_threshold: float = 0.95) -> int:
+        """
+        Mark trials with data leakage based on R² threshold.
+        Returns the number of trials marked.
+        """
+        marked_count = 0
+        
+        try:
+            # Get all trials for catboost model (including those already marked)
+            all_trials = self.get_trials_for_model("catboost", limit=1000, include_data_leakage=True)
+            
+            for trial in all_trials:
+                if "metrics" in trial and "test" in trial["metrics"]:
+                    r2_test = trial["metrics"]["test"].get("r2", 0)
+                    trial_number = trial.get("trial_number", "N/A")
+                    
+                    # Check if R² indicates data leakage and not already marked
+                    if r2_test > r2_threshold and not trial.get("data_leakage", False):
+                        print(f"🏷️  Marking Trial {trial_number} with R² = {r2_test:.4f}")
+                        
+                        # Update the trial document
+                        trial["data_leakage"] = True
+                        trial["data_leakage_reason"] = f"R² > {r2_threshold} indicates train/test data leakage"
+                        trial["data_leakage_marked_at"] = datetime.utcnow().isoformat()
+                        
+                        # Update in CosmosDB
+                        self.container.replace_item(item=trial["id"], body=trial)
+                        marked_count += 1
+            
+            print(f"✅ Marked {marked_count} trials with data leakage")
+            return marked_count
+            
+        except Exception as e:
+            print(f"❌ Error marking trials with data leakage: {e}")
+            return 0
+
+    def get_data_leakage_summary(self) -> dict:
+        """
+        Get summary of data leakage trials vs valid trials.
+        """
+        try:
+            # Get all trials (including data leakage)
+            all_trials = self.get_trials_for_model("catboost", limit=1000, include_data_leakage=True)
+            
+            # Get valid trials only
+            valid_trials = self.get_trials_for_model("catboost", limit=1000, include_data_leakage=False)
+            
+            leakage_trials = [t for t in all_trials if t.get("data_leakage", False)]
+            
+            summary = {
+                "total_trials": len(all_trials),
+                "valid_trials": len(valid_trials),
+                "data_leakage_trials": len(leakage_trials),
+                "leakage_percentage": len(leakage_trials) / len(all_trials) * 100 if all_trials else 0
+            }
+            
+            print(f"📊 Data Leakage Summary:")
+            print(f"   - Total trials: {summary['total_trials']}")
+            print(f"   - Valid trials: {summary['valid_trials']}")
+            print(f"   - Data leakage trials: {summary['data_leakage_trials']}")
+            print(f"   - Leakage percentage: {summary['leakage_percentage']:.1f}%")
+            
+            return summary
+            
+        except Exception as e:
+            print(f"❌ Error getting data leakage summary: {e}")
+            return {}
