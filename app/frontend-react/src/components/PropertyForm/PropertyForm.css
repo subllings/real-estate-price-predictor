@@ -297,19 +297,9 @@
 
 
 .spinner {
-  width: 16px;
-  height: 16px;
-  border: 3px solid #007bff;
-  border-top: 3px solid transparent;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-  margin-right: 6px;
-}
-
-.spinner {
-  width: 12px;
-  height: 12px;
-  border: 2px solid rgba(0, 0, 0, 0.3);
+  width: 3px;
+  height: 3px;
+  border: 0.5px solid rgba(0, 0, 0, 0.3);
   border-top-color: #007bff;
   border-radius: 50%;
   animation: spinner 0.6s linear infinite;
@@ -387,4 +377,32 @@
   cursor: not-allowed;
   transform: none;
   box-shadow: none;
+}
+
+/* Result field in grid */
+.result-field {
+  display: flex;
+  flex-direction: column;
+}
+
+.result-display {
+  display: flex;
+  align-items: center;
+  height: 100%;
+}
+
+/* Adjust ResultCard when in grid */
+.result-display .resultCard {
+  margin: 0;
+  padding: 0.5rem 1rem;
+  background-color: #dcfce7;
+  border: 1px solid #16a34a;
+  border-radius: 6px;
+  font-size: 0.875rem;
+}
+
+.result-display .resultCard p {
+  margin: 0;
+  font-weight: 600;
+  color: #166534;
 }

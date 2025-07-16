@@ -241,10 +241,6 @@ const GlobalMegaMenu = ({ onAdminToggle }) => {
         </div>
       </div>
 
-      {/* Quick Access Floating Hints */}
-      <div className="fixed bottom-4 left-4 bg-black bg-opacity-75 text-white px-3 py-2 rounded-lg text-sm z-40">
-        💡 <kbd className="bg-white bg-opacity-20 px-1 rounded">Ctrl+A</kbd> for Admin Panel
-      </div>
     </>
   );
 };
