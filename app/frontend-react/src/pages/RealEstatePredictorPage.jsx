@@ -1,15 +1,67 @@
 import React, { useState } from "react";
 import PropertyForm from "../components/PropertyForm/PropertyForm.js";
+import ESGPanel from "../components/ESGPanel/ESGPanel.jsx";
+import SidePanel from "../components/SidePanel/SidePanel.jsx";
 
 const RealEstatePredictorPage = () => {
   const [showAdmin, setShowAdmin] = useState(false);
+  const [esgPanelOpen, setEsgPanelOpen] = useState(false);
+  const [esgAnalysis, setEsgAnalysis] = useState([]);
+  const [propertyData, setPropertyData] = useState(null);
+  
+  // SidePanel states
+  const [sidePanelExpanded, setSidePanelExpanded] = useState(false);
+  const [comments, setComments] = useState([]);
 
   const handleAdminToggle = () => {
     setShowAdmin(!showAdmin);
   };
 
+  const handleEsgPanelToggle = () => {
+    setEsgPanelOpen(!esgPanelOpen);
+  };
+
+  const handleEsgPanelClose = () => {
+    setEsgPanelOpen(false);
+  };
+
+  const handleSidePanelToggle = () => {
+    setSidePanelExpanded(!sidePanelExpanded);
+  };
+
+  const handleSidePanelClose = () => {
+    setSidePanelExpanded(false);
+  };
+
+  const clearComments = () => {
+    setComments([]);
+  };
+
+  const user = {
+    profile: "Yves"
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* Side Panel (Left) */}
+      <SidePanel 
+        user={user}
+        isExpanded={sidePanelExpanded}
+        onToggle={handleSidePanelToggle}
+        onClose={handleSidePanelClose}
+        comments={comments}
+        clearComments={clearComments}
+      />
+      
+      {/* ESG Panel (Right) */}
+      <ESGPanel 
+        isOpen={esgPanelOpen}
+        onClose={handleEsgPanelClose}
+        onToggle={handleEsgPanelToggle}
+        esgAnalysis={esgAnalysis}
+        propertyData={propertyData}
+      />
+      
       <div className="pt-6 pb-6">
         <div className="max-w-4xl mx-auto px-4">
           <div className="text-center mb-8">
