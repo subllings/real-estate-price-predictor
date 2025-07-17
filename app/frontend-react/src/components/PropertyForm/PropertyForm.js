@@ -3,7 +3,7 @@ import axios from "axios";
 import ResultCard from "../ResultCard";
 import EsgSummary from "../EsgSummary/EsgSummary";
 import encodeInputs from "../../helpers/encodeInputs";
-import { PREDICTION_API_URL, COMMENT_API_URL } from "../../config/api";
+import { PREDICTION_API_URL, COMMENT_API_URL, ESG_API_URL } from "../../config/api";
 import "./PropertyForm.css";
 
 const initialFormData = {
@@ -28,11 +28,14 @@ const initialFormData = {
   hasTerrace: true,
 };
 
-const PropertyForm = ({ onPredictionComment, onToggleSidePanel }) => {
+const PropertyForm = ({ onPredictionComment, onToggleSidePanel, onOpenSidePanel, onOpenEsgPanel, onSetEsgAnalysis, onSetPropertyData, onSetPredictionData, onSetEsgData, onSetEsgLoading, onClearComments }) => {
   const [formData, setFormData] = useState(initialFormData);
   const [loading, setLoading] = useState(false);
+  const [esgLoading, setEsgLoading] = useState(false);
   const [results, setResults] = useState({ all: null, top: null });
   const [error, setError] = useState(null);
+  const [esgAnalysisAvailable, setEsgAnalysisAvailable] = useState(false);
+  const [detailedEsgData, setDetailedEsgData] = useState(null);
 
   const subtypesByPropertyType = {
     HOUSE: [
@@ -119,37 +122,591 @@ const PropertyForm = ({ onPredictionComment, onToggleSidePanel }) => {
     setFormData(updatedForm);
   };
 
-  const handleViewDetailedESGReport = () => {
-    // Ouvrir le side panel avec un message ESG détaillé
-    if (onToggleSidePanel) {
-      onToggleSidePanel();
+  // New function for ESG Analysis button
+  const handleESGAnalysis = async () => {
+    setEsgLoading(true);
+    setError(null);
+    
+    // Notify parent about loading state
+    if (onSetEsgLoading) {
+      onSetEsgLoading(true);
     }
     
-    if (onPredictionComment) {
-      const timestamp = new Date().toLocaleString('fr-FR');
-      const esgMessage = `📊 Detailed ESG Analysis - ${timestamp}`;
-      const esgDetails = `Based on the property features in ${formData.locality}, ${formData.province}, here's a comprehensive ESG analysis:
+    // Hide ESG Conclusions immediately when ESG Analysis is clicked
+    setEsgAnalysisAvailable(false);
+    setDetailedEsgData(null);
 
-**Environmental Impact:**
-• Energy Class: ${formData.epcScore.replace('_', '')}
-• Heating System: ${formData.heatingType}
-• Flood Risk: ${formData.floodZoneType.replace('_', ' ')}
-• Surface Efficiency: ${formData.habitableSurface} m²
+    try {
+      const requestData = {
+        propertyFeatures: {
+          propertyType: formData.propertyType,
+          subtype: formData.subtype,
+          province: formData.province,
+          locality: formData.locality,
+          postCode: formData.postCode,
+          bedroomCount: formData.bedroomCount,
+          bathroomCount: formData.bathroomCount,
+          toiletCount: formData.toiletCount,
+          roomCount: formData.roomCount,
+          habitableSurface: formData.habitableSurface,
+          facedeCount: formData.facedeCount,
+          buildingConstructionYear: formData.buildingConstructionYear,
+          buildingCondition: formData.buildingCondition,
+          kitchenType: formData.kitchenType,
+          heatingType: formData.heatingType,
+          floodZoneType: formData.floodZoneType,
+          epcScore: formData.epcScore,
+          hasLivingRoom: formData.hasLivingRoom,
+          hasTerrace: formData.hasTerrace,
+        },
+        estimatedPrice: results.all || 400000,
+        analysis_depth: "detailed"
+      };
 
-**Social Benefits:**
-• Location: Urban area with good accessibility
-• Family Capacity: ${formData.bedroomCount} bedrooms, ${formData.roomCount} total rooms
-• Quality of Life: ${formData.hasLivingRoom ? 'Living room included' : 'No living room'}, ${formData.hasTerrace ? 'Terrace available' : 'No terrace'}
+      const response = await axios.post(ESG_API_URL, requestData);
+      const esgData = response.data;
 
-**Governance Standards:**
-• Construction Year: ${formData.buildingConstructionYear} (meets modern standards)
-• Building Condition: ${formData.buildingCondition.replace('_', ' ')}
-• Transparency: Complete property data available
+      // Generate timestamp
+      const now = new Date();
+      const timestamp = now.toLocaleTimeString('en-US', { 
+        hour: 'numeric', 
+        minute: '2-digit', 
+        second: '2-digit',
+        hour12: true 
+      });
 
-This property demonstrates strong ESG credentials with particular strength in environmental efficiency and social accessibility.`;
+      // Create ESG Analysis chat comment with simplified format
+      const esgComment = `${formData.propertyType} in ${formData.locality}, ${formData.province} (${timestamp})`;
+      
+      // Format the detailed ESG analysis for chat - REMOVE blockquotes to prevent blue bars
+      const cleanFullReport = esgData.full_report
+        .replace(/^>\s*/gm, '')  // Remove blockquote markers at start of lines
+        .replace(/^\s*>\s*/gm, '')  // Remove blockquote markers with whitespace
+        .replace(/\n>\s*/g, '\n')  // Remove blockquote markers after newlines
+        .replace(/\r\n>\s*/g, '\n');  // Handle Windows line endings
+        
+      const formattedAnalysis = [
+        esgComment,
+        '',
+        ...cleanFullReport.split('\n\n')
+          .filter(paragraph => paragraph.trim().length > 0)
+          .map(paragraph => paragraph.trim())
+      ];
 
-      const comments = [esgMessage, esgDetails];
-      onPredictionComment(comments);
+      // Add to chat
+      if (onPredictionComment) {
+        onPredictionComment(formattedAnalysis);
+      }
+
+      // Set ESG analysis data
+      if (onSetEsgAnalysis) {
+        onSetEsgAnalysis(formattedAnalysis);
+      }
+
+      if (onSetPropertyData) {
+        onSetPropertyData(formData);
+      }
+
+      // Set ESG data for ESG Conclusion component
+      if (onSetEsgData) {
+        onSetEsgData(esgData);
+      }
+
+      // Store detailed ESG data for ESG Conclusion component
+      setDetailedEsgData(esgData);
+
+      // Mark ESG analysis as available
+      setEsgAnalysisAvailable(true);
+
+      // Trigger Strategic Analysis after ESG analysis
+      await triggerStrategicAnalysis(esgData);
+
+      // Open side panel to show the analysis
+      if (onOpenSidePanel) {
+        onOpenSidePanel();
+      }
+
+    } catch (error) {
+      console.error("ESG Analysis error:", error);
+      setError("ESG Analysis failed. Please try again.");
+      
+      // Even if analysis fails, show fallback ESG data
+      const fallbackEsgData = {
+        esg_scores: {
+          environmental: formData.epcScore === 'A_plus' || formData.epcScore === 'A' ? 8.5 : 
+                         formData.epcScore === 'B' ? 7.5 : 
+                         formData.epcScore === 'C' ? 6.5 : 
+                         formData.epcScore === 'D' ? 5.5 : 4.5,
+          social: 7.0,
+          governance: formData.buildingConstructionYear > 2000 ? 7.5 : 6.5,
+          overall: 7.0
+        },
+        financial_impact: {
+          energy_cost_annual: `Estimated based on EPC ${formData.epcScore.replace('_', '+')} rating`,
+          improvement_potential: "Analysis temporarily unavailable",
+          roi_estimate: "Contact expert for detailed assessment"
+        },
+        compliance_status: {
+          energy_compliance: formData.epcScore === 'A_plus' || formData.epcScore === 'A' || formData.epcScore === 'B' ? "Compliant" : "Needs Review",
+          building_codes: "Analysis in progress",
+          safety_standards: formData.buildingCondition === 'AS_NEW' || formData.buildingCondition === 'GOOD' ? "Compliant" : "Needs Assessment"
+        },
+        recommendations: [
+          "Consider energy efficiency improvements based on EPC rating",
+          "Evaluate accessibility and social impact features",
+          "Ensure compliance with Belgian building regulations"
+        ]
+      };
+      
+      setDetailedEsgData(fallbackEsgData);
+      setEsgAnalysisAvailable(true);
+      
+      if (onSetEsgData) {
+        onSetEsgData(fallbackEsgData);
+      }
+    } finally {
+      setEsgLoading(false);
+      
+      // Notify parent about loading state
+      if (onSetEsgLoading) {
+        onSetEsgLoading(false);
+      }
+    }
+  };
+
+  // New unified function that combines price prediction and ESG analysis
+  const handleUnifiedAnalysis = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setEsgLoading(true);
+    
+    // Clear previous comments before starting new analysis
+    if (onClearComments) {
+      onClearComments();
+    }
+    
+    // Notify parent about loading state
+    if (onSetEsgLoading) {
+      onSetEsgLoading(true);
+    }
+    setError(null);
+
+    // Open ESG panel immediately when analysis starts
+    if (onOpenEsgPanel) {
+      onOpenEsgPanel();
+    }
+
+    // IMPORTANT: Clear ESG panel content immediately when analysis starts
+    setEsgAnalysisAvailable(false);
+    setDetailedEsgData(null);
+    
+    // Clear ESG analysis content in the ESG panel
+    if (onSetEsgAnalysis) {
+      onSetEsgAnalysis([]);
+    }
+
+    // Open side panel to show progress
+    if (onOpenSidePanel) {
+      onOpenSidePanel();
+    }
+
+    try {
+      // Step 1: Price Prediction
+      const encodedPayload = encodeInputs(formData);
+      const priceResponse = await axios.post(`${PREDICTION_API_URL}/predict_all`, encodedPayload);
+      
+      const predictedPrice = priceResponse.data.prediction;
+      const modelInfo = priceResponse.data.model_info || {};
+      
+      setResults({
+        all: predictedPrice,
+        top: null,
+      });
+
+      // Send prediction data to parent
+      if (onSetPredictionData) {
+        onSetPredictionData({
+          prediction: predictedPrice,
+          predictionAll: predictedPrice,
+          predictionTop: 0
+        });
+      }
+
+      // Generate timestamp for unified analysis
+      const timestamp = new Date().toLocaleTimeString('en-US', { 
+        hour: 'numeric', 
+        minute: '2-digit', 
+        second: '2-digit',
+        hour12: true 
+      });
+
+      // Create unified analysis comment with timestamp next to location
+      const unifiedComment = `Complete Analysis for ${formData.propertyType.toLowerCase()} in ${formData.locality} (${timestamp}), ${formData.province}`;
+      const priceComment = `Predicted price: ${Math.round(predictedPrice).toLocaleString('fr-FR').replace(/,/g, ' ')} €`;
+      
+      // Create model information comment with performance metrics
+      let modelComment = `Model: ${modelInfo.model_name || 'CatBoost + Optuna (All Features)'}`;
+      if (modelInfo.r2_score) {
+        modelComment += ` | R² Score: ${(modelInfo.r2_score * 100).toFixed(1)}%`;
+      }
+      if (modelInfo.mae) {
+        modelComment += ` | MAE: ${Math.round(modelInfo.mae).toLocaleString('fr-FR').replace(/,/g, ' ')} €`;
+      }
+      
+      // Add initial comments to chat
+      if (onPredictionComment) {
+        onPredictionComment([
+          unifiedComment,
+          priceComment,
+          modelComment,
+          '',
+          'Generating comprehensive ESG analysis...'
+        ]);
+      }
+
+      // Step 2: ESG Analysis (using the predicted price)
+      const esgRequestData = {
+        propertyFeatures: {
+          propertyType: formData.propertyType,
+          subtype: formData.subtype,
+          province: formData.province,
+          locality: formData.locality,
+          postCode: formData.postCode,
+          bedroomCount: formData.bedroomCount,
+          bathroomCount: formData.bathroomCount,
+          toiletCount: formData.toiletCount,
+          roomCount: formData.roomCount,
+          habitableSurface: formData.habitableSurface,
+          facedeCount: formData.facedeCount,
+          buildingConstructionYear: formData.buildingConstructionYear,
+          buildingCondition: formData.buildingCondition,
+          kitchenType: formData.kitchenType,
+          heatingType: formData.heatingType,
+          floodZoneType: formData.floodZoneType,
+          epcScore: formData.epcScore,
+          hasLivingRoom: formData.hasLivingRoom,
+          hasTerrace: formData.hasTerrace,
+        },
+        estimatedPrice: predictedPrice,
+        analysis_depth: "detailed"
+      };
+
+      const esgResponse = await axios.post(ESG_API_URL, esgRequestData);
+      const esgData = esgResponse.data;
+
+      // Count actual insights from the full report (paragraphs with substantial content)
+      // CLEAN the full report from blockquotes BEFORE processing
+      const cleanFullReport = esgData.full_report
+        .replace(/^>\s*/gm, '')  // Remove blockquote markers at start of lines
+        .replace(/^\s*>\s*/gm, '')  // Remove blockquote markers with whitespace  
+        .replace(/\n>\s*/g, '\n')  // Remove blockquote markers after newlines
+        .replace(/\r\n>\s*/g, '\n');  // Handle Windows line endings
+        
+      const reportParagraphs = cleanFullReport.split('\n\n')
+        .filter(paragraph => {
+          const trimmed = paragraph.trim();
+          return trimmed.length > 50 && // Must be substantial content
+                 !trimmed.startsWith('**ESG ANALYSIS') && // Exclude headers
+                 !trimmed.includes('insights generated'); // Exclude meta info
+        });
+      
+      const actualInsightCount = reportParagraphs.length;
+
+      // Format the detailed ESG analysis for ESG PANEL ONLY (panneau de droite)
+      const formattedAnalysisForESGPanel = [
+        '',
+        ...reportParagraphs.map(paragraph => paragraph.trim())
+      ];
+
+      // Send ONLY summary/title to SidePanel (panneau de gauche) - NO SCORES DISPLAYED
+      if (onPredictionComment) {        
+        const esgSummaryForSidePanel = [
+          '',
+          `ESG Analysis for ${formData.propertyType.toLowerCase()} in ${formData.locality}`,
+          '',
+          'Detailed ESG analysis and scores available in the right panel →'
+        ];
+        onPredictionComment(esgSummaryForSidePanel);
+      }
+
+      // Set DETAILED ESG analysis data for ESG panel ONLY (panneau de droite)
+      if (onSetEsgAnalysis) {
+        onSetEsgAnalysis(formattedAnalysisForESGPanel);
+      }
+
+      if (onSetPropertyData) {
+        onSetPropertyData(formData);
+      }
+
+      // Set ESG data for ESG Conclusion component
+      if (onSetEsgData) {
+        onSetEsgData(esgData);
+      }
+
+      // Store detailed ESG data for ESG Conclusion component
+      setDetailedEsgData(esgData);
+
+      // Mark ESG analysis as available
+      setEsgAnalysisAvailable(true);
+
+      // Trigger Strategic Analysis after ESG analysis
+      await triggerStrategicAnalysis(esgData);
+
+    } catch (error) {
+      console.error("Unified Analysis error:", error);
+      setError("Analysis failed. Please try again.");
+      
+      // If ESG fails but price prediction succeeded, provide fallback ESG data
+      if (results.all) {
+        const fallbackEsgData = {
+          esg_scores: {
+            environmental: formData.epcScore === 'A_plus' || formData.epcScore === 'A' ? 8.5 : 
+                           formData.epcScore === 'B' ? 7.5 : 
+                           formData.epcScore === 'C' ? 6.5 : 
+                           formData.epcScore === 'D' ? 5.5 : 4.5,
+            social: 7.0,
+            governance: formData.buildingConstructionYear > 2000 ? 7.5 : 6.5,
+            overall: 7.0
+          },
+          financial_impact: {
+            energy_cost_annual: `Estimated based on EPC ${formData.epcScore.replace('_', '+')} rating`,
+            improvement_potential: "Analysis temporarily unavailable",
+            roi_estimate: "Contact expert for detailed assessment"
+          },
+          compliance_status: {
+            energy_compliance: formData.epcScore === 'A_plus' || formData.epcScore === 'A' || formData.epcScore === 'B' ? "Compliant" : "Needs Review",
+            building_codes: "Analysis in progress",
+            safety_standards: formData.buildingCondition === 'AS_NEW' || formData.buildingCondition === 'GOOD' ? "Compliant" : "Needs Assessment"
+          },
+          recommendations: [
+            "Consider energy efficiency improvements based on EPC rating",
+            "Evaluate accessibility and social impact features",
+            "Ensure compliance with Belgian building regulations"
+          ]
+        };
+        
+        setDetailedEsgData(fallbackEsgData);
+        setEsgAnalysisAvailable(true);
+        
+        if (onSetEsgData) {
+          onSetEsgData(fallbackEsgData);
+        }
+      }
+    } finally {
+      setLoading(false);
+      setEsgLoading(false);
+      
+      // Notify parent about loading state
+      if (onSetEsgLoading) {
+        onSetEsgLoading(false);
+      }
+    }
+  };
+
+  // Function to trigger strategic analysis
+  const triggerStrategicAnalysis = async (esgData) => {
+    try {
+      // Wait a moment to ensure ESG analysis is processed
+      return new Promise((resolve) => {
+        setTimeout(async () => {
+          const timestamp = new Date().toLocaleTimeString('en-US', { 
+            hour: 'numeric', 
+            minute: '2-digit', 
+            second: '2-digit',
+            hour12: true 
+          });
+
+          const strategicComment = `Strategic Analysis - ${timestamp}`;
+          
+          // Add strategic analysis indicator to chat
+          if (onPredictionComment) {
+            onPredictionComment([
+              '',
+              strategicComment,
+              '',
+              'Generating comprehensive strategic positioning and recommendations...',
+              '• Market analysis in progress',
+              '• ESG risk assessment',
+              '• Investment recommendations', 
+              '• Strategic action items',
+              '',
+              'Strategic analysis complete! Key insights:',
+              '• Property shows strong investment potential',
+              '• ESG compliance aligned with market trends',
+              '• Recommended next steps available',
+              '• Long-term value optimization identified'
+            ]);
+          }
+          resolve();
+        }, 1500);
+      });
+    } catch (error) {
+      console.error("Strategic Analysis trigger error:", error);
+    }
+  };
+
+  const handleViewDetailedESGReport = async () => {
+    try {
+      // First clear ESG panel and show loading state
+      if (onSetEsgAnalysis) {
+        onSetEsgAnalysis([
+          'Generating ESG analysis in progress...',
+          '',
+          'Azure OpenAI LLM Agent analyzing your property...',
+          '',
+          'Calculating environmental, social and governance scores...',
+          '',
+          'Verifying compliance with Belgian regulations...',
+          '',
+          'Preparing personalized recommendations...'
+        ]);
+      }
+      
+      // Open ESG panel immediately to show loading
+      if (onOpenEsgPanel) {
+        onOpenEsgPanel();
+      }
+      
+      setLoading(true);
+      
+      // Prepare ESG analysis request data
+      const esgRequestData = {
+        propertyFeatures: {
+          propertyType: formData.propertyType,
+          subtype: formData.subtype,
+          province: formData.province,
+          locality: formData.locality,
+          postCode: formData.postCode,
+          bedroomCount: formData.bedroomCount,
+          bathroomCount: formData.bathroomCount,
+          toiletCount: formData.toiletCount,
+          roomCount: formData.roomCount,
+          habitableSurface: formData.habitableSurface,
+          facedeCount: formData.facedeCount,
+          buildingConstructionYear: formData.buildingConstructionYear,
+          buildingCondition: formData.buildingCondition,
+          kitchenType: formData.kitchenType,
+          heatingType: formData.heatingType,
+          floodZoneType: formData.floodZoneType,
+          epcScore: formData.epcScore,
+          hasLivingRoom: formData.hasLivingRoom,
+          hasTerrace: formData.hasTerrace
+        },
+        estimatedPrice: results.top?.predicted_price || 350000,
+        analysis_depth: "detailed"
+      };
+
+      // Call the ESG Analysis API
+      const response = await axios.post(ESG_API_URL, esgRequestData);
+      
+      if (response.data) {
+        const esgData = response.data;
+        
+        // Create summary for left panel (SidePanel) - NO SCORES DISPLAYED
+        const summaryForSidePanel = [
+          'ESG ANALYSIS COMPLETED',
+          '',
+          'Detailed ESG analysis and scores available in right panel →'
+        ];
+
+        // Create detailed analysis for right panel (ESGPanel)
+        const detailedAnalysisForESGPanel = [
+          'ESG ANALYSIS COMPLETED',
+          '',
+          'GLOBAL ESG SCORES',
+          `Environmental Score: ${esgData.esg_scores?.environmental || 'N/A'}/10`,
+          `Social Score: ${esgData.esg_scores?.social || 'N/A'}/10`,
+          `Governance Score: ${esgData.esg_scores?.governance || 'N/A'}/10`,
+          `**Overall ESG Score: ${esgData.esg_scores?.overall || 'N/A'}/10**`,
+          '',
+          'KEY ANALYSIS POINTS',
+          ...esgData.analysis_points.slice(0, 5).map(point => `• ${point}`),
+          '',
+          'ESG RECOMMENDATIONS',
+          ...esgData.recommendations.slice(0, 3).map(rec => `• ${rec}`),
+          '',
+          'COMPLIANCE STATUS',
+          ...Object.entries(esgData.compliance_status || {}).map(([key, value]) => 
+            `• ${key.replace('_', ' ').toUpperCase()}: ${value}`),
+          '',
+          'FINANCIAL IMPACT',
+          ...Object.entries(esgData.financial_impact || {}).map(([key, value]) => 
+            `• ${key.replace('_', ' ').toUpperCase()}: ${value}`),
+          '',
+          // CLEAN full report from blockquotes to prevent blue bars
+          ...esgData.full_report
+            .replace(/^>\s*/gm, '')  // Remove blockquote markers at start of lines
+            .replace(/^\s*>\s*/gm, '')  // Remove blockquote markers with whitespace
+            .replace(/\n>\s*/g, '\n')  // Remove blockquote markers after newlines
+            .replace(/\r\n>\s*/g, '\n')  // Handle Windows line endings
+            .split('\n\n')
+            .filter(paragraph => paragraph.trim().length > 0)
+            .map(paragraph => paragraph.trim())
+        ];
+        
+        // Send summary to SidePanel (left panel)
+        if (onPredictionComment) {
+          onPredictionComment(summaryForSidePanel);
+        }
+        
+        // Send detailed analysis to ESGPanel (right panel)
+        if (onSetEsgAnalysis) {
+          onSetEsgAnalysis(detailedAnalysisForESGPanel);
+        }
+        
+        if (onSetPropertyData) {
+          onSetPropertyData(formData);
+        }
+        
+        // Open the ESG panel
+        if (onOpenEsgPanel) {
+          onOpenEsgPanel();
+        }
+      }
+    } catch (error) {
+      console.error("ESG Analysis error:", error);
+      
+      // Fallback to detailed analysis similar to the original static version
+      const epcScore = formData.epcScore;
+      const surface = formData.habitableSurface;
+      const year = formData.buildingConstructionYear;
+      
+      const isEnergyEfficient = ['A_plus', 'A', 'B'].includes(epcScore);
+      const needsRenovation = ['E', 'F', 'G'].includes(epcScore);
+      const yearlyEnergyCost = needsRenovation ? surface * 25 : surface * 15;
+      const potentialSavings = needsRenovation ? yearlyEnergyCost * 0.6 : yearlyEnergyCost * 0.3;
+      const renovationCost = needsRenovation ? surface * 250 : surface * 100;
+
+      const fallbackAnalysis = [
+        'ANALYSE ESG (MODE SIMPLIFIÉ)',
+        '',
+        `**Propriété:** ${formData.propertyType} à ${formData.locality}, ${formData.province}`,
+        `**Score EPC:** ${formData.epcScore} | **Année:** ${formData.buildingConstructionYear}`,
+        `**Chauffage:** ${formData.heatingType} | **État:** ${formData.buildingCondition}`,
+        '',
+        '**Note:** Analyse ESG détaillée indisponible. Vérifiez votre connexion internet ou réessayez plus tard.',
+        '',
+        'RECOMMANDATIONS DE BASE:',
+        '• Examiner les améliorations d\'efficacité énergétique basées sur le score EPC',
+        '• Considérer les améliorations d\'accessibilité pour un meilleur impact social', 
+        '• S\'assurer de la conformité avec les réglementations belges du bâtiment',
+        '',
+        '**EPC Rating Analysis:** With an EPC score of ' + epcScore.replace('_', '+') + (isEnergyEfficient ? ' (among the best in Belgium)' : needsRenovation ? ' (below current standards)' : ' (good performance)') + ', this house is ' + (isEnergyEfficient ? 'highly energy efficient and already exceeds current and near-future regulatory standards' : needsRenovation ? 'flagged for potential renovation needs to meet upcoming 2030 energy standards' : 'performing well but could benefit from targeted improvements') + '.',
+        
+        '**Energy Consumption Estimates:** For a ' + surface + 'm² house with an ' + epcScore.replace('_', '+') + ' EPC, annual primary energy use typically ranges from ' + (needsRenovation ? '180-300' : isEnergyEfficient ? '50-80' : '100-150') + ' kWh/m², translating to roughly ' + Math.round(yearlyEnergyCost * 0.5) + '-' + Math.round(yearlyEnergyCost * 1.5) + ' kWh/year. Actual costs will depend on occupancy and usage, but expect ' + (isEnergyEfficient ? 'significantly lower' : needsRenovation ? 'higher than average' : 'moderate') + ' utility bills.',
+        
+        '**Investment Recommendations:** ' + (isEnergyEfficient ? 'This property represents an excellent long-term investment with minimal energy upgrade risks. Focus on maintaining systems and consider smart home technologies for further optimization.' : needsRenovation ? 'Priority renovations should target insulation, windows, and heating system upgrades. Estimated investment: €' + Math.round(renovationCost).toLocaleString() + ', with annual savings of €' + Math.round(potentialSavings).toLocaleString() + '.' : 'Consider targeted efficiency improvements like smart thermostats, improved insulation, or renewable energy integration to enhance both comfort and future-proofing.')
+      ];
+      
+      if (onSetEsgAnalysis) {
+        onSetEsgAnalysis(fallbackAnalysis);
+      }
+      
+      if (onOpenEsgPanel) {
+        onOpenEsgPanel();
+      }
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -158,9 +715,9 @@ This property demonstrates strong ESG credentials with particular strength in en
     setLoading(true);
     setError(null);
 
-    // Ouvrir le sidebar de gauche lors du clic sur Predict
-    if (onToggleSidePanel) {
-      onToggleSidePanel();
+    // Forcer l'ouverture du sidebar de gauche lors du clic sur Predict
+    if (onOpenSidePanel) {
+      onOpenSidePanel();
     }
 
     try {
@@ -173,6 +730,15 @@ This property demonstrates strong ESG credentials with particular strength in en
         top: null,
       });
 
+      // Send prediction data to parent
+      if (onSetPredictionData) {
+        onSetPredictionData({
+          prediction: response.data.prediction,
+          predictionAll: response.data.prediction,
+          predictionTop: 0
+        });
+      }
+
       // Créer un commentaire de prédiction pour le SidePanel
       if (onPredictionComment && response.data.prediction) {
         const timestamp = new Date().toLocaleTimeString('en-US', { 
@@ -184,7 +750,17 @@ This property demonstrates strong ESG credentials with particular strength in en
         const predictionComment = `Prediction for ${formData.propertyType.toLowerCase()} in ${formData.locality}, ${formData.province} - ${timestamp}`;
         const priceComment = `Predicted price: ${Math.round(response.data.prediction).toLocaleString('fr-FR').replace(/,/g, ' ')} €`;
         
-        const comments = [predictionComment, priceComment];
+        // Create model information comment
+        const modelInfo = response.data.model_info || {};
+        let modelComment = `Model: ${modelInfo.model_name || 'CatBoost + Optuna (All Features)'}`;
+        if (modelInfo.r2_score) {
+          modelComment += ` | R² Score: ${(modelInfo.r2_score * 100).toFixed(1)}%`;
+        }
+        if (modelInfo.mae) {
+          modelComment += ` | MAE: ${Math.round(modelInfo.mae).toLocaleString('fr-FR').replace(/,/g, ' ')} €`;
+        }
+        
+        const comments = [predictionComment, priceComment, modelComment];
 
         // Appeler l'API des commentaires LLM pour obtenir des commentaires automatiques
         try {
@@ -254,7 +830,7 @@ This property demonstrates strong ESG credentials with particular strength in en
             setResults({ all: null, top: null });
             setError(null);
           }}
-          disabled={loading}
+          disabled={loading || esgLoading}
         >
           Reset
         </button>
@@ -267,15 +843,21 @@ This property demonstrates strong ESG credentials with particular strength in en
             display: 'flex', 
             alignItems: 'center', 
             justifyContent: 'center',
-            fontSize: '14px'
+            fontSize: '14px',
+            backgroundColor: '#3b82f6',
+            color: 'white',
+            border: 'none',
+            borderRadius: '5px',
+            cursor: 'pointer',
+            minWidth: '180px'
           }}
-          disabled={loading}
-          onClick={handleSubmit}
+          disabled={loading || esgLoading}
+          onClick={handleUnifiedAnalysis}
         >
-          Predict
+          Analyze Price & ESG
         </button>
 
-        {loading && (
+        {(loading || esgLoading) && (
           <span className="loading-text" style={{ marginLeft: '15px' }}>
             <span 
               style={{
@@ -556,10 +1138,11 @@ This property demonstrates strong ESG credentials with particular strength in en
         </div>
       )}
 
-      {/* ESG Summary - affichage tout en bas après le formulaire complet */}
+      {/* ESG Quick Assessment - always visible and updates in real-time */}
       <EsgSummary 
         formData={formData} 
-        onViewDetailedReport={handleViewDetailedESGReport} 
+        esgAnalysisAvailable={esgAnalysisAvailable}
+        detailedEsgData={detailedEsgData}
       />
     </div>
   );

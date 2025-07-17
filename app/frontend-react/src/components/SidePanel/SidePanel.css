@@ -128,6 +128,27 @@
   word-wrap: break-word;
   line-height: 1.5;
   font-size: 0.95rem;
+  text-align: left !important;
+}
+
+.message div {
+  text-align: left;
+}
+
+/* Clean bullet point styling without heavy indentation */
+.message div[style*="line-height"] {
+  margin: 3px 0 !important;
+  padding: 0 !important;
+  text-align: left !important;
+}
+
+/* Compliance status items aligned properly */
+.message div:contains("Energy compliance"),
+.message div:contains("Building codes"),
+.message div:contains("Safety standards") {
+  text-align: left !important;
+  margin-left: 0 !important;
+  padding-left: 0 !important;
 }
 
 .user-msg {
@@ -147,32 +168,42 @@
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-/* Prediction messages */
+/* Prediction messages - Clean style without left borders */
 .prediction-msg {
   background: linear-gradient(135deg, #e8f5e8 0%, #f0fdf4 100%) !important;
-  border-left: 4px solid #4caf50;
   color: #2d5a2d;
   font-style: italic;
 }
 
 .prediction-title {
   background: linear-gradient(135deg, #e8f5e8 0%, #f0fdf4 100%) !important;
-  border-left: 4px solid #4caf50 !important;
   font-weight: 600;
   color: #2d5a2d;
 }
 
 .prediction-comment {
   background: #f8f9fa !important;
-  border-left: 4px solid #dee2e6 !important;
   color: #495057;
 }
 
 .esg-title {
   background: linear-gradient(135deg, #e3f2fd 0%, #f0f8ff 100%) !important;
-  border-left: 4px solid #2196f3 !important;
   font-weight: 600;
   color: #1565c0;
+}
+
+.strategic-title {
+  background: linear-gradient(135deg, #f3e5f5 0%, #faf4ff 100%) !important;
+  font-weight: 600;
+  color: #6a1b9a;
+}
+
+.model-info {
+  background: linear-gradient(135deg, #fff3e0 0%, #fefefe 100%) !important;
+  font-weight: 500;
+  color: #e65100;
+  font-family: 'Courier New', monospace;
+  font-size: 0.9em;
 }
 
 /* Chat input area */
@@ -268,7 +299,7 @@
   left: -40px;
 }
 
-.sidepanel-tab-icon {
+.sidepanel-tab-text {
   color: white;
   font-size: 1.2rem;
   font-weight: bold;
@@ -353,6 +384,27 @@
   border-radius: 8px;
   max-width: 90%;
   word-wrap: break-word;
+  text-align: left !important;
+}
+
+.message div {
+  text-align: left;
+}
+
+/* Clean bullet point styling without heavy indentation */
+.message div[style*="line-height"] {
+  margin: 3px 0 !important;
+  padding: 0 !important;
+  text-align: left !important;
+}
+
+/* Compliance status items aligned properly */
+.message div:contains("Energy compliance"),
+.message div:contains("Building codes"),
+.message div:contains("Safety standards") {
+  text-align: left !important;
+  margin-left: 0 !important;
+  padding-left: 0 !important;
 }
 
 .user-msg {
@@ -452,4 +504,36 @@
 .clear-history-button:disabled {
   background-color: #cccccc;
   cursor: not-allowed;
+}
+
+/* Strategic Analysis Message in Chat Flow */
+.strategic-analysis-msg {
+  background: linear-gradient(135deg, #f8f9ff 0%, #e8f2ff 100%);
+  border: none;
+  border-radius: 12px;
+  padding: 0;
+  margin: 15px 0;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.1);
+}
+
+.strategic-analysis-msg .strategic-summary {
+  margin: 0;
+  padding: 20px;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}
+
+.strategic-analysis-msg .strategic-header {
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  color: white;
+  margin: 0 0 20px 0;
+  padding: 15px 20px;
+  border-radius: 10px 10px 0 0;
+}
+
+.strategic-analysis-msg .strategic-header h3 {
+  margin: 0;
+  font-size: 1.2rem;
+  font-weight: 600;
 }

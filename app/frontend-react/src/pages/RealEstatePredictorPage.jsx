@@ -8,6 +8,9 @@ const RealEstatePredictorPage = () => {
   const [esgPanelOpen, setEsgPanelOpen] = useState(false);
   const [esgAnalysis, setEsgAnalysis] = useState([]);
   const [propertyData, setPropertyData] = useState(null);
+  const [predictionData, setPredictionData] = useState(null);
+  const [esgData, setEsgData] = useState(null);
+  const [esgLoading, setEsgLoading] = useState(false);
   
   // SidePanel states
   const [sidePanelExpanded, setSidePanelExpanded] = useState(false);
@@ -21,12 +24,20 @@ const RealEstatePredictorPage = () => {
     setEsgPanelOpen(!esgPanelOpen);
   };
 
+  const handleEsgPanelOpen = () => {
+    setEsgPanelOpen(true);
+  };
+
   const handleEsgPanelClose = () => {
     setEsgPanelOpen(false);
   };
 
   const handleSidePanelToggle = () => {
     setSidePanelExpanded(!sidePanelExpanded);
+  };
+
+  const handleSidePanelOpen = () => {
+    setSidePanelExpanded(true);
   };
 
   const handleSidePanelClose = () => {
@@ -38,7 +49,18 @@ const RealEstatePredictorPage = () => {
   };
 
   const handlePredictionComment = (newComments) => {
-    setComments(prev => [...prev, ...newComments]);
+    // Filtrer les doublons avant d'ajouter
+    setComments(prev => {
+      const existingTexts = prev.map(comment => comment.trim());
+      const uniqueNewComments = newComments.filter(comment => 
+        comment.trim() !== '' && !existingTexts.includes(comment.trim())
+      );
+      
+      if (uniqueNewComments.length > 0) {
+        return [...prev, ...uniqueNewComments];
+      }
+      return prev;
+    });
   };
 
   const user = {
@@ -55,6 +77,9 @@ const RealEstatePredictorPage = () => {
         onClose={handleSidePanelClose}
         comments={comments}
         clearComments={clearComments}
+        propertyData={propertyData}
+        predictionData={predictionData}
+        esgData={esgData}
       />
       
       {/* ESG Panel (Right) */}
@@ -64,13 +89,14 @@ const RealEstatePredictorPage = () => {
         onToggle={handleEsgPanelToggle}
         esgAnalysis={esgAnalysis}
         propertyData={propertyData}
+        esgLoading={esgLoading}
       />
       
       <div className="pt-6 pb-6">
         <div className="max-w-4xl mx-auto px-4">
           <div className="text-center mb-8">
             <h1 className="text-4xl font-bold text-gray-800 mb-2">
-              Real Estate Price Predictor
+              AI Property Report – Value, ESG & Compliance
             </h1>
             <p className="text-gray-600">
               AI-powered property valuation with ESG analysis
@@ -80,6 +106,14 @@ const RealEstatePredictorPage = () => {
           <PropertyForm 
             onPredictionComment={handlePredictionComment}
             onToggleSidePanel={handleSidePanelToggle}
+            onOpenSidePanel={handleSidePanelOpen}
+            onOpenEsgPanel={handleEsgPanelOpen}
+            onSetEsgAnalysis={setEsgAnalysis}
+            onSetPropertyData={setPropertyData}
+            onSetPredictionData={setPredictionData}
+            onSetEsgData={setEsgData}
+            onSetEsgLoading={setEsgLoading}
+            onClearComments={clearComments}
           />
           
           {showAdmin && (

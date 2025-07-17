@@ -39,13 +39,13 @@
   font-size: 1.1rem;
 }
 
-.score-text.score-aplus { color: #28a745; }
-.score-text.score-a { color: #20c997; }
-.score-text.score-bplus { color: #17a2b8; }
-.score-text.score-b { color: #007bff; }
-.score-text.score-cplus { color: #ffc107; }
-.score-text.score-c { color: #fd7e14; }
-.score-text.score-d { color: #dc3545; }
+.score-text.score-aplus { color: #28a745; } /* 9-10 */
+.score-text.score-a { color: #20c997; }     /* 8-9 */
+.score-text.score-bplus { color: #17a2b8; } /* 7-8 */
+.score-text.score-b { color: #007bff; }     /* 6-7 */
+.score-text.score-cplus { color: #ffc107; } /* 5-6 */
+.score-text.score-c { color: #fd7e14; }     /* 4-5 */
+.score-text.score-d { color: #dc3545; }     /* 0-4 */
 
 .esg-categories {
   display: grid;
@@ -71,35 +71,281 @@
 .category-insights {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 2px;
 }
 
 .insight-item {
   font-size: 0.9rem;
   color: #6c757d;
+  line-height: 1.2;
+  padding: 0;
+  margin: 0;
+}
+
+/* Additional ESG sections styling */
+.esg-additional-section {
+  margin-top: 24px;
+  padding: 16px;
+  background: #f8fafc;
+  border-radius: 8px;
+  border-left: 4px solid #3b82f6;
+}
+
+.section-header {
+  margin-bottom: 12px;
+}
+
+.section-header h4 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.section-content {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.impact-item,
+.compliance-item {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px 12px;
+  background: white;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+}
+
+.compliance-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.compliance-explanation {
+  font-size: 13px;
   line-height: 1.4;
-  padding: 4px 0;
-}
-
-.esg-summary-footer {
-  text-align: center;
-  padding-top: 15px;
-}
-
-.view-detailed-btn {
-  background: #007bff;
-  color: white;
-  border: none;
-  padding: 10px 20px;
+  color: #64748b;
+  padding: 8px 12px;
+  background: #f8fafc;
   border-radius: 4px;
-  font-size: 0.9rem;
+  border-left: 3px solid #3b82f6;
+  margin-top: 4px;
+}
+
+.impact-item strong,
+.compliance-item strong {
+  font-size: 13px;
+  color: #64748b;
+  text-transform: capitalize;
+}
+
+.impact-value {
+  font-size: 14px;
   font-weight: 500;
-  cursor: pointer;
-  transition: background-color 0.3s ease;
+  color: #1e293b;
+}
+
+.compliance-status {
+  font-size: 14px;
+  font-weight: 500;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.status-compliant,
+.status-low-risk {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.status-non-compliant,
+.status-high-risk {
+  background: #fecaca;
+  color: #dc2626;
+}
+
+.status-partial-compliance,
+.status-medium-risk {
+  background: #fef3c7;
+  color: #d97706;
+}
+
+.recommendation-item {
+  display: flex;
+  gap: 8px;
+  padding: 8px 12px;
+  background: white;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+  align-items: flex-start;
+}
+
+.recommendation-number {
+  font-size: 14px;
+  font-weight: 600;
+  color: #3b82f6;
+  min-width: 20px;
+}
+
+.recommendation-text {
+  font-size: 14px;
+  line-height: 1.5;
+  color: #374151;
 }
 
 .view-detailed-btn:hover {
   background: #0056b3;
+}
+
+/* Financial Impact Section */
+.esg-financial-section {
+  background: #e8f5e8;
+  border: 1px solid #c3e6cb;
+  border-radius: 6px;
+  padding: 15px;
+  margin: 15px 0;
+}
+
+.financial-header h4 {
+  margin: 0 0 12px 0;
+  font-size: 1.1rem;
+  color: #155724;
+  font-weight: 600;
+}
+
+.financial-details {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.financial-item {
+  font-size: 0.9rem;
+  color: #155724;
+  line-height: 1.4;
+  padding: 4px 0;
+}
+
+/* Compliance Status Section */
+.esg-compliance-section {
+  background: #e7f3ff;
+  border: 1px solid #b8daff;
+  border-radius: 6px;
+  padding: 15px;
+  margin: 15px 0;
+}
+
+.compliance-header h4 {
+  margin: 0 0 12px 0;
+  font-size: 1.1rem;
+  color: #004085;
+  font-weight: 600;
+}
+
+.compliance-details {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.compliance-item {
+  font-size: 0.9rem;
+  color: #004085;
+  line-height: 1.4;
+  padding: 4px 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.status {
+  padding: 2px 8px;
+  border-radius: 3px;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.status.compliant {
+  background: #d4edda;
+  color: #155724;
+}
+
+.status.non-compliant {
+  background-color: #f8d7da;
+  color: #721c24;
+}
+
+.status.pending {
+  background-color: #fff3cd;
+  color: #856404;
+}
+
+.status.partial {
+  background-color: #e2e3e5;
+  color: #383d41;
+}
+
+/* Recommendations Section */
+.esg-recommendations-section {
+  background: #fff4e6;
+  border: 1px solid #ffeeba;
+  border-radius: 6px;
+  padding: 15px;
+  margin: 15px 0;
+}
+
+.recommendations-header h4 {
+  margin: 0 0 12px 0;
+  font-size: 1.1rem;
+  color: #856404;
+  font-weight: 600;
+}
+
+.recommendations-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.recommendation-item {
+  font-size: 0.9rem;
+  color: #856404;
+  line-height: 1.4;
+  padding: 4px 0;
+}
+
+/* Loading and Error States */
+.esg-loading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #6c757d;
+  font-style: italic;
+}
+
+.esg-loading::before {
+  content: "";
+  width: 16px;
+  height: 16px;
+  border: 2px solid #e9ecef;
+  border-top: 2px solid #007bff;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+.esg-error {
+  color: #dc3545;
+  font-size: 0.9rem;
+  font-style: italic;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 
 /* Responsive design */
@@ -199,34 +445,6 @@
 
 .view-detailed-btn:active {
   transform: translateY(0);
-}
-
-/* Responsive Design */
-@media (max-width: 768px) {
-  .esg-summary {
-    padding: 16px;
-    margin: 16px 0;
-  }
-  
-  .esg-summary-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 10px;
-  }
-  
-  .esg-categories {
-    grid-template-columns: 1fr;
-    gap: 12px;
-  }
-  
-  .esg-category {
-    padding: 12px;
-  }
-  
-  .view-detailed-btn {
-    padding: 10px 20px;
-    font-size: 0.9rem;
-  }
 }
 
 /* Animation pour l'apparition */

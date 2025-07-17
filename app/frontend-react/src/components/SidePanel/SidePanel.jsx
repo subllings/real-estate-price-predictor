@@ -3,7 +3,7 @@ import "./SidePanel.css";
 import axios from "axios";
 import { CHAT_API_URL } from "../../config/api";
 
-const SidePanel = ({ user, isExpanded, onToggle, onClose, comments, clearComments }) => {
+const SidePanel = ({ user, isExpanded, onToggle, onClose, comments, clearComments, propertyData, predictionData, esgData }) => {
   const [chatInput, setChatInput] = useState("");
   const [messages, setMessages] = useState([
     { from: "agent", text: "Hello! How can I assist you today?" }
@@ -16,16 +16,24 @@ const SidePanel = ({ user, isExpanded, onToggle, onClose, comments, clearComment
   useEffect(() => {
     if (comments && comments.length > 0) {
       const newComments = comments.map(comment => {
-        // Vérifier si c'est un titre de prédiction (contient " in " et se termine par " - HH:MM:SS AM/PM")
-        const isPredictionTitle = comment.includes(' in ') && /\s-\s\d{1,2}:\d{2}:\d{2}\s(AM|PM)$/.test(comment);
-        // Vérifier si c'est un titre d'analyse ESG
-        const isESGTitle = comment.startsWith('ESG Analysis for') && /\s-\s\d{1,2}:\d{2}:\d{2}\s(AM|PM)$/.test(comment);
-
         let subtype = "prediction-comment";
-        if (isPredictionTitle) {
+        
+        // Détecter les différents types de messages avec une meilleure logique
+        if (comment.startsWith('Complete Analysis') || 
+            comment.startsWith('Prediction for') ||
+            (comment.includes(' in ') && comment.includes('('))) {
           subtype = "prediction-title";
-        } else if (isESGTitle) {
+        } else if (comment.startsWith('Predicted price:')) {
+          subtype = "prediction-title"; // Traiter le prix comme un titre aussi
+        } else if (comment.startsWith('Model:')) {
+          subtype = "model-info"; // Nouveau type pour les informations de modèle
+        } else if (comment.startsWith('ESG Analysis for') || 
+                   comment.includes('ESG ANALYSIS') ||
+                   comment.includes('ESG analysis')) {
           subtype = "esg-title";
+        } else if (comment.startsWith('Strategic Analysis') || 
+                   comment.includes('STRATEGIC ANALYSIS')) {
+          subtype = "strategic-title";
         }
 
         return {
@@ -38,14 +46,18 @@ const SidePanel = ({ user, isExpanded, onToggle, onClose, comments, clearComment
       });
 
       setMessages(prev => {
-        // Garder tous les messages existants et ajouter les nouveaux
-        // Éviter les doublons en filtrant seulement les messages de prédiction identiques
-        const existingTexts = prev.filter(msg => msg.type === "prediction").map(msg => msg.text);
+        // Filtrer seulement les nouveaux messages uniques
+        const existingTexts = prev.map(msg => msg.text);
         const uniqueNewComments = newComments.filter(newComment => 
           !existingTexts.includes(newComment.text)
         );
         
-        return [...prev, ...uniqueNewComments];
+        // Si on a de nouveaux commentaires, les ajouter
+        if (uniqueNewComments.length > 0) {
+          return [...prev, ...uniqueNewComments];
+        }
+        
+        return prev;
       });
     }
   }, [comments]);
@@ -115,11 +127,21 @@ const SidePanel = ({ user, isExpanded, onToggle, onClose, comments, clearComment
     }
   };
 
-  // Fonction pour convertir le markdown simple (**texte**) en HTML
+  // Fonction pour convertir le markdown simple (**texte**) en HTML et supprimer les emojis
   const formatMessageText = (text) => {
     if (!text) return { __html: '' };
     
-    let formattedText = text.toString();
+    let formattedText = text.toString().trim();
+    
+    // 0. SUPPRIMER TOUS LES EMOJIS ET ICÔNES (en premier)
+    // Regex plus complète pour supprimer les emojis Unicode
+    formattedText = formattedText.replace(/[\u{1F600}-\u{1F64F}]|[\u{1F300}-\u{1F5FF}]|[\u{1F680}-\u{1F6FF}]|[\u{1F1E0}-\u{1F1FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]|[\u{1F900}-\u{1F9FF}]|[\u{1F018}-\u{1F0FF}]/gu, '');
+    // Supprimer les caractères spéciaux couramment utilisés comme icônes
+    formattedText = formattedText.replace(/[🔄📊🏠💰⚡🌱📈🎯🧠⚠️✅🤖💡👋🏷️📅🔥🏗️ℹ️📋]/g, '');
+    // Nettoyer les espaces multiples résultant de la suppression d'emojis
+    formattedText = formattedText.replace(/\s{2,}/g, ' ');
+    // Supprimer les points de puce emoji et les remplacer par des points normaux
+    formattedText = formattedText.replace(/[•·▶]/g, '•');
     
     // 1. D'ABORD convertir **texte** en <strong>texte</strong> (plus restrictif)
     formattedText = formattedText.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
@@ -132,8 +154,8 @@ const SidePanel = ({ user, isExpanded, onToggle, onClose, comments, clearComment
     formattedText = formattedText.replace(/^#{2}\s+(.*?)$/gm, '<h4 style="margin: 12px 0 8px 0; font-weight: bold; color: #333; font-size: 16px;">$1</h4>');
     formattedText = formattedText.replace(/^#{3}\s+(.*?)$/gm, '<h5 style="margin: 8px 0 6px 0; font-weight: bold; color: #444; font-size: 14px;">$1</h5>');
     
-    // 4. Convertir les puces • + - en listes HTML compactes (AUCUN margin)
-    formattedText = formattedText.replace(/^[•\+\-]\s*(.*?)$/gm, '<div style="margin: 0; padding: 0 0 0 15px; line-height: 1.3;">• $1</div>');
+    // 4. Convertir les puces • + - en listes HTML compactes avec alignement à gauche
+    formattedText = formattedText.replace(/^[•\+\-]\s*(.*?)$/gm, '<div style="margin: 2px 0; padding: 0; line-height: 1.4; text-align: left;">• $1</div>');
     
     // 5. Nettoyer les sauts de ligne AVANT de les convertir
     formattedText = formattedText.replace(/\n\s*\n\s*\n/g, '\n\n'); // Supprimer les triple+ sauts de ligne
@@ -161,7 +183,7 @@ const SidePanel = ({ user, isExpanded, onToggle, onClose, comments, clearComment
         onClick={onToggle}
         title="Open AI Chat Assistant"
       >
-        <div className="sidepanel-tab-icon">CHAT</div>
+        <span className="sidepanel-tab-text">CHAT</span>
       </div>
 
       <aside className={`sidepanel ${isExpanded ? "open" : ""}`}>
@@ -192,10 +214,11 @@ const SidePanel = ({ user, isExpanded, onToggle, onClose, comments, clearComment
                     <div
                       key={idx}
                       className={`message ${msg.from === "user" ? "user-msg" : "agent-msg"} ${msg.type === "prediction" ? "prediction-msg" : ""} ${msg.subtype === "prediction-title" ? "prediction-title" 
-                        : ""} ${msg.subtype === "esg-title" ? "esg-title" : ""} ${msg.subtype === "prediction-comment" ? "prediction-comment" : ""}`}
+                        : ""} ${msg.subtype === "esg-title" ? "esg-title" : ""} ${msg.subtype === "strategic-title" ? "strategic-title" : ""} ${msg.subtype === "model-info" ? "model-info" : ""} ${msg.subtype === "prediction-comment" ? "prediction-comment" : ""}`}
                       dangerouslySetInnerHTML={formatMessageText(msg.text)}
                     />
                   ))}
+
                 </div>
               </section>
             </div>
