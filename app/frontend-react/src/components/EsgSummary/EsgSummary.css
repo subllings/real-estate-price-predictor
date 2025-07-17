@@ -594,7 +594,6 @@
   font-size: 1.3rem;
   margin-bottom: 1.5rem;
   font-weight: 600;
-  border-bottom: 2px solid #e9ecef;
   padding-bottom: 0.5rem;
 }
 
@@ -661,6 +660,7 @@
   font-size: 0.8rem;
   font-weight: 600;
   text-transform: uppercase;
+  text-align: center;
 }
 
 /* Key Recommendations Dashboard */
@@ -861,7 +861,6 @@
   background: white;
   border-radius: 12px;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
-  border-top: 4px solid #6f42c1;
 }
 
 .esg-scores-summary h3 {

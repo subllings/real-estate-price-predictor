@@ -28,7 +28,7 @@ const initialFormData = {
   hasTerrace: true,
 };
 
-const PropertyForm = ({ onPredictionComment, onToggleSidePanel, onOpenSidePanel, onOpenEsgPanel, onSetEsgAnalysis, onSetPropertyData, onSetPredictionData, onSetEsgData, onSetEsgLoading, onClearComments }) => {
+const PropertyForm = ({ onPredictionComment, onToggleSidePanel, onOpenSidePanel, onOpenEsgPanel, onSetEsgAnalysis, onSetPropertyData, onSetPredictionData, onSetEsgData, onSetEsgLoading, onClearComments, onSendChatMessage }) => {
   const [formData, setFormData] = useState(initialFormData);
   const [loading, setLoading] = useState(false);
   const [esgLoading, setEsgLoading] = useState(false);
@@ -1145,6 +1145,8 @@ const PropertyForm = ({ onPredictionComment, onToggleSidePanel, onOpenSidePanel,
         esgAnalysisAvailable={esgAnalysisAvailable}
         detailedEsgData={detailedEsgData}
         esgLoading={esgLoading}
+        onOpenSidePanel={onOpenSidePanel}
+        onSendChatMessage={onSendChatMessage}
       />
     </div>
   );

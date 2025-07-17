@@ -2,6 +2,66 @@ import React from 'react';
 import './ESGPanel.css';
 
 const ESGPanel = ({ isOpen, onClose, onToggle, esgAnalysis, propertyData, esgLoading }) => {
+  // Color logic helpers
+  const getEpcColor = (epcScore) => {
+    if (!epcScore) return '#6c757d';
+    if (['A+', 'A'].includes(epcScore)) return '#28a745'; // Green
+    if (['B', 'B+'].includes(epcScore)) return '#8fd19e'; // Light green
+    if (['C', 'C+'].includes(epcScore)) return '#ffc107'; // Yellow
+    if (['D', 'E'].includes(epcScore)) return '#ff9800'; // Orange
+    if (['F', 'G'].includes(epcScore)) return '#dc3545'; // Red
+    return '#dc3545'; // Default to red for unknown/very poor EPC
+  };
+
+  const getInvestmentColor = (amount) => {
+    if (amount <= 10000) return '#28a745'; // Green
+    if (amount <= 25000) return '#ffc107'; // Yellow
+    return '#dc3545'; // Red
+  };
+
+  const getEsgImprovementColor = (improvement) => {
+    if (improvement >= 15) return '#28a745'; // High improvement - green
+    if (improvement >= 10) return '#8fd19e'; // Moderate improvement - light green
+    if (improvement >= 5) return '#ffc107'; // Low improvement - yellow
+    return '#f8d7da'; // Very low - light red
+  };
+
+  // Action points summary generator
+  const summarizeActionPoints = (analysisArr) => {
+    if (!analysisArr || analysisArr.length === 0) return null;
+    // Group recommendations by category
+    const categories = {
+      Energy: [],
+      Investment: [],
+      Compliance: [],
+      ESG: [],
+      Other: []
+    };
+    analysisArr.forEach(pt => {
+      const lower = pt.toLowerCase();
+      if (lower.includes('epc') || lower.includes('energy')) categories.Energy.push(pt);
+      else if (lower.includes('investment') || lower.includes('cost') || lower.includes('upgrade')) categories.Investment.push(pt);
+      else if (lower.includes('compliance') || lower.includes('regulation')) categories.Compliance.push(pt);
+      else if (lower.includes('esg') || lower.includes('improvement')) categories.ESG.push(pt);
+      else categories.Other.push(pt);
+    });
+    // Only show categories with content
+    const shownCats = Object.entries(categories).filter(([cat, arr]) => arr.length > 0);
+    if (shownCats.length === 0) return null;
+    return (
+      <div className="action-summary" style={{ marginTop: '1.5em', padding: '1em', background: '#f6f8fa', borderRadius: '0.7em', boxShadow: '0 2px 8px #eee' }}>
+        <h4 style={{ marginBottom: '0.7em', color: '#007bff' }}>Actionable Summary</h4>
+        {shownCats.map(([cat, arr], i) => (
+          <div key={cat} style={{ marginBottom: '1em' }}>
+            <div style={{ fontWeight: 'bold', color: '#333', marginBottom: '0.3em' }}>{cat} Recommendations:</div>
+            <ul style={{ margin: 0, paddingLeft: '1.2em' }}>
+              {arr.map((act, idx) => <li key={idx} style={{ marginBottom: '0.5em' }}>{act}</li>)}
+            </ul>
+          </div>
+        ))}
+      </div>
+    );
+  };
   const isLoadingState = esgAnalysis && esgAnalysis.length > 0 && 
     esgAnalysis[0].includes('Generating ESG analysis in progress');
 
@@ -9,7 +69,46 @@ const ESGPanel = ({ isOpen, onClose, onToggle, esgAnalysis, propertyData, esgLoa
     // Check if this is a loading message - remove all emoji checks
     const isLoadingMessage = point.includes('Generating') || point.includes('analysis in progress') || 
       point.includes('Azure OpenAI') || point.includes('Processing');
-    
+
+    // Color logic for EPC, investment, ESG improvement
+    let colorStyle = {};
+    if (point.match(/EPC\s([A-G][+]?)/)) {
+      const epcMatch = point.match(/EPC\s([A-G][+]?)/);
+      colorStyle.background = getEpcColor(epcMatch[1]);
+      colorStyle.color = '#fff';
+      colorStyle.padding = '0.3em 0.7em';
+      colorStyle.borderRadius = '0.5em';
+      colorStyle.display = 'inline-block';
+      colorStyle.marginBottom = '0.5em';
+    } else if (point.match(/investment.*?(\d{1,3}(?:,\d{3})*(?:\.\d+)?)/i)) {
+      const investMatch = point.match(/(\d{1,3}(?:,\d{3})*(?:\.\d+)?)/);
+      if (investMatch) {
+        colorStyle.background = getInvestmentColor(parseFloat(investMatch[1].replace(/,/g, '')));
+        colorStyle.color = '#fff';
+        colorStyle.padding = '0.3em 0.7em';
+        colorStyle.borderRadius = '0.5em';
+        colorStyle.display = 'inline-block';
+        colorStyle.marginBottom = '0.5em';
+      }
+    } else if (point.toLowerCase().includes('investment recommendations')) {
+      colorStyle.background = '#dc3545';
+      colorStyle.color = '#fff';
+      colorStyle.padding = '1em';
+      colorStyle.borderRadius = '1em';
+      colorStyle.marginBottom = '0.7em';
+      colorStyle.display = 'block';
+    } else if (point.match(/ESG improvements.*?(\d{1,3})%/i)) {
+      const esgMatch = point.match(/(\d{1,3})%/);
+      if (esgMatch) {
+        colorStyle.background = getEsgImprovementColor(parseInt(esgMatch[1]));
+        colorStyle.color = '#fff';
+        colorStyle.padding = '0.3em 0.7em';
+        colorStyle.borderRadius = '0.5em';
+        colorStyle.display = 'inline-block';
+        colorStyle.marginBottom = '0.5em';
+      }
+    }
+
     // Detect if the point starts with markdown-style formatting
     if (point.includes('**') && point.includes(':**')) {
       const parts = point.split(':**');
@@ -19,7 +118,7 @@ const ESGPanel = ({ isOpen, onClose, onToggle, esgAnalysis, propertyData, esgLoa
         return (
           <div key={index} className="analysis-point">
             <h4 className="analysis-title">{title}</h4>
-            <div className={`analysis-content ${isLoadingMessage ? 'loading-message' : ''}`}>
+            <div className={`analysis-content ${isLoadingMessage ? 'loading-message' : ''}`} style={colorStyle}>
               {formatContentWithBullets(content)}
             </div>
           </div>
@@ -30,7 +129,7 @@ const ESGPanel = ({ isOpen, onClose, onToggle, esgAnalysis, propertyData, esgLoa
     // For regular points with special loading message styling
     return (
       <div key={index} className="analysis-point">
-        <div className={`analysis-content ${isLoadingMessage ? 'loading-message' : ''}`}>
+        <div className={`analysis-content ${isLoadingMessage ? 'loading-message' : ''}`} style={colorStyle}>
           {formatContentWithBullets(point)}
           {isLoadingMessage && (
             <span className="esg-loading-dots">
@@ -153,7 +252,10 @@ const ESGPanel = ({ isOpen, onClose, onToggle, esgAnalysis, propertyData, esgLoa
                     </div>
                   </div>
                 ) : (
-                  esgAnalysis.map((point, index) => formatAnalysisPoint(point, index))
+                  <>
+                    {esgAnalysis.map((point, index) => formatAnalysisPoint(point, index))}
+                    {summarizeActionPoints(esgAnalysis)}
+                  </>
                 )}
               </div>
 

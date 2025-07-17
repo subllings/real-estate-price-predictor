@@ -15,6 +15,9 @@ const RealEstatePredictorPage = () => {
   // SidePanel states
   const [sidePanelExpanded, setSidePanelExpanded] = useState(false);
   const [comments, setComments] = useState([]);
+  
+  // Reference to SidePanel's sendMessageToChat function
+  const [sendMessageToChat, setSendMessageToChat] = useState(null);
 
   const handleAdminToggle = () => {
     setShowAdmin(!showAdmin);
@@ -46,6 +49,16 @@ const RealEstatePredictorPage = () => {
 
   const clearComments = () => {
     setComments([]);
+  };
+
+  const handleSendChatMessage = (message) => {
+    if (sendMessageToChat) {
+      sendMessageToChat(message);
+    }
+  };
+
+  const handleSetSendMessageToChat = (sendMessageFunction) => {
+    setSendMessageToChat(() => sendMessageFunction);
   };
 
   const handlePredictionComment = (newComments) => {
@@ -80,6 +93,7 @@ const RealEstatePredictorPage = () => {
         propertyData={propertyData}
         predictionData={predictionData}
         esgData={esgData}
+        onSendChatMessage={handleSetSendMessageToChat}
       />
       
       {/* ESG Panel (Right) */}
@@ -106,6 +120,7 @@ const RealEstatePredictorPage = () => {
             onSetEsgData={setEsgData}
             onSetEsgLoading={setEsgLoading}
             onClearComments={clearComments}
+            onSendChatMessage={handleSendChatMessage}
           />
           
           {showAdmin && (

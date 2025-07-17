@@ -3,7 +3,7 @@ import "./SidePanel.css";
 import axios from "axios";
 import { CHAT_API_URL } from "../../config/api";
 
-const SidePanel = ({ user, isExpanded, onToggle, onClose, comments, clearComments, propertyData, predictionData, esgData }) => {
+const SidePanel = ({ user, isExpanded, onToggle, onClose, comments, clearComments, propertyData, predictionData, esgData, onSendChatMessage }) => {
   const [chatInput, setChatInput] = useState("");
   const [messages, setMessages] = useState([
     { from: "agent", text: "Hello! How can I assist you today?" }
@@ -11,6 +11,9 @@ const SidePanel = ({ user, isExpanded, onToggle, onClose, comments, clearComment
 
   // Référence pour le scroll automatique sur tout le side panel
   const sidePanelRef = useRef(null);
+  
+  // Référence pour le conteneur des messages spécifiquement
+  const messagesContainerRef = useRef(null);
   
   // Référence pour le panneau pour le redimensionnement
   const panelRef = useRef(null);
@@ -27,9 +30,84 @@ const SidePanel = ({ user, isExpanded, onToggle, onClose, comments, clearComment
   const [startX, setStartX] = useState(0);
   const [startWidth, setStartWidth] = useState(500);
 
+  // Fonction pour envoyer un message au chat depuis l'extérieur
+  const sendMessageToChat = async (message) => {
+    if (!message || !message.trim()) return;
+
+    // Ajouter le message à l'input
+    setChatInput(message);
+    
+    // Ajouter le message utilisateur à la liste
+    setMessages(prev => [...prev, { from: "user", text: message, timestamp: new Date().toISOString() }]);
+
+    try {
+      // Préparer l'historique des conversations (derniers 20 messages)
+      const conversationHistory = messages.slice(-20).map(msg => ({
+        role: msg.from === "user" ? "user" : "assistant",
+        content: msg.text
+      }));
+
+      // Ajouter le message actuel
+      conversationHistory.push({ role: "user", content: message });
+
+      // Ajouter un message système avec contexte pour l'IA
+      const messagesWithContext = [
+        {
+          role: "system",
+          content: "You are a helpful real estate AI assistant. You have access to conversation history and can provide contextual responses based on previous property predictions and discussions. Keep responses concise, helpful, and professional. You can reference earlier predictions and continue conversations naturally."
+        },
+        ...conversationHistory
+      ];
+
+      const response = await axios.post(CHAT_API_URL, {
+        messages: messagesWithContext
+      });
+
+      // La réponse attendue dans response.data.response
+      setMessages(prev => [
+        ...prev,
+        { from: "agent", text: response.data.response || "No response from assistant.", timestamp: new Date().toISOString() }
+      ]);
+      
+      // Déclencher le scroll automatique après la réponse
+      setTimeout(() => {
+        scrollToBottomSmooth();
+      }, 100);
+    } catch (err) {
+      console.error("Chat error:", err.response?.data || err.message || err);
+      setMessages(prev => [
+        ...prev,
+        { from: "agent", text: "Sorry, I couldn't reach the assistant.", timestamp: new Date().toISOString() }
+      ]);
+      
+      // Déclencher le scroll automatique même en cas d'erreur
+      setTimeout(() => {
+        scrollToBottomSmooth();
+      }, 100);
+    }
+    
+    // Vider l'input après l'envoi
+    setChatInput("");
+  };
+
+  // Exposer la fonction via le callback
+  useEffect(() => {
+    if (onSendChatMessage) {
+      onSendChatMessage(sendMessageToChat);
+    }
+  }, [onSendChatMessage, sendMessageToChat]);
+
   // Déclenchement automatique de l'analyse stratégique quand l'ESG analysis est terminée
   useEffect(() => {
-    if (esgData && esgData.esg_scores && !strategicAnalysisGenerated && propertyData) {
+    console.log("ESG Data:", esgData);
+    console.log("Strategic Analysis Generated:", strategicAnalysisGenerated);
+    console.log("Property Data:", propertyData);
+    
+    // Déclencher l'analyse stratégique si :
+    // 1. On a des données ESG (soit esg_scores, soit d'autres données ESG)
+    // 2. L'analyse stratégique n'a pas encore été générée
+    // 3. On a des données de propriété
+    if (esgData && !strategicAnalysisGenerated && propertyData) {
       console.log("ESG analysis completed, triggering automatic strategic analysis...");
       
       // Délai pour laisser l'ESG analysis se finaliser
@@ -145,14 +223,77 @@ const SidePanel = ({ user, isExpanded, onToggle, onClose, comments, clearComment
     }
   }, [comments]);
 
+  // Fonction utilitaire pour le défilement automatique amélioré
+  const scrollToBottomSmooth = () => {
+    const scrollContainer = messagesContainerRef.current || sidePanelRef.current;
+    if (scrollContainer) {
+      // Utiliser scrollTo avec behavior: 'smooth' pour un défilement fluide
+      scrollContainer.scrollTo({
+        top: scrollContainer.scrollHeight,
+        behavior: 'smooth'
+      });
+    }
+  };
+
   // Scroll automatique vers le bas quand de nouveaux messages sont ajoutés
   useEffect(() => {
-    if (sidePanelRef.current && isExpanded) {
-      setTimeout(() => {
+    // Fonction pour effectuer le scroll automatique
+    const scrollToBottom = () => {
+      // Essayer d'abord avec le conteneur de messages s'il existe
+      if (messagesContainerRef.current) {
+        messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
+      }
+      // Sinon utiliser le conteneur principal du side panel
+      else if (sidePanelRef.current) {
         sidePanelRef.current.scrollTop = sidePanelRef.current.scrollHeight;
-      }, 100); // Petit délai pour s'assurer que le contenu est rendu
+      }
+    };
+
+    // Vérifier si le panel est ouvert et qu'il y a des messages
+    if (isExpanded && messages.length > 0) {
+      // Délai court pour s'assurer que le DOM est mis à jour
+      setTimeout(() => {
+        scrollToBottom();
+      }, 100);
+      
+      // Délai supplémentaire pour s'assurer que le contenu est entièrement rendu
+      setTimeout(() => {
+        scrollToBottom();
+      }, 300);
+      
+      // Scroll fluide final
+      setTimeout(() => {
+        scrollToBottomSmooth();
+      }, 500);
     }
   }, [messages, isExpanded]);
+
+  // Scroll automatique spécifique quand le panel s'ouvre
+  useEffect(() => {
+    if (isExpanded && messages.length > 0) {
+      setTimeout(() => {
+        if (messagesContainerRef.current) {
+          messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
+        } else if (sidePanelRef.current) {
+          sidePanelRef.current.scrollTop = sidePanelRef.current.scrollHeight;
+        }
+        // Scroll fluide après ouverture
+        setTimeout(() => {
+          scrollToBottomSmooth();
+        }, 100);
+      }, 200);
+    }
+  }, [isExpanded]);
+
+  // Scroll automatique quand des commentaires sont ajoutés
+  useEffect(() => {
+    if (comments && comments.length > 0 && isExpanded) {
+      // Délai plus long pour s'assurer que tous les commentaires sont traités
+      setTimeout(() => {
+        scrollToBottomSmooth();
+      }, 500);
+    }
+  }, [comments, isExpanded]);
 
   // Nouvelle fonction pour générer l'analyse stratégique automatiquement
   const generateStrategicAnalysis = async () => {
@@ -315,6 +456,11 @@ Property details: Surface ${analysisData.surface}m², ${analysisData.bedrooms} b
             subtype: "strategic-title",
             timestamp: new Date().toISOString()
           }]);
+          
+          // Scroll automatique après chaque section ajoutée
+          setTimeout(() => {
+            scrollToBottomSmooth();
+          }, 100);
         }, index * 1000); // Délai progressif pour affichage fluide
       });
 
@@ -358,6 +504,11 @@ Property details: Surface ${analysisData.surface}m², ${analysisData.bedrooms} b
     // Ajout côté UI (affichage)
     setMessages(prev => [...prev, { from: "user", text: chatInput, timestamp: new Date().toISOString() }]);
     setChatInput("");
+    
+    // Scroll automatique après l'envoi du message utilisateur
+    setTimeout(() => {
+      scrollToBottomSmooth();
+    }, 100);
 
     try {
       // Préparer l'historique des conversations (derniers 20 messages)
@@ -387,12 +538,22 @@ Property details: Surface ${analysisData.surface}m², ${analysisData.bedrooms} b
         ...prev,
         { from: "agent", text: response.data.response || "No response from assistant.", timestamp: new Date().toISOString() }
       ]);
+      
+      // Déclencher le scroll automatique après la réponse
+      setTimeout(() => {
+        scrollToBottomSmooth();
+      }, 100);
     } catch (err) {
       console.error("Chat error:", err.response?.data || err.message || err);
       setMessages(prev => [
         ...prev,
         { from: "agent", text: "Sorry, I couldn't reach the assistant.", timestamp: new Date().toISOString() }
       ]);
+      
+      // Déclencher le scroll automatique même en cas d'erreur
+      setTimeout(() => {
+        scrollToBottomSmooth();
+      }, 100);
     }
   };
 
@@ -431,39 +592,57 @@ Property details: Surface ${analysisData.surface}m², ${analysisData.bedrooms} b
     formattedText = formattedText.replace(/^\s*#\s*$/gm, ''); // Supprimer les lignes avec juste #
     formattedText = formattedText.replace(/\s+#\s*$/gm, ''); // Supprimer les # en fin de ligne
     
-    // 2. D'ABORD convertir **texte** en <strong>texte</strong>
-    formattedText = formattedText.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-    
-    // 3. Supprimer les séparateurs markdown (barres horizontales)
+    // 2. Supprimer les séparateurs markdown (barres horizontales) EN PREMIER
     formattedText = formattedText.replace(/---+/g, '');
     formattedText = formattedText.replace(/^\s*-{3,}\s*$/gm, '');
     formattedText = formattedText.replace(/^\s*\*{3,}\s*$/gm, '');
     formattedText = formattedText.replace(/^\s*_{3,}\s*$/gm, '');
     
+    // 3. Gérer les titres avec numéros qui peuvent être collés au texte précédent
+    formattedText = formattedText.replace(/(\w+)(\s*#{3}\s*\d+\.\s+[^\n]+)/g, '$1<br/>$2');
+    formattedText = formattedText.replace(/(\w+)(\s*#{2}\s*\d+\.\s+[^\n]+)/g, '$1<br/>$2');
+    formattedText = formattedText.replace(/(\w+)(\s*#{1}\s*\d+\.\s+[^\n]+)/g, '$1<br/>$2');
+    
     // 4. Convertir les titres markdown # ## ### #### en titres HTML propres
-    formattedText = formattedText.replace(/^#{1}\s+(.*?)$/gm, '<h2 style="margin: 16px 0 10px 0; font-weight: bold; color: #6a1b9a; font-size: 17px; border-bottom: 1px solid #e0e0e0; padding-bottom: 3px;">$1</h2>');
-    formattedText = formattedText.replace(/^#{2}\s+(.*?)$/gm, '<h3 style="margin: 14px 0 8px 0; font-weight: bold; color: #8b5a2b; font-size: 15px;">$1</h3>');
-    formattedText = formattedText.replace(/^#{3}\s+(.*?)$/gm, '<h4 style="margin: 12px 0 6px 0; font-weight: bold; color: #2563eb; font-size: 14px;">$1</h4>');
+    // Ordre important : du plus spécifique au moins spécifique
     formattedText = formattedText.replace(/^#{4}\s+(.*?)$/gm, '<h5 style="margin: 10px 0 5px 0; font-weight: 600; color: #1565c0; font-size: 13px;">$1</h5>');
+    formattedText = formattedText.replace(/^#{3}\s+(.*?)$/gm, '<h4 style="margin: 12px 0 6px 0; font-weight: bold; color: #2563eb; font-size: 14px;">$1</h4>');
+    formattedText = formattedText.replace(/^#{2}\s+(.*?)$/gm, '<h3 style="margin: 14px 0 8px 0; font-weight: bold; color: #8b5a2b; font-size: 15px;">$1</h3>');
+    formattedText = formattedText.replace(/^#{1}\s+(.*?)$/gm, '<h2 style="margin: 16px 0 10px 0; font-weight: bold; color: #6a1b9a; font-size: 17px; border-bottom: 1px solid #e0e0e0; padding-bottom: 3px;">$1</h2>');
     
-    // 5. Convertir les puces • + - en listes HTML propres
-    formattedText = formattedText.replace(/^[•\+\-]\s*(.*?)$/gm, '<div style="margin: 2px 0 2px 16px; padding: 0; line-height: 1.4; text-align: left; position: relative;"><span style="position: absolute; left: -12px; color: #6a1b9a; font-weight: bold;">•</span>$1</div>');
+    // 4.1 Gérer les titres avec numéros qui peuvent être au milieu du texte
+    formattedText = formattedText.replace(/(?:^|\n)#{3}\s*(\d+)\.\s+([^\n]+)/gm, '<h4 style="margin: 12px 0 6px 0; font-weight: bold; color: #2563eb; font-size: 14px;">$1. $2</h4>');
+    formattedText = formattedText.replace(/(?:^|\n)#{2}\s*(\d+)\.\s+([^\n]+)/gm, '<h3 style="margin: 14px 0 8px 0; font-weight: bold; color: #8b5a2b; font-size: 15px;">$1. $2</h3>');
+    formattedText = formattedText.replace(/(?:^|\n)#{1}\s*(\d+)\.\s+([^\n]+)/gm, '<h2 style="margin: 16px 0 10px 0; font-weight: bold; color: #6a1b9a; font-size: 17px; border-bottom: 1px solid #e0e0e0; padding-bottom: 3px;">$1. $2</h2>');
     
-    // 6. Nettoyer les sauts de ligne excessifs
+    // 5. Convertir **texte** en <strong>texte</strong> APRÈS les titres pour éviter les conflits
+    formattedText = formattedText.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+    
+    // 6. Traiter les puces différemment selon leur contexte
+    // D'abord traiter les puces qui suivent "How:" ou "Why:"
+    formattedText = formattedText.replace(/(Why:|How:)\s*\n?\s*-\s*(.+)/gi, '$1<br/><div style="margin: 4px 0 4px 16px; padding: 0; line-height: 1.4;"><span style="color: #6a1b9a; font-weight: bold;">•</span> $2</div>');
+    
+    // Ensuite traiter les puces normales en début de ligne
+    formattedText = formattedText.replace(/^[•\+\-]\s*(.*?)$/gm, '<div style="margin: 2px 0 2px 16px; padding: 0; line-height: 1.4; position: relative;"><span style="position: absolute; left: -12px; color: #6a1b9a; font-weight: bold;">•</span>$1</div>');
+    
+    // 7. Nettoyer les sauts de ligne excessifs
     formattedText = formattedText.replace(/\n\s*\n\s*\n/g, '\n\n');
     
-    // 7. Convertir les sauts de ligne simples en <br/> mais éviter autour des balises HTML
+    // 8. Convertir les sauts de ligne simples en <br/> mais éviter autour des balises HTML
     formattedText = formattedText.replace(/\n(?!\s*<)/g, '<br/>');
     
-    // 8. Nettoyer les <br/> en trop et les lignes vides
+    // 9. Nettoyer les <br/> en trop et les lignes vides
     formattedText = formattedText.replace(/(<br\/>){3,}/g, '<br/><br/>');
     formattedText = formattedText.replace(/<br\/>\s*(<h[1-6])/g, '$1');
     formattedText = formattedText.replace(/(<\/h[1-6]>)\s*<br\/>/g, '$1');
     formattedText = formattedText.replace(/<br\/>\s*(<div)/g, '$1');
     formattedText = formattedText.replace(/(<\/div>)\s*<br\/>/g, '$1');
     
-    // 9. Supprimer les lignes vides restantes
+    // 10. Supprimer les lignes vides restantes
     formattedText = formattedText.replace(/<br\/>\s*<br\/>\s*<br\/>/g, '<br/><br/>');
+    
+    // 11. Nettoyer les espaces en début et fin
+    formattedText = formattedText.trim();
     
     // Dernière vérification : si le contenu final est vide, retourner vide
     const finalContent = formattedText.replace(/<[^>]*>/g, '').trim();
@@ -556,30 +735,53 @@ Property details: Surface ${analysisData.surface}m², ${analysisData.bedrooms} b
               </button>
             </div>
 
+            {/* Spinner pour l'analyse stratégique en cours - Position fixe entre Profile et AI Chat */}
+            {isStrategicAnalysisLoading && (
+              <div className="strategic-analysis-loading-fixed">
+                <div className="spinner"></div>
+                <span className="loading-text">
+                  Strategic Analysis in progress...
+                </span>
+              </div>
+            )}
+
             <div ref={sidePanelRef} className="sidepanel-content">
               <section className="chat-section">
                 <div className="chat-header">
                   <h4>AI Chat Assistant</h4>
-                  <button
-                    onClick={clearChatHistory}
-                    className="clear-chat-btn"
-                    title="Clear chat history"
-                  >
-                    Clear
-                  </button>
+                  <div className="chat-header-buttons">
+                    <button
+                      onClick={() => setIsStrategicAnalysisLoading(!isStrategicAnalysisLoading)}
+                      className="strategic-analysis-btn"
+                      style={{ backgroundColor: isStrategicAnalysisLoading ? '#dc3545' : '#007bff' }}
+                      title="Toggle Spinner"
+                    >
+                      {isStrategicAnalysisLoading ? 'Stop Spinner' : 'Test Spinner'}
+                    </button>
+                    {!strategicAnalysisGenerated && !isStrategicAnalysisLoading && esgData && propertyData && (
+                      <button
+                        onClick={() => {
+                          console.log("Manual strategic analysis trigger");
+                          generateStrategicAnalysis();
+                          setStrategicAnalysisGenerated(true);
+                        }}
+                        className="strategic-analysis-btn"
+                        title="Generate strategic analysis"
+                      >
+                        Strategic Analysis
+                      </button>
+                    )}
+                    <button
+                      onClick={clearChatHistory}
+                      className="clear-chat-btn"
+                      title="Clear chat history"
+                    >
+                      Clear
+                    </button>
+                  </div>
                 </div>
 
-                <div className="chat-messages">
-                  {/* Spinner pour l'analyse stratégique en cours */}
-                  {isStrategicAnalysisLoading && (
-                    <div className="strategic-analysis-loading">
-                      <div className="spinner"></div>
-                      <span className="loading-text">
-                        Strategic Analysis in progress...
-                      </span>
-                    </div>
-                  )}
-                  
+                <div className="chat-messages" ref={messagesContainerRef}>
                   {messages
                     .filter(msg => {
                       // Filtrer les messages vides ou qui ne contiennent que des espaces/caractères spéciaux

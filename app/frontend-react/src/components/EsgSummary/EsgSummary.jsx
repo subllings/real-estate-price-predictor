@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import './EsgSummary.css';
 
-const StrategicAnalysisConclusion = ({ formData, detailedEsgData, esgAnalysisAvailable, esgLoading }) => {
+const StrategicAnalysisConclusion = ({ formData, detailedEsgData, esgAnalysisAvailable, esgLoading, onOpenSidePanel, onSendChatMessage }) => {
   console.log('StrategicAnalysisConclusion rendering with:', { formData, detailedEsgData, esgAnalysisAvailable, esgLoading });
   
   const [strategicSummary, setStrategicSummary] = useState(null);
@@ -166,43 +166,38 @@ const StrategicAnalysisConclusion = ({ formData, detailedEsgData, esgAnalysisAva
 
   // Render Financial Impact Dashboard
   const renderFinancialImpactDashboard = () => {
-    console.log('renderFinancialImpactDashboard called');
-    console.log('detailedEsgData:', detailedEsgData);
-    console.log('detailedEsgData?.financial_impact:', detailedEsgData?.financial_impact);
-    
     // Show loading state if no data yet
     if (!detailedEsgData || !detailedEsgData.financial_impact) {
-      console.log('No detailed ESG data or financial impact data available - showing placeholder');
       return (
         <div className="strategic-dashboard-card">
           <h3>Financial Impact Dashboard</h3>
           <div className="financial-metrics-grid">
             <div className="metric-card" style={{ 
-              background: '#28a745', 
-              backgroundImage: 'none', 
+              background: '#6c757d', 
               color: 'white', 
-              border: 'none' 
+              border: 'none',
+              boxShadow: '0 4px 12px rgba(108, 117, 125, 0.3)'
             }}>
-              <div className="metric-value" style={{ color: 'white' }}>Loading...</div>
-              <div className="metric-label" style={{ color: 'white', opacity: 1 }}>Annual Energy Cost</div>
+              <div className="metric-value">Loading...</div>
+              <div className="metric-label">Annual Energy Cost</div>
             </div>
             <div className="metric-card" style={{ 
-              background: '#28a745', 
-              backgroundImage: 'none', 
+              background: '#6c757d', 
               color: 'white', 
-              border: 'none' 
+              border: 'none',
+              boxShadow: '0 4px 12px rgba(108, 117, 125, 0.3)'
             }}>
-              <div className="metric-value" style={{ color: 'white' }}>Loading...</div>
-              <div className="metric-label" style={{ color: 'white', opacity: 1 }}>Improvement Investment</div>
+              <div className="metric-value">Loading...</div>
+              <div className="metric-label">Improvement Investment</div>
             </div>
             <div className="metric-card" style={{ 
-              background: '#28a745', 
-              backgroundImage: 'none', 
+              background: '#6c757d', 
               color: 'white', 
-              border: 'none' 
+              border: 'none',
+              boxShadow: '0 4px 12px rgba(108, 117, 125, 0.3)'
             }}>
-              <div className="metric-value" style={{ color: 'white' }}>Loading...</div>
-              <div className="metric-label" style={{ color: 'white', opacity: 1 }}>ROI Potential</div>
+              <div className="metric-value">Loading...</div>
+              <div className="metric-label">ROI Potential</div>
             </div>
           </div>
         </div>
@@ -210,165 +205,171 @@ const StrategicAnalysisConclusion = ({ formData, detailedEsgData, esgAnalysisAva
     }
 
     const { financial_impact } = detailedEsgData;
-    console.log('Financial Impact Data:', financial_impact);
-    
-    console.log('Energy Cost Annual:', financial_impact.energy_cost_annual);
-    console.log('Improvement Cost Estimate:', financial_impact.improvement_cost_estimate);
-    console.log('ROI Potential:', financial_impact.roi_potential);
-    
-    // Function to get color based on metric type and value
+    // Color logic helpers - corrected for proper EPC/financial assessment
     const getMetricColor = (metricType, value) => {
-      console.log(`Getting color for metric type: ${metricType}, value: ${value}`);
-      
-      if (!value || value === 'N/A') {
-        console.log('Value is N/A, returning gray');
-        return '#6c757d'; // Gray for N/A values
-      }
-      
+      if (!value || value === 'N/A') return '#6c757d';
       switch (metricType) {
-        case 'energy_cost':
-          // Extract numeric value from strings like "Estimated 1700 €/year based on EPC G"
+        case 'energy_cost': {
+          // First check for EPC rating in the string - this takes priority
+          const epcMatch = value.match(/EPC\s([A-G][+]?)/);
+          if (epcMatch) {
+            const epcRating = epcMatch[1];
+            // EPC color logic: A+ and A = green, B = light green, C = yellow, D/E = orange, F/G = red
+            if (['A+', 'A'].includes(epcRating)) return '#28a745'; // Green - excellent
+            if (['B'].includes(epcRating)) return '#8fd19e'; // Light green - good
+            if (['C'].includes(epcRating)) return '#ffc107'; // Yellow - average
+            if (['D', 'E'].includes(epcRating)) return '#ff9800'; // Orange - poor
+            if (['F', 'G'].includes(epcRating)) return '#dc3545'; // Red - very poor
+          }
+          // Fallback to numeric cost if no EPC found
           const annualCost = extractNumericValue(value);
-          console.log(`Annual cost extracted: ${annualCost}`);
-          if (annualCost <= 1000) {
-            console.log('Low cost -> Green');
-            return '#28a745'; // Green - low cost
-          }
-          if (annualCost <= 2000) {
-            console.log('Moderate cost -> Yellow');
-            return '#ffc107'; // Yellow - moderate cost
-          }
-          console.log('High cost -> Red');
+          if (annualCost <= 1000) return '#28a745'; // Green - low cost
+          if (annualCost <= 2000) return '#ffc107'; // Yellow - moderate cost
           return '#dc3545'; // Red - high cost
-          
-        case 'improvement_cost':
-          // Extract numeric value from strings like "5,000 - 25,000 € for energy efficiency upgrades"
+        }
+        case 'improvement_cost': {
           const improvementCost = extractNumericValue(value);
-          console.log(`Improvement cost extracted: ${improvementCost}`);
-          if (improvementCost <= 10000) {
-            console.log('Low investment -> Green');
-            return '#28a745'; // Green - low investment
-          }
-          if (improvementCost <= 25000) {
-            console.log('Moderate investment -> Yellow');
-            return '#ffc107'; // Yellow - moderate investment
-          }
-          console.log('High investment -> Red');
-          return '#dc3545'; // Red - high investment
-          
-        case 'roi_potential':
-          // Extract percentage from strings like "ESG improvements could increase property value by 14%"
+          // Higher investment needed = worse (red), lower investment = better (green)
+          // Pour les ranges comme "5,000 - 25,000", on prend la valeur moyenne
+          if (improvementCost <= 5000) return '#28a745'; // Green - low investment
+          if (improvementCost <= 15000) return '#ffc107'; // Yellow - moderate investment
+          return '#dc3545'; // Red - high investment (au-dessus de 15k)
+        }
+        case 'roi_potential': {
           const roiPercentage = extractPercentageValue(value);
-          console.log(`ROI percentage extracted: ${roiPercentage}`);
-          if (roiPercentage >= 15) {
-            console.log('High ROI -> Green');
-            return '#28a745'; // Green - high ROI
-          }
-          if (roiPercentage >= 10) {
-            console.log('Moderate ROI -> Yellow');
-            return '#ffc107'; // Yellow - moderate ROI
-          }
-          console.log('Low ROI -> Red');
-          return '#dc3545'; // Red - low ROI
-          
-        default:
-          console.log('Unknown metric type, returning gray');
-          return '#6c757d'; // Gray for unknown metrics
+          // Higher ROI = better (green), lower ROI = worse (red)
+          if (roiPercentage >= 12) return '#28a745'; // Green - high ROI (12%+)
+          if (roiPercentage >= 8) return '#ffc107'; // Yellow - moderate ROI (8-12%)
+          return '#dc3545'; // Red - low ROI (moins de 8%)
+        }
+        default: return '#6c757d';
       }
     };
-    
-    // Helper function to extract numeric values from strings
     const extractNumericValue = (str) => {
       if (!str) return 0;
-      console.log('Extracting numeric value from:', str);
-      
-      // Handle ranges like "5,000 - 25,000"
       const rangeMatch = str.match(/(\d{1,3}(?:,\d{3})*(?:\.\d+)?)\s*-\s*(\d{1,3}(?:,\d{3})*(?:\.\d+)?)/);
       if (rangeMatch) {
         const min = parseFloat(rangeMatch[1].replace(/,/g, ''));
         const max = parseFloat(rangeMatch[2].replace(/,/g, ''));
-        const average = (min + max) / 2;
-        console.log('Range found:', min, 'to', max, 'using average:', average);
-        return average;
+        return (min + max) / 2;
       }
-      
-      // Handle single numbers like "1700"
       const singleMatch = str.match(/(\d{1,3}(?:,\d{3})*(?:\.\d+)?)/);
-      if (singleMatch) {
-        const value = parseFloat(singleMatch[1].replace(/,/g, ''));
-        console.log('Single number found:', value);
-        return value;
-      }
-      
-      console.log('No numeric value found, returning 0');
+      if (singleMatch) return parseFloat(singleMatch[1].replace(/,/g, ''));
       return 0;
     };
-    
-    // Helper function to extract percentage values from strings
     const extractPercentageValue = (str) => {
       if (!str) return 0;
-      console.log('Extracting percentage value from:', str);
       const match = str.match(/(\d+(?:\.\d+)?)%/);
-      if (match) {
-        const value = parseFloat(match[1]);
-        console.log('Percentage found:', value);
-        return value;
-      }
-      console.log('No percentage found, returning 0');
+      if (match) return parseFloat(match[1]);
       return 0;
     };
-    
-    // Calculate colors for debugging
     const energyCostColor = getMetricColor('energy_cost', financial_impact.energy_cost_annual);
     const improvementCostColor = getMetricColor('improvement_cost', financial_impact.improvement_cost_estimate);
     const roiColor = getMetricColor('roi_potential', financial_impact.roi_potential);
     
-    console.log('Final colors calculated:');
-    console.log('Energy Cost Color:', energyCostColor);
-    console.log('Improvement Cost Color:', improvementCostColor);
-    console.log('ROI Color:', roiColor);
+    // Function to determine text color based on background color
+    const getTextColor = (backgroundColor) => {
+      // For dark backgrounds, use white text. For light backgrounds, use dark text.
+      const darkColors = ['#dc3545', '#28a745', '#ff9800']; // Red, Green, Orange
+      const lightColors = ['#ffc107', '#8fd19e']; // Yellow, Light Green
+      
+      if (darkColors.includes(backgroundColor)) return 'white';
+      if (lightColors.includes(backgroundColor)) return '#333';
+      return 'white'; // Default to white for other colors
+    };
     
+    // Function to generate box shadow based on background color
+    const getBoxShadow = (backgroundColor) => {
+      switch (backgroundColor) {
+        case '#dc3545': // Red
+          return '0 4px 12px rgba(220, 53, 69, 0.3)';
+        case '#28a745': // Green
+          return '0 4px 12px rgba(40, 167, 69, 0.3)';
+        case '#ffc107': // Yellow
+          return '0 4px 12px rgba(255, 193, 7, 0.3)';
+        case '#ff9800': // Orange
+          return '0 4px 12px rgba(255, 152, 0, 0.3)';
+        case '#8fd19e': // Light Green
+          return '0 4px 12px rgba(143, 209, 158, 0.3)';
+        default:
+          return '0 4px 12px rgba(108, 117, 125, 0.3)'; // Default gray shadow
+      }
+    };
+    
+    const formatEnergyCostString = (str) => {
+      if (!str) return 'N/A';
+      // Replace EPC A_plus, B_plus, etc. with A+, B+, etc.
+      // Also ensure EPC G appears correctly and gets proper color coding
+      return str.replace(/EPC ([A-G])_plus/g, 'EPC $1+').replace(/EPC ([A-G])(?![\+])/g, 'EPC $1');
+    };
+
+    // Actionable summary logic for financial impact
+    const summaryPoints = [];
+    if (financial_impact.energy_cost_annual) {
+      summaryPoints.push(`Annual energy cost: ${formatEnergyCostString(financial_impact.energy_cost_annual)}`);
+    }
+    if (financial_impact.improvement_cost_estimate) {
+      summaryPoints.push(`Estimated investment for improvements: ${financial_impact.improvement_cost_estimate}`);
+    }
+    if (financial_impact.roi_potential) {
+      summaryPoints.push(`ROI potential: ${financial_impact.roi_potential}`);
+    }
+
+    // Group summary points
+    const categories = {
+      Energy: summaryPoints.filter(pt => pt.toLowerCase().includes('energy')),
+      Investment: summaryPoints.filter(pt => pt.toLowerCase().includes('investment') || pt.toLowerCase().includes('improvement')),
+      ROI: summaryPoints.filter(pt => pt.toLowerCase().includes('roi')),
+      Other: summaryPoints.filter(pt => !pt.toLowerCase().includes('energy') && !pt.toLowerCase().includes('investment') && !pt.toLowerCase().includes('roi'))
+    };
+    const shownCats = Object.entries(categories).filter(([cat, arr]) => arr.length > 0);
+
     return (
       <div className="strategic-dashboard-card">
         <h3>Financial Impact Dashboard</h3>
         <div className="financial-metrics-grid">
-          <div 
-            className="metric-card"
-            style={{ 
-              background: energyCostColor,
-              backgroundImage: 'none',
-              color: 'white',
-              border: 'none'
-            }}
-          >
-            <div className="metric-value" style={{ color: 'white' }}>{financial_impact.energy_cost_annual || 'N/A'}</div>
-            <div className="metric-label" style={{ color: 'white', opacity: 1 }}>Annual Energy Cost</div>
+          <div className="metric-card" style={{ 
+            background: energyCostColor, 
+            color: getTextColor(energyCostColor), 
+            border: 'none',
+            boxShadow: getBoxShadow(energyCostColor)
+          }}>
+            <div className="metric-value" style={{ color: getTextColor(energyCostColor) }}>{formatEnergyCostString(financial_impact.energy_cost_annual) || 'N/A'}</div>
+            <div className="metric-label" style={{ color: getTextColor(energyCostColor), opacity: 0.9 }}>Annual Energy Cost</div>
           </div>
-          <div 
-            className="metric-card"
-            style={{ 
-              background: improvementCostColor,
-              backgroundImage: 'none',
-              color: 'white',
-              border: 'none'
-            }}
-          >
-            <div className="metric-value" style={{ color: 'white' }}>{financial_impact.improvement_cost_estimate || 'N/A'}</div>
-            <div className="metric-label" style={{ color: 'white', opacity: 1 }}>Improvement Investment</div>
+          <div className="metric-card" style={{ 
+            background: improvementCostColor, 
+            color: getTextColor(improvementCostColor), 
+            border: 'none',
+            boxShadow: getBoxShadow(improvementCostColor)
+          }}>
+            <div className="metric-value" style={{ color: getTextColor(improvementCostColor) }}>{financial_impact.improvement_cost_estimate || 'N/A'}</div>
+            <div className="metric-label" style={{ color: getTextColor(improvementCostColor), opacity: 0.9 }}>Improvement Investment</div>
           </div>
-          <div 
-            className="metric-card"
-            style={{ 
-              background: roiColor,
-              backgroundImage: 'none',
-              color: 'white',
-              border: 'none'
-            }}
-          >
-            <div className="metric-value" style={{ color: 'white' }}>{financial_impact.roi_potential || 'N/A'}</div>
-            <div className="metric-label" style={{ color: 'white', opacity: 1 }}>ROI Potential</div>
+          <div className="metric-card" style={{ 
+            background: roiColor, 
+            color: getTextColor(roiColor), 
+            border: 'none',
+            boxShadow: getBoxShadow(roiColor)
+          }}>
+            <div className="metric-value" style={{ color: getTextColor(roiColor) }}>{financial_impact.roi_potential || 'N/A'}</div>
+            <div className="metric-label" style={{ color: getTextColor(roiColor), opacity: 0.9 }}>ROI Potential</div>
           </div>
         </div>
+        {/* Actionable summary section */}
+        {shownCats.length > 0 && (
+          <div className="action-summary" style={{ marginTop: '1.2em', padding: '1em', background: '#f6f8fa', borderRadius: '0.7em', boxShadow: '0 2px 8px #eee' }}>
+            <h4 style={{ marginBottom: '0.7em', color: '#007bff' }}>Actionable Financial Summary</h4>
+            {shownCats.map(([cat, arr]) => (
+              <div key={cat} style={{ marginBottom: '0.7em' }}>
+                <div style={{ fontWeight: 'bold', color: '#333', marginBottom: '0.3em' }}>{cat}:</div>
+                <ul style={{ margin: 0, paddingLeft: '1.2em', color: '#333' }}>
+                  {arr.map((pt, idx) => <li key={idx} style={{ marginBottom: '0.4em', color: '#333' }}>{pt}</li>)}
+                </ul>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     );
   };
@@ -388,20 +389,38 @@ const StrategicAnalysisConclusion = ({ formData, detailedEsgData, esgAnalysisAva
       }
     };
 
+    // Helper to generate explanation for each status
+    const getComplianceExplanation = (key, status) => {
+      const label = key.replace(/_/g, ' ').toUpperCase();
+      if (status === 'Compliant') {
+        return `The status "${label}" is compliant with current EU and local energy efficiency regulations (e.g., EPC standards, minimum insulation, and heating requirements). No immediate action is required.`;
+      }
+      if (status === 'Needs Review') {
+        return `The status "${label}" may require further review to ensure full compliance with energy performance regulations, such as EPC certification, insulation standards, or heating system requirements. Please verify documentation and recent updates.`;
+      }
+      if (status === 'Non-Compliant') {
+        return `The status "${label}" does not meet current regulatory requirements (e.g., EPC rating below legal minimum, insufficient insulation, or outdated heating systems). Improvements are needed to avoid penalties or restrictions on property sale/rental.`;
+      }
+      return `Unknown status for "${label}".`;
+    };
+
     return (
       <div className="strategic-dashboard-card">
         <h3>Compliance Status Dashboard</h3>
         <div className="compliance-grid">
           {Object.entries(compliance_status).map(([key, status]) => (
             <div key={key} className="compliance-item">
-              <div className="compliance-header">
-                <span className="compliance-label">{key.replace(/_/g, ' ').toUpperCase()}</span>
+              <div className="compliance-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem' }}>
+                <span className="compliance-label" style={{ flex: 1, textAlign: 'left' }}>{key.replace(/_/g, ' ').toUpperCase()}</span>
                 <span 
                   className="compliance-status"
-                  style={{ backgroundColor: getStatusColor(status) }}
+                  style={{ backgroundColor: getStatusColor(status), flex: 0, textAlign: 'center', minWidth: '120px', padding: '0.3em 1em', borderRadius: '1em', fontWeight: 'bold', whiteSpace: 'nowrap' }}
                 >
                   {status}
                 </span>
+              </div>
+              <div className="compliance-explanation" style={{ marginTop: '0.5em', fontSize: '0.95em', color: '#444', fontStyle: 'italic' }}>
+                {getComplianceExplanation(key, status)}
               </div>
             </div>
           ))}
@@ -413,6 +432,89 @@ const StrategicAnalysisConclusion = ({ formData, detailedEsgData, esgAnalysisAva
   // Render Key Recommendations Dashboard
   const renderKeyRecommendationsDashboard = () => {
     if (!strategicSummary || !strategicSummary.key_insights) return null;
+
+    // Handler for "Learn More" button
+    const handleLearnMore = (insight, index) => {
+      const question = `Can you provide more details about this recommendation: "${insight}"? Please consider the specific context of my ${formData?.propertyType?.toLowerCase() || 'property'} in ${formData?.locality || 'this location'}, ${formData?.province || 'this province'} with EPC score ${formData?.epcScore || 'unknown'} and construction year ${formData?.buildingConstructionYear || 'unknown'}.`;
+      
+      // Open chat panel and send question
+      if (onOpenSidePanel) {
+        onOpenSidePanel();
+      }
+      
+      if (onSendChatMessage) {
+        onSendChatMessage(question);
+      }
+    };
+
+    // Handler for "Execute" button
+    const handleExecute = (insight, index) => {
+      const actionSteps = generateActionSteps(insight);
+      const message = `I want to execute this recommendation: "${insight}". Here are the suggested action steps:\n\n${actionSteps.join('\n')}\n\nCan you help me prioritize these steps and provide more specific guidance for my ${formData?.propertyType?.toLowerCase() || 'property'} in ${formData?.locality || 'this location'}?`;
+      
+      // Open chat panel and send action plan
+      if (onOpenSidePanel) {
+        onOpenSidePanel();
+      }
+      
+      if (onSendChatMessage) {
+        onSendChatMessage(message);
+      }
+    };
+
+    // Generate action steps based on insight content
+    const generateActionSteps = (insight) => {
+      const lowerInsight = insight.toLowerCase();
+      
+      if (lowerInsight.includes('energy') || lowerInsight.includes('epc') || lowerInsight.includes('efficiency')) {
+        return [
+          "1. Contact certified energy auditor for detailed assessment",
+          "2. Get quotes from insulation contractors",
+          "3. Research available energy subsidies in Belgium",
+          "4. Plan renovation timeline and budget",
+          "5. Schedule EPC certification after improvements"
+        ];
+      }
+      
+      if (lowerInsight.includes('market') || lowerInsight.includes('investment') || lowerInsight.includes('value')) {
+        return [
+          "1. Research recent comparable sales in the area",
+          "2. Consult with local real estate agents",
+          "3. Analyze rental yield potential",
+          "4. Consider market timing for investment decisions",
+          "5. Review property insurance and tax implications"
+        ];
+      }
+      
+      if (lowerInsight.includes('compliance') || lowerInsight.includes('regulation') || lowerInsight.includes('legal')) {
+        return [
+          "1. Review current Belgian building regulations",
+          "2. Check property permits and documentation",
+          "3. Consult with building compliance expert",
+          "4. Schedule required inspections",
+          "5. Update documentation as needed"
+        ];
+      }
+      
+      if (lowerInsight.includes('renovation') || lowerInsight.includes('improvement') || lowerInsight.includes('upgrade')) {
+        return [
+          "1. Get detailed renovation quotes from contractors",
+          "2. Apply for necessary building permits",
+          "3. Create realistic timeline and budget",
+          "4. Research financing options and subsidies",
+          "5. Plan temporary accommodation if needed"
+        ];
+      }
+      
+      // Default action steps
+      return [
+        "1. Research this recommendation in detail",
+        "2. Get professional consultation",
+        "3. Evaluate costs and benefits",
+        "4. Create implementation timeline",
+        "5. Monitor progress and results"
+      ];
+    };
 
     return (
       <div className="strategic-dashboard-card">
@@ -427,8 +529,20 @@ const StrategicAnalysisConclusion = ({ formData, detailedEsgData, esgAnalysisAva
                 <p>{insight}</p>
               </div>
               <div className="recommendation-actions">
-                <button className="action-btn primary">Execute</button>
-                <button className="action-btn secondary">Learn More</button>
+                <button 
+                  className="action-btn primary"
+                  onClick={() => handleExecute(insight, index)}
+                  title="Get action steps for this recommendation"
+                >
+                  Execute
+                </button>
+                <button 
+                  className="action-btn secondary"
+                  onClick={() => handleLearnMore(insight, index)}
+                  title="Learn more about this recommendation"
+                >
+                  Learn More
+                </button>
               </div>
             </div>
           ))}
@@ -494,7 +608,7 @@ const StrategicAnalysisConclusion = ({ formData, detailedEsgData, esgAnalysisAva
   // Function to format EPC score for display
   const formatEpcScore = (epcScore) => {
     if (!epcScore) return 'N/A';
-    return epcScore.replace('_plus', '+').replace('_', '+');
+    return epcScore.replace('A_plus', 'A+').replace('_plus', '+').replace('_', '+');
   };
 
   // Fallback ESG calculation for initial display
