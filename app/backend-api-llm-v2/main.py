@@ -150,6 +150,13 @@ class StrategicSummaryResponse(BaseModel):
     clickable_suggestions: List[dict]
     confidence_score: float
 
+# Strategic Analysis Summary - Condensed version for quick overview
+class StrategicAnalysisSummaryResponse(BaseModel):
+    summary: str
+    key_insights: List[str]
+    confidence_score: float
+    timestamp: str
+
 # === Utility Function ===
 
 def call_azure_openai_chat(messages: List[dict], temperature: float = 0.7, max_tokens: int = 1500):
@@ -921,5 +928,110 @@ async def create_strategic_summary(request: StrategicSummaryRequest):
         recommended_actions=recommended_actions or "Strategic recommendations being prepared...",
         clickable_suggestions=suggestions,
         confidence_score=min(confidence, 1.0)
+    )
+
+# Strategic Analysis Summary - Condensed version for quick overview
+@app.post("/strategic-analysis-summary", response_model=StrategicAnalysisSummaryResponse)
+async def create_strategic_analysis_summary(request: StrategicSummaryRequest):
+    """
+    Generate a condensed strategic analysis summary combining all data sources
+    into a concise overview format for quick decision-making.
+    """
+    
+    property_data = request.property_features
+    esg = request.esg_summary
+    price = request.price_prediction
+    
+    # Build agent insights summary
+    agent_summary = "\n".join([f"- {insight.agent}: {insight.summary}" for insight in request.agent_insights])
+    
+    # Create condensed prompt for strategic analysis
+    prompt = f"""
+    You are a Belgian real estate strategic advisor. Generate a CONDENSED strategic analysis summary for quick decision-making.
+
+    PROPERTY DATA:
+    - Location: {property_data.locality}, {property_data.province}
+    - Type: {property_data.propertyType} - {property_data.subtype}
+    - Predicted Value: €{price:,.0f}
+    - EPC Rating: {format_epc_score(property_data.epcScore)}
+    - Construction Year: {property_data.buildingConstructionYear}
+    - Surface: {property_data.habitableSurface}m²
+    - Strategic Goal: {request.strategic_goals}
+
+    ESG PROFILE:
+    - Environment Score: {esg.environment}/10
+    - Social Score: {esg.social}/10  
+    - Governance Score: {esg.governance}/10
+    - Overall Rating: {esg.overall}
+
+    AGENT INSIGHTS:
+    {agent_summary}
+
+    Generate a CONDENSED analysis in 2-3 sentences that captures the essence of this property's strategic value.
+    Focus on: market position, ESG implications, and immediate investment considerations.
+    
+    Then provide 3-4 key bullet points for quick decision-making.
+    
+    Format:
+    SUMMARY: [2-3 sentences]
+    KEY INSIGHTS:
+    • [Insight 1]
+    • [Insight 2]  
+    • [Insight 3]
+    • [Insight 4]
+
+    Keep it concise but informative. Use European number formatting (spaces for thousands: €417 675).
+    """
+
+    # Call Azure OpenAI for condensed analysis
+    response_text = call_azure_openai_chat(
+        messages=[
+            {"role": "system", "content": "You are a Belgian real estate strategic advisor specializing in condensed analysis for quick decision-making."},
+            {"role": "user", "content": prompt}
+        ],
+        temperature=0.3,  # Lower temperature for consistent analysis
+        max_tokens=400  # Shorter response for condensed summary
+    )
+
+    # Parse the response
+    parts = response_text.split('KEY INSIGHTS:')
+    summary_text = parts[0].replace('SUMMARY:', '').strip() if len(parts) > 0 else response_text
+    
+    # Extract key insights
+    key_insights = []
+    if len(parts) > 1:
+        insights_text = parts[1].strip()
+        # Split by bullet points and clean up
+        insights = insights_text.split('•')
+        for insight in insights[1:]:  # Skip first empty element
+            cleaned_insight = insight.strip()
+            if cleaned_insight:
+                key_insights.append(cleaned_insight)
+    
+    # If no insights found, provide defaults based on data
+    if not key_insights:
+        key_insights = [
+            f"Property valued at €{price:,.0f} in {property_data.locality} market",
+            f"ESG rating: {esg.overall} (E:{esg.environment}/10, S:{esg.social}/10, G:{esg.governance}/10)",
+            f"EPC {format_epc_score(property_data.epcScore)} rating - consider energy efficiency impact",
+            f"Strategic goal: {request.strategic_goals} - aligns with current market conditions"
+        ]
+    
+    # Calculate confidence score based on data completeness
+    confidence = 0.8  # Base confidence
+    if esg.environment > 0 and esg.social > 0 and esg.governance > 0:
+        confidence += 0.1
+    if len(request.agent_insights) > 2:
+        confidence += 0.1
+    
+    # Generate timestamp
+    from datetime import datetime
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    
+    return StrategicAnalysisSummaryResponse(
+        summary=summary_text or "Strategic analysis completed with current market data.",
+        key_insights=key_insights,
+        confidence_score=min(confidence, 1.0),
+        timestamp=timestamp
     )
 app.include_router(router)

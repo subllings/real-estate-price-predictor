@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import axios from "axios";
 import ResultCard from "../ResultCard";
-import EsgSummary from "../EsgSummary/EsgSummary";
+import StrategicAnalysisConclusion from "../EsgSummary/EsgSummary";
 import encodeInputs from "../../helpers/encodeInputs";
 import { PREDICTION_API_URL, COMMENT_API_URL, ESG_API_URL } from "../../config/api";
 import "./PropertyForm.css";
@@ -792,6 +792,26 @@ const PropertyForm = ({ onPredictionComment, onToggleSidePanel, onOpenSidePanel,
 
   return (
     <div className="property-form" style={{ position: 'relative' }}>
+      
+      <div style={{ textAlign: 'center', marginBottom: '30px' }}>
+        <h1 style={{ 
+          fontSize: '2.5rem', 
+          fontWeight: '700', 
+          color: '#1f2937', 
+          marginBottom: '8px',
+          margin: '0'
+        }}>
+          AI Property Report
+        </h1>
+        <p style={{ 
+          fontSize: '1.125rem', 
+          color: '#6b7280', 
+          fontWeight: '500',
+          margin: '0'
+        }}>
+          Value, ESG & Compliance
+        </p>
+      </div>
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
         <div style={{ display: 'flex', gap: '10px' }}>
@@ -1120,10 +1140,11 @@ const PropertyForm = ({ onPredictionComment, onToggleSidePanel, onOpenSidePanel,
       )}
 
       {/* ESG Quick Assessment - always visible and updates in real-time */}
-      <EsgSummary 
+      <StrategicAnalysisConclusion 
         formData={formData} 
         esgAnalysisAvailable={esgAnalysisAvailable}
         detailedEsgData={detailedEsgData}
+        esgLoading={esgLoading}
       />
     </div>
   );
