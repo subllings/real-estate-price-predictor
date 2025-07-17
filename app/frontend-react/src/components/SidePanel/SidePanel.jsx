@@ -11,15 +11,95 @@ const SidePanel = ({ user, isExpanded, onToggle, onClose, comments, clearComment
 
   // Référence pour le scroll automatique sur tout le side panel
   const sidePanelRef = useRef(null);
+  
+  // Référence pour le panneau pour le redimensionnement
+  const panelRef = useRef(null);
+
+  // État pour suivre si l'analyse stratégique a déjà été générée
+  const [strategicAnalysisGenerated, setStrategicAnalysisGenerated] = useState(false);
+  
+  // État pour le spinner de chargement de l'analyse stratégique
+  const [isStrategicAnalysisLoading, setIsStrategicAnalysisLoading] = useState(false);
+
+  // États pour le redimensionnement
+  const [panelWidth, setPanelWidth] = useState(500);
+  const [isResizing, setIsResizing] = useState(false);
+  const [startX, setStartX] = useState(0);
+  const [startWidth, setStartWidth] = useState(500);
+
+  // Déclenchement automatique de l'analyse stratégique quand l'ESG analysis est terminée
+  useEffect(() => {
+    if (esgData && esgData.esg_scores && !strategicAnalysisGenerated && propertyData) {
+      console.log("ESG analysis completed, triggering automatic strategic analysis...");
+      
+      // Délai pour laisser l'ESG analysis se finaliser
+      setTimeout(() => {
+        generateStrategicAnalysis();
+        setStrategicAnalysisGenerated(true);
+      }, 2000); // 2 secondes de délai
+    }
+  }, [esgData, strategicAnalysisGenerated, propertyData]);
+
+  // Reset strategic analysis state when property data changes
+  useEffect(() => {
+    setStrategicAnalysisGenerated(false);
+    setIsStrategicAnalysisLoading(false);
+  }, [propertyData]);
 
   // Ajouter les commentaires de prédiction comme messages dans le chat
   useEffect(() => {
     if (comments && comments.length > 0) {
-      const newComments = comments.map(comment => {
+      // Combiner les commentaires connexes
+      const combinedComments = [];
+      let i = 0;
+      
+      while (i < comments.length) {
+        const currentComment = comments[i];
+        
+        // Combiner les messages ESG consécutifs
+        if (currentComment.startsWith('ESG Analysis for')) {
+          // Remplacer par le format demandé
+          const combinedText = "ESG Analysis for house in Antwerpen (available in right pannel)";
+          
+          // Skip le message suivant s'il contient des informations ESG complémentaires
+          if (i + 1 < comments.length && 
+              (comments[i + 1].includes('Detailed ESG analysis') || 
+               comments[i + 1].includes('right panel'))) {
+            i++; // Skip le prochain commentaire car on l'a remplacé
+          }
+          
+          combinedComments.push(combinedText);
+        } 
+        // Combiner les messages de prédiction prix consécutifs
+        else if (currentComment.startsWith('Predicted price:')) {
+          let combinedText = currentComment;
+          
+          // Chercher les informations de modèle qui suivent
+          if (i + 1 < comments.length && comments[i + 1].startsWith('Model:')) {
+            combinedText += '\n' + comments[i + 1];
+            i++; // Skip le prochain commentaire
+          }
+          
+          combinedComments.push(combinedText);
+        }
+        else {
+          combinedComments.push(currentComment);
+        }
+        
+        i++;
+      }
+
+      const newComments = combinedComments.map(comment => {
         let subtype = "prediction-comment";
         
+        // Debug: log le commentaire pour vérifier
+        console.log("Processing comment:", comment);
+        
         // Détecter les différents types de messages avec une meilleure logique
-        if (comment.startsWith('Complete Analysis') || 
+        if (comment === "ESG Analysis for house in Antwerpen (available in right pannel)") {
+          subtype = "esg-title"; // Force le style ESG pour ce message spécifique
+          console.log("ESG message detected, setting esg-title");
+        } else if (comment.startsWith('Complete Analysis') || 
             comment.startsWith('Prediction for') ||
             (comment.includes(' in ') && comment.includes('('))) {
           subtype = "prediction-title";
@@ -29,12 +109,15 @@ const SidePanel = ({ user, isExpanded, onToggle, onClose, comments, clearComment
           subtype = "model-info"; // Nouveau type pour les informations de modèle
         } else if (comment.startsWith('ESG Analysis for') || 
                    comment.includes('ESG ANALYSIS') ||
-                   comment.includes('ESG analysis')) {
-          subtype = "esg-title";
+                   comment.includes('ESG analysis') ||
+                   comment.includes('available in right pannel')) {
+          subtype = "esg-title"; // Messages ESG en bleu pour cohérence
         } else if (comment.startsWith('Strategic Analysis') || 
                    comment.includes('STRATEGIC ANALYSIS')) {
           subtype = "strategic-title";
         }
+
+        console.log("Final subtype:", subtype);
 
         return {
           from: "agent",
@@ -71,10 +154,196 @@ const SidePanel = ({ user, isExpanded, onToggle, onClose, comments, clearComment
     }
   }, [messages, isExpanded]);
 
+  // Nouvelle fonction pour générer l'analyse stratégique automatiquement
+  const generateStrategicAnalysis = async () => {
+    try {
+      console.log("Starting automatic strategic analysis...");
+      
+      // Activer le spinner de chargement
+      setIsStrategicAnalysisLoading(true);
+
+      // Préparer les données complètes pour l'analyse stratégique
+      const analysisData = {
+        surface: propertyData?.surface || propertyData?.habitableSurface || 120,
+        epcScore: propertyData?.epcScore || 'A_plus',
+        heatingType: propertyData?.heatingType || 'ELECTRIC',
+        bedrooms: propertyData?.bedrooms || propertyData?.bedroomCount || 3,
+        bathrooms: propertyData?.bathrooms || propertyData?.bathroomCount || 1,
+        buildingConstructionYear: propertyData?.buildingConstructionYear || propertyData?.constructionYear || 2000,
+        municipality: propertyData?.municipality || propertyData?.locality || 'Antwerpen',
+        province: propertyData?.province || 'Antwerpen',
+        hasGarden: propertyData?.hasGarden || false,
+        hasBalcony: propertyData?.hasBalcony || false,
+        hasParking: propertyData?.hasParking || false,
+        hasElevator: propertyData?.hasElevator || false,
+        buildingCondition: propertyData?.buildingCondition || 'AS NEW',
+        kitchenType: propertyData?.kitchenType || 'HYPER EQUIPPED',
+        // Données ESG
+        esgScores: esgData?.esg_scores || {},
+        esgCompliance: esgData?.compliance_status || {},
+        financialImpact: esgData?.financial_impact || {}
+      };
+
+      console.log("Sending strategic analysis request with data:", analysisData);
+
+      // Utiliser l'API Chat pour générer une analyse stratégique enrichie
+      const prompt = `Generate a comprehensive strategic analysis for this Belgian real estate investment. Structure it with clear markdown headers:
+
+# Strategic Analysis – ${analysisData.municipality} Property Investment
+
+## Investment Positioning
+Based on ESG scores (Environmental: ${analysisData.esgScores.environmental || 'N/A'}/10, Social: ${analysisData.esgScores.social || 'N/A'}/10, Governance: ${analysisData.esgScores.governance || 'N/A'}/10), analyze the investment potential.
+
+## Market Context
+Analyze the ${analysisData.municipality} market, construction year ${analysisData.buildingConstructionYear}, and EPC rating ${analysisData.epcScore} positioning.
+
+## Strategic Recommendations
+
+### Short-term Actions (0-6 months)
+- Immediate improvement opportunities
+- Quick wins for value enhancement
+
+### Medium-term Strategy (6-24 months)  
+- Major improvement projects
+- Market positioning optimization
+
+### Long-term Vision (2+ years)
+- Future-proofing strategies
+- Regulatory compliance preparation
+
+## Risk Assessment
+Evaluate potential risks and mitigation strategies based on current ESG compliance and market trends.
+
+Property details: Surface ${analysisData.surface}m², ${analysisData.bedrooms} bedrooms, ${analysisData.buildingCondition} condition, ${analysisData.heatingType} heating.`;
+
+      const response = await axios.post(CHAT_API_URL, {
+        messages: [
+          {
+            role: "system",
+            content: "You are a senior Belgian real estate investment strategist with 20+ years experience. Provide detailed, actionable strategic analysis focusing on ESG compliance, market positioning, and investment optimization. Use professional language with specific Belgian market insights."
+          },
+          {
+            role: "user", 
+            content: prompt
+          }
+        ]
+      });
+
+      // Traiter la réponse et la diviser en sections
+      const analysisText = response.data.response || "Strategic analysis completed.";
+      
+      // Nettoyer complètement tout message de chargement et de statut
+      let cleanedText = analysisText
+        .replace(/^.*?Generating.*?$/gmi, '')
+        .replace(/^.*?Analyzing.*?$/gmi, '')
+        .replace(/^.*?Strategic.*?in progress.*?$/gmi, '')
+        .replace(/^.*?Market.*?in progress.*?$/gmi, '')
+        .replace(/^.*?ESG.*?assessment.*?$/gmi, '')
+        .replace(/^.*?Investment.*?recommendations.*?$/gmi, '')
+        .replace(/^.*?Strategic.*?action.*?items.*?$/gmi, '')
+        .replace(/^.*?complete.*?$/gmi, '')
+        .replace(/^\s*[\•\-\*]\s*.*?(progress|assessment|recommendations|items|complete|action).*?$/gmi, '')
+        .replace(/^\s*Investment recommendations\s*$/gmi, '')
+        .replace(/^\s*Strategic action items\s*$/gmi, '')
+        .replace(/^\s*[\•\-\*]\s*Investment recommendations\s*$/gmi, '')
+        .replace(/^\s*[\•\-\*]\s*Strategic action items\s*$/gmi, '')
+        .replace(/^\s*[\•\-\*]\s*Property shows strong investment potential\s*$/gmi, '')
+        .replace(/^\s*[\•\-\*]\s*ESG compliance aligned with market trends\s*$/gmi, '')
+        .replace(/^\s*[\•\-\*]\s*Long-term value optimization identified\s*$/gmi, '')
+        .replace(/^\s*[\•\-\*]\s*Recommended next steps available\s*$/gmi, '')
+        .replace(/^\s*Property shows strong investment potential\s*$/gmi, '')
+        .replace(/^\s*ESG compliance aligned with market trends\s*$/gmi, '')
+        .replace(/^\s*Long-term value optimization identified\s*$/gmi, '')
+        .replace(/^\s*Recommended next steps available\s*$/gmi, '')
+        .trim();
+      
+      // Supprimer les lignes vides multiples
+      cleanedText = cleanedText.replace(/\n\s*\n\s*\n/g, '\n\n');
+      
+      // Diviser l'analyse en sections basées sur les headers markdown
+      const sections = cleanedText.split(/(?=##?\s)/)
+        .map(section => section.trim())
+        .filter(section => {
+          // Filtrage minimal : supprimer seulement les sections vraiment vides
+          if (!section || section.length <= 5) return false;
+          if (section === '#') return false;
+          if (section.match(/^\s*#+\s*$/)) return false;
+          
+          // Filtrer SEULEMENT les messages de chargement explicites
+          const lowerSection = section.toLowerCase();
+          if (lowerSection.includes('generating') && lowerSection.includes('progress')) return false;
+          if (lowerSection.includes('analyzing') && lowerSection.includes('progress')) return false;
+          if (lowerSection === 'investment recommendations') return false;
+          if (lowerSection === 'strategic action items') return false;
+          if (lowerSection === 'property shows strong investment potential') return false;
+          if (lowerSection === 'esg compliance aligned with market trends') return false;
+          if (lowerSection === 'long-term value optimization identified') return false;
+          if (lowerSection === 'recommended next steps available') return false;
+          
+          return true;
+        });
+      
+      // Désactiver le spinner avant d'ajouter les messages
+      setIsStrategicAnalysisLoading(false);
+      
+      // Ajouter les sections comme messages séparés
+      sections.forEach((section, index) => {
+        // Vérifications basiques avant d'ajouter un message
+        const cleanSection = section.trim();
+        if (!cleanSection || cleanSection.length <= 5) return;
+        
+        // Filtrer SEULEMENT les messages de chargement explicites
+        const lowerSection = cleanSection.toLowerCase();
+        if (lowerSection.includes('generating') && lowerSection.includes('progress')) return;
+        if (lowerSection.includes('analyzing') && lowerSection.includes('progress')) return;
+        if (lowerSection === 'investment recommendations') return;
+        if (lowerSection === 'strategic action items') return;
+        if (lowerSection === 'property shows strong investment potential') return;
+        if (lowerSection === 'esg compliance aligned with market trends') return;
+        if (lowerSection === 'long-term value optimization identified') return;
+        if (lowerSection === 'recommended next steps available') return;
+        
+        // Vérifier que le contenu formaté ne sera pas vide
+        const testFormatted = formatMessageText(cleanSection);
+        if (!testFormatted || !testFormatted.__html || testFormatted.__html.trim() === '') return;
+        
+        setTimeout(() => {
+          setMessages(prev => [...prev, {
+            from: "agent", 
+            text: cleanSection,
+            type: "prediction",
+            subtype: "strategic-title",
+            timestamp: new Date().toISOString()
+          }]);
+        }, index * 1000); // Délai progressif pour affichage fluide
+      });
+
+    } catch (err) {
+      console.error("Strategic analysis error:", err.response?.data || err.message || err);
+      
+      // Désactiver le spinner en cas d'erreur
+      setIsStrategicAnalysisLoading(false);
+      
+      setMessages(prev => [
+        ...prev,
+        { 
+          from: "agent", 
+          text: `❌ **Strategic Analysis Error**\n\nUnable to generate strategic analysis: ${err.response?.data?.detail || err.message || 'API unavailable'}. The ESG analysis is still available in the right panel.`, 
+          type: "prediction",
+          subtype: "strategic-title",
+          timestamp: new Date().toISOString() 
+        }
+      ]);
+    }
+  };
+
   const clearChatHistory = () => {
     setMessages([
       { from: "agent", text: "Hello! How can I assist you today?" }
     ]);
+    // Reset strategic analysis state
+    setStrategicAnalysisGenerated(false);
+    setIsStrategicAnalysisLoading(false);
     // Aussi effacer les commentaires si la fonction est fournie
     if (clearComments) {
       clearComments();
@@ -133,47 +402,125 @@ const SidePanel = ({ user, isExpanded, onToggle, onClose, comments, clearComment
     
     let formattedText = text.toString().trim();
     
+    // Vérifier si le message est vide ou ne contient que des espaces/caractères spéciaux
+    if (!formattedText || formattedText.match(/^\s*[#\s]*$/)) {
+      return { __html: '' };
+    }
+    
+    // FILTRAGE CIBLÉ RÉDUIT : supprimer SEULEMENT les messages de chargement explicites
+    const lowerText = formattedText.toLowerCase();
+    if (lowerText.includes('generating') && lowerText.includes('progress')) return { __html: '' };
+    if (lowerText.includes('analyzing') && lowerText.includes('progress')) return { __html: '' };
+    if (lowerText === 'investment recommendations') return { __html: '' };
+    if (lowerText === 'strategic action items') return { __html: '' };
+    
+    // FILTRAGE SPÉCIFIQUE POUR LES MESSAGES DE STATUT SEULEMENT
+    if (lowerText === 'property shows strong investment potential') return { __html: '' };
+    if (lowerText === 'esg compliance aligned with market trends') return { __html: '' };
+    if (lowerText === 'long-term value optimization identified') return { __html: '' };
+    if (lowerText === 'recommended next steps available') return { __html: '' };
+    
     // 0. SUPPRIMER TOUS LES EMOJIS ET ICÔNES (en premier)
-    // Regex plus complète pour supprimer les emojis Unicode
     formattedText = formattedText.replace(/[\u{1F600}-\u{1F64F}]|[\u{1F300}-\u{1F5FF}]|[\u{1F680}-\u{1F6FF}]|[\u{1F1E0}-\u{1F1FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]|[\u{1F900}-\u{1F9FF}]|[\u{1F018}-\u{1F0FF}]/gu, '');
-    // Supprimer les caractères spéciaux couramment utilisés comme icônes
-    formattedText = formattedText.replace(/[🔄📊🏠💰⚡🌱📈🎯🧠⚠️✅🤖💡👋🏷️📅🔥🏗️ℹ️📋]/g, '');
+    // Supprimer les caractères spéciaux couramment utilisés comme icônes sauf ceux utiles
+    formattedText = formattedText.replace(/[🔄📊🏠💰⚡🌱📈🧠⚠️✅🤖💡👋🏷️📅🔥🏗️ℹ️📋❌🎯]/g, '');
     // Nettoyer les espaces multiples résultant de la suppression d'emojis
     formattedText = formattedText.replace(/\s{2,}/g, ' ');
-    // Supprimer les points de puce emoji et les remplacer par des points normaux
-    formattedText = formattedText.replace(/[•·▶]/g, '•');
     
-    // 1. D'ABORD convertir **texte** en <strong>texte</strong> (plus restrictif)
+    // 1. SUPPRIMER LES # QUI TRAÎNENT EN FIN DE LIGNE ET LIGNES
+    formattedText = formattedText.replace(/^\s*#\s*$/gm, ''); // Supprimer les lignes avec juste #
+    formattedText = formattedText.replace(/\s+#\s*$/gm, ''); // Supprimer les # en fin de ligne
+    
+    // 2. D'ABORD convertir **texte** en <strong>texte</strong>
     formattedText = formattedText.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
     
-    // 2. Convertir les séparateurs markdown en lignes de séparation
-    formattedText = formattedText.replace(/---+/g, '<hr style="border: none; border-top: 1px solid #ddd; margin: 10px 0;"/>');
+    // 3. Supprimer les séparateurs markdown (barres horizontales)
+    formattedText = formattedText.replace(/---+/g, '');
+    formattedText = formattedText.replace(/^\s*-{3,}\s*$/gm, '');
+    formattedText = formattedText.replace(/^\s*\*{3,}\s*$/gm, '');
+    formattedText = formattedText.replace(/^\s*_{3,}\s*$/gm, '');
     
-    // 3. Convertir les titres markdown # ## ### en titres HTML (SUPPRIMER complètement les #)
-    formattedText = formattedText.replace(/^#{1}\s+(.*?)$/gm, '<h3 style="margin: 15px 0 10px 0; font-weight: bold; color: #2563eb; font-size: 18px;">$1</h3>');
-    formattedText = formattedText.replace(/^#{2}\s+(.*?)$/gm, '<h4 style="margin: 12px 0 8px 0; font-weight: bold; color: #333; font-size: 16px;">$1</h4>');
-    formattedText = formattedText.replace(/^#{3}\s+(.*?)$/gm, '<h5 style="margin: 8px 0 6px 0; font-weight: bold; color: #444; font-size: 14px;">$1</h5>');
+    // 4. Convertir les titres markdown # ## ### #### en titres HTML propres
+    formattedText = formattedText.replace(/^#{1}\s+(.*?)$/gm, '<h2 style="margin: 16px 0 10px 0; font-weight: bold; color: #6a1b9a; font-size: 17px; border-bottom: 1px solid #e0e0e0; padding-bottom: 3px;">$1</h2>');
+    formattedText = formattedText.replace(/^#{2}\s+(.*?)$/gm, '<h3 style="margin: 14px 0 8px 0; font-weight: bold; color: #8b5a2b; font-size: 15px;">$1</h3>');
+    formattedText = formattedText.replace(/^#{3}\s+(.*?)$/gm, '<h4 style="margin: 12px 0 6px 0; font-weight: bold; color: #2563eb; font-size: 14px;">$1</h4>');
+    formattedText = formattedText.replace(/^#{4}\s+(.*?)$/gm, '<h5 style="margin: 10px 0 5px 0; font-weight: 600; color: #1565c0; font-size: 13px;">$1</h5>');
     
-    // 4. Convertir les puces • + - en listes HTML compactes avec alignement à gauche
-    formattedText = formattedText.replace(/^[•\+\-]\s*(.*?)$/gm, '<div style="margin: 2px 0; padding: 0; line-height: 1.4; text-align: left;">• $1</div>');
+    // 5. Convertir les puces • + - en listes HTML propres
+    formattedText = formattedText.replace(/^[•\+\-]\s*(.*?)$/gm, '<div style="margin: 2px 0 2px 16px; padding: 0; line-height: 1.4; text-align: left; position: relative;"><span style="position: absolute; left: -12px; color: #6a1b9a; font-weight: bold;">•</span>$1</div>');
     
-    // 5. Nettoyer les sauts de ligne AVANT de les convertir
-    formattedText = formattedText.replace(/\n\s*\n\s*\n/g, '\n\n'); // Supprimer les triple+ sauts de ligne
+    // 6. Nettoyer les sauts de ligne excessifs
+    formattedText = formattedText.replace(/\n\s*\n\s*\n/g, '\n\n');
     
-    // 6. Convertir les sauts de ligne simples en <br/> mais éviter autour des balises HTML
+    // 7. Convertir les sauts de ligne simples en <br/> mais éviter autour des balises HTML
     formattedText = formattedText.replace(/\n(?!\s*<)/g, '<br/>');
     
-    // 7. Nettoyer les <br/> en trop autour des éléments HTML
+    // 8. Nettoyer les <br/> en trop et les lignes vides
     formattedText = formattedText.replace(/(<br\/>){3,}/g, '<br/><br/>');
     formattedText = formattedText.replace(/<br\/>\s*(<h[1-6])/g, '$1');
     formattedText = formattedText.replace(/(<\/h[1-6]>)\s*<br\/>/g, '$1');
-    formattedText = formattedText.replace(/<br\/>\s*(<hr)/g, '$1');
-    formattedText = formattedText.replace(/(<\/hr>)\s*<br\/>/g, '$1');
     formattedText = formattedText.replace(/<br\/>\s*(<div)/g, '$1');
     formattedText = formattedText.replace(/(<\/div>)\s*<br\/>/g, '$1');
     
+    // 9. Supprimer les lignes vides restantes
+    formattedText = formattedText.replace(/<br\/>\s*<br\/>\s*<br\/>/g, '<br/><br/>');
+    
+    // Dernière vérification : si le contenu final est vide, retourner vide
+    const finalContent = formattedText.replace(/<[^>]*>/g, '').trim();
+    if (!finalContent) {
+      return { __html: '' };
+    }
+    
     return { __html: formattedText };
   };
+
+  // Gestion du redimensionnement améliorée
+  const handleMouseDown = (e) => {
+    setIsResizing(true);
+    setStartX(e.clientX);
+    setStartWidth(panelWidth);
+    e.preventDefault();
+  };
+
+  const handleMouseMove = (e) => {
+    if (!isResizing) return;
+    
+    const deltaX = e.clientX - startX;
+    const newWidth = startWidth + deltaX;
+    const minWidth = 10; // Largeur minimale très petite
+    
+    // Permettre le redimensionnement de 10px jusqu'à toute la largeur
+    if (newWidth >= minWidth) {
+      setPanelWidth(newWidth);
+    }
+  };
+
+  const handleMouseUp = () => {
+    setIsResizing(false);
+  };
+
+  // Effet pour gérer les événements de souris globaux pendant le redimensionnement
+  useEffect(() => {
+    if (isResizing) {
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+      document.body.style.cursor = 'ew-resize';
+      document.body.style.userSelect = 'none';
+    } else {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    }
+
+    // Cleanup function pour s'assurer que les event listeners sont supprimés
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    };
+  }, [isResizing, startX, startWidth]);
 
   return (
     <>
@@ -186,11 +533,24 @@ const SidePanel = ({ user, isExpanded, onToggle, onClose, comments, clearComment
         <span className="sidepanel-tab-text">CHAT</span>
       </div>
 
-      <aside className={`sidepanel ${isExpanded ? "open" : ""}`}>
+      <aside 
+        ref={panelRef}
+        className={`sidepanel ${isExpanded ? "open" : ""}`}
+        style={{ 
+          width: `${panelWidth}px`,
+          left: isExpanded ? 0 : `-${panelWidth + 40}px`
+        }}
+      >
         {isExpanded && (
           <>
+            {/* Handle de redimensionnement */}
+            <div 
+              className="resize-handle"
+              onMouseDown={handleMouseDown}
+            />
+            
             <div className="sidepanel-header">
-              <h3>Profile: {user.profile}</h3>
+              {panelWidth >= 200 && <h3>Profile: {user.profile}</h3>}
               <button className="close-btn" onClick={onClose} aria-label="Close Side Panel">
                 &times;
               </button>
@@ -210,14 +570,54 @@ const SidePanel = ({ user, isExpanded, onToggle, onClose, comments, clearComment
                 </div>
 
                 <div className="chat-messages">
-                  {messages.map((msg, idx) => (
-                    <div
-                      key={idx}
-                      className={`message ${msg.from === "user" ? "user-msg" : "agent-msg"} ${msg.type === "prediction" ? "prediction-msg" : ""} ${msg.subtype === "prediction-title" ? "prediction-title" 
-                        : ""} ${msg.subtype === "esg-title" ? "esg-title" : ""} ${msg.subtype === "strategic-title" ? "strategic-title" : ""} ${msg.subtype === "model-info" ? "model-info" : ""} ${msg.subtype === "prediction-comment" ? "prediction-comment" : ""}`}
-                      dangerouslySetInnerHTML={formatMessageText(msg.text)}
-                    />
-                  ))}
+                  {/* Spinner pour l'analyse stratégique en cours */}
+                  {isStrategicAnalysisLoading && (
+                    <div className="strategic-analysis-loading">
+                      <div className="spinner"></div>
+                      <span className="loading-text">
+                        Strategic Analysis in progress...
+                      </span>
+                    </div>
+                  )}
+                  
+                  {messages
+                    .filter(msg => {
+                      // Filtrer les messages vides ou qui ne contiennent que des espaces/caractères spéciaux
+                      const cleanText = msg.text ? msg.text.replace(/[#\s\n\r]/g, '') : '';
+                      if (cleanText.length === 0) return false;
+                      
+                      // Filtrer SEULEMENT les messages de chargement explicites
+                      const lowerText = msg.text.toLowerCase();
+                      if (lowerText.includes('generating') && lowerText.includes('progress')) return false;
+                      if (lowerText.includes('analyzing') && lowerText.includes('progress')) return false;
+                      if (lowerText === 'investment recommendations') return false;
+                      if (lowerText === 'strategic action items') return false;
+                      
+                      // FILTRES SPÉCIFIQUES POUR LES MESSAGES DE STATUT SEULEMENT
+                      if (lowerText === 'property shows strong investment potential') return false;
+                      if (lowerText === 'esg compliance aligned with market trends') return false;
+                      if (lowerText === 'long-term value optimization identified') return false;
+                      if (lowerText === 'recommended next steps available') return false;
+                      
+                      return true;
+                    })
+                    .map((msg, idx) => {
+                      // Double vérification avant le rendu
+                      const formattedContent = formatMessageText(msg.text);
+                      if (!formattedContent || !formattedContent.__html || formattedContent.__html.trim() === '') {
+                        return null; // Ne pas rendre les messages vides
+                      }
+                      
+                      return (
+                        <div
+                          key={idx}
+                          className={`message ${msg.from === "user" ? "user-msg" : "agent-msg"} ${msg.type === "prediction" ? "prediction-msg" : ""} ${msg.subtype === "prediction-title" ? "prediction-title" 
+                            : ""} ${msg.subtype === "esg-title" ? "esg-title" : ""} ${msg.subtype === "strategic-title" ? "strategic-title" : ""} ${msg.subtype === "model-info" ? "model-info" : ""} ${msg.subtype === "prediction-comment" ? "prediction-comment" : ""}`}
+                          dangerouslySetInnerHTML={formattedContent}
+                        />
+                      );
+                    })
+                    .filter(Boolean)} {/* Supprimer les éléments null */}
 
                 </div>
               </section>

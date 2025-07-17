@@ -178,17 +178,11 @@ const PropertyForm = ({ onPredictionComment, onToggleSidePanel, onOpenSidePanel,
       // Create ESG Analysis chat comment with simplified format
       const esgComment = `${formData.propertyType} in ${formData.locality}, ${formData.province} (${timestamp})`;
       
-      // Format the detailed ESG analysis for chat - REMOVE blockquotes to prevent blue bars
-      const cleanFullReport = esgData.full_report
-        .replace(/^>\s*/gm, '')  // Remove blockquote markers at start of lines
-        .replace(/^\s*>\s*/gm, '')  // Remove blockquote markers with whitespace
-        .replace(/\n>\s*/g, '\n')  // Remove blockquote markers after newlines
-        .replace(/\r\n>\s*/g, '\n');  // Handle Windows line endings
-        
+      // Format the detailed ESG analysis for chat
       const formattedAnalysis = [
         esgComment,
         '',
-        ...cleanFullReport.split('\n\n')
+        ...esgData.full_report.split('\n\n')
           .filter(paragraph => paragraph.trim().length > 0)
           .map(paragraph => paragraph.trim())
       ];
@@ -242,7 +236,7 @@ const PropertyForm = ({ onPredictionComment, onToggleSidePanel, onOpenSidePanel,
           overall: 7.0
         },
         financial_impact: {
-          energy_cost_annual: `Estimated based on EPC ${formData.epcScore.replace('_', '+')} rating`,
+          energy_cost_annual: `Estimated based on EPC ${formData.epcScore === 'A_plus' ? 'A+' : formData.epcScore?.replace('_', '+') || 'N/A'} rating`,
           improvement_potential: "Analysis temporarily unavailable",
           roi_estimate: "Contact expert for detailed assessment"
         },
@@ -395,14 +389,7 @@ const PropertyForm = ({ onPredictionComment, onToggleSidePanel, onOpenSidePanel,
       const esgData = esgResponse.data;
 
       // Count actual insights from the full report (paragraphs with substantial content)
-      // CLEAN the full report from blockquotes BEFORE processing
-      const cleanFullReport = esgData.full_report
-        .replace(/^>\s*/gm, '')  // Remove blockquote markers at start of lines
-        .replace(/^\s*>\s*/gm, '')  // Remove blockquote markers with whitespace  
-        .replace(/\n>\s*/g, '\n')  // Remove blockquote markers after newlines
-        .replace(/\r\n>\s*/g, '\n');  // Handle Windows line endings
-        
-      const reportParagraphs = cleanFullReport.split('\n\n')
+      const reportParagraphs = esgData.full_report.split('\n\n')
         .filter(paragraph => {
           const trimmed = paragraph.trim();
           return trimmed.length > 50 && // Must be substantial content
@@ -469,7 +456,7 @@ const PropertyForm = ({ onPredictionComment, onToggleSidePanel, onOpenSidePanel,
             overall: 7.0
           },
           financial_impact: {
-            energy_cost_annual: `Estimated based on EPC ${formData.epcScore.replace('_', '+')} rating`,
+            energy_cost_annual: `Estimated based on EPC ${formData.epcScore === 'A_plus' ? 'A+' : formData.epcScore?.replace('_', '+') || 'N/A'} rating`,
             improvement_potential: "Analysis temporarily unavailable",
             roi_estimate: "Contact expert for detailed assessment"
           },
@@ -633,13 +620,7 @@ const PropertyForm = ({ onPredictionComment, onToggleSidePanel, onOpenSidePanel,
           ...Object.entries(esgData.financial_impact || {}).map(([key, value]) => 
             `• ${key.replace('_', ' ').toUpperCase()}: ${value}`),
           '',
-          // CLEAN full report from blockquotes to prevent blue bars
-          ...esgData.full_report
-            .replace(/^>\s*/gm, '')  // Remove blockquote markers at start of lines
-            .replace(/^\s*>\s*/gm, '')  // Remove blockquote markers with whitespace
-            .replace(/\n>\s*/g, '\n')  // Remove blockquote markers after newlines
-            .replace(/\r\n>\s*/g, '\n')  // Handle Windows line endings
-            .split('\n\n')
+          ...esgData.full_report.split('\n\n')
             .filter(paragraph => paragraph.trim().length > 0)
             .map(paragraph => paragraph.trim())
         ];
@@ -691,9 +672,9 @@ const PropertyForm = ({ onPredictionComment, onToggleSidePanel, onOpenSidePanel,
         '• Considérer les améliorations d\'accessibilité pour un meilleur impact social', 
         '• S\'assurer de la conformité avec les réglementations belges du bâtiment',
         '',
-        '**EPC Rating Analysis:** With an EPC score of ' + epcScore.replace('_', '+') + (isEnergyEfficient ? ' (among the best in Belgium)' : needsRenovation ? ' (below current standards)' : ' (good performance)') + ', this house is ' + (isEnergyEfficient ? 'highly energy efficient and already exceeds current and near-future regulatory standards' : needsRenovation ? 'flagged for potential renovation needs to meet upcoming 2030 energy standards' : 'performing well but could benefit from targeted improvements') + '.',
+        '**EPC Rating Analysis:** With an EPC score of ' + (epcScore === 'A_plus' ? 'A+' : epcScore?.replace('_', '+') || 'N/A') + (isEnergyEfficient ? ' (among the best in Belgium)' : needsRenovation ? ' (below current standards)' : ' (good performance)') + ', this house is ' + (isEnergyEfficient ? 'highly energy efficient and already exceeds current and near-future regulatory standards' : needsRenovation ? 'flagged for potential renovation needs to meet upcoming 2030 energy standards' : 'performing well but could benefit from targeted improvements') + '.',
         
-        '**Energy Consumption Estimates:** For a ' + surface + 'm² house with an ' + epcScore.replace('_', '+') + ' EPC, annual primary energy use typically ranges from ' + (needsRenovation ? '180-300' : isEnergyEfficient ? '50-80' : '100-150') + ' kWh/m², translating to roughly ' + Math.round(yearlyEnergyCost * 0.5) + '-' + Math.round(yearlyEnergyCost * 1.5) + ' kWh/year. Actual costs will depend on occupancy and usage, but expect ' + (isEnergyEfficient ? 'significantly lower' : needsRenovation ? 'higher than average' : 'moderate') + ' utility bills.',
+        '**Energy Consumption Estimates:** For a ' + surface + 'm² house with an ' + (epcScore === 'A_plus' ? 'A+' : epcScore?.replace('_', '+') || 'N/A') + ' EPC, annual primary energy use typically ranges from ' + (needsRenovation ? '180-300' : isEnergyEfficient ? '50-80' : '100-150') + ' kWh/m², translating to roughly ' + Math.round(yearlyEnergyCost * 0.5) + '-' + Math.round(yearlyEnergyCost * 1.5) + ' kWh/year. Actual costs will depend on occupancy and usage, but expect ' + (isEnergyEfficient ? 'significantly lower' : needsRenovation ? 'higher than average' : 'moderate') + ' utility bills.',
         
         '**Investment Recommendations:** ' + (isEnergyEfficient ? 'This property represents an excellent long-term investment with minimal energy upgrade risks. Focus on maintaining systems and consider smart home technologies for further optimization.' : needsRenovation ? 'Priority renovations should target insulation, windows, and heating system upgrades. Estimated investment: €' + Math.round(renovationCost).toLocaleString() + ', with annual savings of €' + Math.round(potentialSavings).toLocaleString() + '.' : 'Consider targeted efficiency improvements like smart thermostats, improved insulation, or renewable energy integration to enhance both comfort and future-proofing.')
       ];

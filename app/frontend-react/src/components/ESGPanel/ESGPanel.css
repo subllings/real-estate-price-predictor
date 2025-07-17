@@ -76,7 +76,6 @@
 .analysis-header {
   background: #f8f9fa;
   padding: 20px;
-  border-bottom: 1px solid #e9ecef;
   flex-shrink: 0;
 }
 
@@ -112,21 +111,27 @@
 }
 
 .analysis-point {
-  margin-bottom: 24px;
-  padding-bottom: 20px;
-  border-bottom: 1px solid #f0f0f0;
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  margin-top: 0;
+  background: white;
+  border: none;
+}
+
+.analysis-point:first-child {
+  margin-top: 0;
 }
 
 .analysis-point:last-child {
-  border-bottom: none;
   margin-bottom: 0;
+  padding-bottom: 0;
 }
 
 .analysis-title {
   color: #2196f3;
   font-size: 1.1rem;
   font-weight: 600;
-  margin: 0 0 12px 0;
+  margin: 0 0 8px 0;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -143,6 +148,8 @@
   line-height: 1.6;
   margin: 0;
   font-size: 0.95rem;
+  background: white;
+  border: none;
 }
 
 .analysis-content p {
@@ -178,7 +185,6 @@
 .analysis-footer {
   background: #f8f9fa;
   padding: 20px;
-  border-top: 1px solid #e9ecef;
   flex-shrink: 0;
 }
 
@@ -453,6 +459,65 @@
   }
 }
 
+/* ESG Loading Container */
+.esg-loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  text-align: center;
+  padding: 60px 20px;
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+}
+
+.esg-loading-spinner {
+  width: 80px;
+  height: 80px;
+  border: 5px solid #e3f2fd;
+  border-top: 5px solid #2196f3;
+  border-radius: 50%;
+  animation: spin 1.5s linear infinite;
+  margin-bottom: 30px;
+}
+
+.esg-loading-text {
+  max-width: 400px;
+}
+
+.esg-loading-text h4 {
+  color: #2196f3;
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin: 0 0 16px 0;
+}
+
+.esg-loading-text p {
+  color: #6c757d;
+  font-size: 1.1rem;
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* No Analysis State */
+.no-analysis {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  text-align: center;
+  padding: 60px 20px;
+  color: #6c757d;
+}
+
+.no-analysis p {
+  font-size: 1.1rem;
+  line-height: 1.6;
+  max-width: 400px;
+  margin: 0;
+}
+
 /* Responsive Design */
 @media (max-width: 1200px) {
   .esg-panel {
@@ -687,4 +752,24 @@
 /* Ensure paragraphs have no borders */
 .esg-panel p[style*="border"] {
   border: none !important;
+}
+
+/* ESG Logo styles */
+.esg-logo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.esg-logo-icon {
+  font-size: 1.8rem;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
+}
+
+.esg-logo-text {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+  text-shadow: 0 1px 2px rgba(0,0,0,0.2);
 }

@@ -2,7 +2,6 @@ import React, { useMemo } from 'react';
 import './EsgSummary.css';
 
 const EsgSummary = ({ formData, detailedEsgData, esgAnalysisAvailable }) => {
-  
   // Calcul ESG en temps réel basé sur formData
   const esgCalculation = useMemo(() => {
     if (!formData) return null;
@@ -61,7 +60,7 @@ const EsgSummary = ({ formData, detailedEsgData, esgAnalysisAvailable }) => {
     
     // Conformité moderne (0-15 points)
     const currentYear = new Date().getFullYear();
-    const age = currentYear - (formData.constructionYear || 1990);
+    const age = currentYear - (formData.buildingConstructionYear || 1990);
     if (age <= 5) govScore += 15;
     else if (age <= 15) govScore += 12;
     else if (age <= 25) govScore += 8;
@@ -100,7 +99,8 @@ const EsgSummary = ({ formData, detailedEsgData, esgAnalysisAvailable }) => {
     };
 
     // Insights environnementaux
-    const epcScore = formData.epcScore?.replace('_', '+') || 'N/A';
+    const epcScore = formData.epcScore === 'A_plus' ? 'A+' : 
+                     formData.epcScore?.replace('_', '+') || 'N/A';
     if (['A+', 'A', 'B'].includes(epcScore)) {
       result.environment.push(`Excellent energy efficiency (Class ${epcScore})`);
     } else if (['C', 'D'].includes(epcScore)) {
@@ -154,11 +154,11 @@ const EsgSummary = ({ formData, detailedEsgData, esgAnalysisAvailable }) => {
 
     // Insights gouvernance
     const currentYear = new Date().getFullYear();
-    const age = currentYear - (formData.constructionYear || 1990);
+    const age = currentYear - (formData.buildingConstructionYear || 1990);
     if (age <= 25) {
-      result.governance.push(`Built in ${formData.constructionYear || 'N/A'} - meets modern standards`);
+      result.governance.push(`Built in ${formData.buildingConstructionYear || 'N/A'} - meets modern standards`);
     } else {
-      result.governance.push(`Building from ${formData.constructionYear || 'N/A'} (${age} years old)`);
+      result.governance.push(`Building from ${formData.buildingConstructionYear || 'N/A'} (${age} years old)`);
     }
 
     const conditionText = {
@@ -200,9 +200,14 @@ const EsgSummary = ({ formData, detailedEsgData, esgAnalysisAvailable }) => {
 
   // Function to generate compliance explanations
   const getComplianceExplanation = (complianceType, status, propertyData) => {
+    // Helper function to format EPC score
+    const formatEpcScore = (epcScore) => {
+      return epcScore === 'A_plus' ? 'A+' : epcScore?.replace('_', '+') || 'good';
+    };
+    
     const explanations = {
       energy_compliance: {
-        compliant: `This property meets energy compliance standards due to its ${propertyData.epcScore || 'good'} energy rating. ${propertyData.buildingConstructionYear > 2010 ? 'Recent construction ensures compliance with modern energy efficiency standards.' : 'Despite its age, energy systems have been updated to meet current requirements.'} All European energy regulations are respected and the property demonstrates excellent energy performance.`,
+        compliant: `This property meets energy compliance standards due to its ${formatEpcScore(propertyData.epcScore)} energy rating. ${propertyData.buildingConstructionYear > 2010 ? 'Recent construction ensures compliance with modern energy efficiency standards.' : 'Despite its age, energy systems have been updated to meet current requirements.'} All European energy regulations are respected and the property demonstrates excellent energy performance.`,
         'non-compliant': `Non-compliance identified due to insufficient energy rating. Energy renovation work is required to meet current standards.`,
         'partial-compliance': `Partial compliance - some energy aspects meet standards but improvements are recommended for full compliance.`
       },

@@ -11,6 +11,13 @@ import logging
 
 logger = logging.getLogger("uvicorn.error")
 
+# Helper function to correctly format EPC scores
+def format_epc_score(epc_score):
+    """Convert EPC score format correctly, handling A_plus -> A+ specifically"""
+    if epc_score == 'A_plus':
+        return 'A+'
+    return epc_score.replace('_', '+') if epc_score else 'N/A'
+
 # Load environment variables
 load_dotenv()
 
@@ -421,7 +428,7 @@ async def generate_esg_analysis(request: ESGAnalysisRequest):
     - Type: {property_data.propertyType} - {property_data.subtype}
     - Surface: {surface}m²
     - Construction Year: {year}
-    - EPC Score: {epc_score.replace('_', '+')}
+    - EPC Score: {format_epc_score(epc_score)}
     - Heating: {heating_type}
     - Condition: {property_data.buildingCondition}
     - Estimated Price: {request.estimatedPrice:,.0f} €
@@ -429,16 +436,16 @@ async def generate_esg_analysis(request: ESGAnalysisRequest):
     Generate exactly 6 detailed paragraphs following this structure:
 
     **Paragraph 1 - EPC Rating Analysis:**
-    Start with "**EPC Rating Analysis:** With an EPC score of {epc_score.replace('_', '+')} ({'among the best in Belgium' if is_energy_efficient else 'below current standards' if needs_renovation else 'good performance'}), this house is {'highly energy efficient and already exceeds current and near-future regulatory standards' if is_energy_efficient else 'flagged for potential renovation needs to meet upcoming 2030 energy standards' if needs_renovation else 'performing well but could benefit from targeted improvements'}."
+    Start with "**EPC Rating Analysis:** With an EPC score of {format_epc_score(epc_score)} ({'among the best in Belgium' if is_energy_efficient else 'below current standards' if needs_renovation else 'good performance'}), this house is {'highly energy efficient and already exceeds current and near-future regulatory standards' if is_energy_efficient else 'flagged for potential renovation needs to meet upcoming 2030 energy standards' if needs_renovation else 'performing well but could benefit from targeted improvements'}."
 
     **Paragraph 2 - Energy Consumption Estimates:**
-    Start with "**Energy Consumption Estimates:** For a {surface}m² house with an {epc_score.replace('_', '+')} EPC, annual primary energy use typically ranges from {('180-300' if needs_renovation else '50-80' if is_energy_efficient else '100-150')} kWh/m²..." Include specific cost estimates based on the calculated yearly_energy_cost ({yearly_energy_cost}).
+    Start with "**Energy Consumption Estimates:** For a {surface}m² house with an {format_epc_score(epc_score)} EPC, annual primary energy use typically ranges from {('180-300' if needs_renovation else '50-80' if is_energy_efficient else '100-150')} kWh/m²..." Include specific cost estimates based on the calculated yearly_energy_cost ({yearly_energy_cost}).
 
     **Paragraph 3 - Heating System Efficiency:**
     Start with "**Heating System Efficiency:** The {heating_type.lower().replace('_', ' ')} heating system is..." Provide detailed analysis of this specific heating type's efficiency, costs, and future viability in Belgium.
 
     **Paragraph 4 - Belgian Energy Performance Requirements:**
-    Start with "**Belgian Energy Performance Requirements:** Flanders is tightening energy standards: by 2030, all homes must meet at least EPC label D for rentals..." Discuss how this property's {epc_score.replace('_', '+')} rating relates to upcoming regulations.
+    Start with "**Belgian Energy Performance Requirements:** Flanders is tightening energy standards: by 2030, all homes must meet at least EPC label D for rentals..." Discuss how this property's {format_epc_score(epc_score)} rating relates to upcoming regulations.
 
     **Paragraph 5 - Rental Restrictions for Low-Performing Properties:**
     Start with "**Rental Restrictions for Low-Performing Properties:** Properties with EPC E or F {'will face rental bans and mandatory renovation requirements' if needs_renovation else 'are not an immediate concern for this property'}..." Discuss rental implications.
@@ -549,7 +556,7 @@ async def generate_quick_esg_analysis(request: ESGAnalysisRequest):
     You are a Belgian real estate ESG expert. Provide a quick ESG assessment that matches detailed analysis standards.
 
     Property: {property_data.propertyType} in {property_data.locality}, {property_data.province}
-    EPC: {epc_score.replace('_', '+')} | Year: {year} | Surface: {surface}m² | Heating: {heating_type}
+    EPC: {format_epc_score(epc_score)} | Year: {year} | Surface: {surface}m² | Heating: {heating_type}
 
     Generate consistent ESG scores on a 0-10 scale:
 
@@ -646,7 +653,7 @@ async def generate_quick_esg_analysis(request: ESGAnalysisRequest):
     As a Belgian real estate ESG expert, provide a QUICK assessment for this property:
     
     Property: {property_data.propertyType} in {property_data.locality}, {property_data.province}
-    Surface: {surface}m², Year: {year}, EPC: {epc_score.replace('_', '+')}, Heating: {heating_type}
+    Surface: {surface}m², Year: {year}, EPC: {format_epc_score(epc_score)}, Heating: {heating_type}
     
     Provide ONLY:
     1. Environmental score (0-10): Based on EPC rating and energy efficiency
@@ -751,7 +758,7 @@ async def generate_strategic_summary(request: StrategicSummaryRequest):
     - Location: {property_data.locality}, {property_data.province} ({property_data.postCode})
     - Surface: {property_data.habitableSurface}m²
     - Construction Year: {property_data.buildingConstructionYear}
-    - EPC Score: {property_data.epcScore.replace('_', '+')}
+    - EPC Score: {format_epc_score(property_data.epcScore)}
     - Heating: {property_data.heatingType}
     - Condition: {property_data.buildingCondition}
 
@@ -826,7 +833,7 @@ async def create_strategic_summary(request: StrategicSummaryRequest):
     - Location: {property_data.locality}, {property_data.province}
     - Type: {property_data.propertyType} - {property_data.subtype}
     - Predicted Value: €{price:,.0f}
-    - EPC Rating: {property_data.epcScore.replace('_', '+')}
+    - EPC Rating: {format_epc_score(property_data.epcScore)}
     - Construction Year: {property_data.buildingConstructionYear}
     - Surface: {property_data.habitableSurface}m²
     - Strategic Goal: {request.strategic_goals}
@@ -843,10 +850,10 @@ async def create_strategic_summary(request: StrategicSummaryRequest):
     Generate exactly 4 sections:
 
     **STRATEGIC POSITIONING:**
-    Analyze this property's position in the {property_data.locality} market. Consider the €{price:,.0f} price point, EPC {property_data.epcScore.replace('_', '+')} rating, and {property_data.buildingConstructionYear} construction year. How does this compare to local market trends? Include specific market context for {property_data.province}.
+    Analyze this property's position in the {property_data.locality} market. Consider the €{price:,.0f} price point, EPC {format_epc_score(property_data.epcScore)} rating, and {property_data.buildingConstructionYear} construction year. How does this compare to local market trends? Include specific market context for {property_data.province}.
 
     **ESG RISK & OPPORTUNITY ANALYSIS:**
-    Based on the {esg.overall} ESG rating (E:{esg.environment}/10, S:{esg.social}/10, G:{esg.governance}/10), identify key risks and opportunities. Focus on Belgian energy regulations, upcoming EPC requirements, and investment implications. Address specific concerns for {property_data.epcScore.replace('_', '+')} rated properties.
+    Based on the {esg.overall} ESG rating (E:{esg.environment}/10, S:{esg.social}/10, G:{esg.governance}/10), identify key risks and opportunities. Focus on Belgian energy regulations, upcoming EPC requirements, and investment implications. Address specific concerns for {format_epc_score(property_data.epcScore)} rated properties.
 
     **RECOMMENDED ACTIONS:**
     Provide 3-4 specific, actionable recommendations for a "{request.strategic_goals}" strategy. Include timeline, expected costs, and ROI projections. Consider Belgian tax incentives, renovation grants, and regulatory deadlines.
