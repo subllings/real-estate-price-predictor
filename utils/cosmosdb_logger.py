@@ -248,10 +248,20 @@ class CosmosDbLogger:
 
 
 
-    def get_trials_for_model(self, model_name: str, limit: int = 10) -> list:
+    def get_trials_for_model(self, model_name: str, limit: int = 10, container_name: str = None) -> list:
         """
         Retrieve the last 'limit' trials based on 'model_name' with all enriched metrics.
+        Can optionally specify a different container (like 'ModelMetrics' for structured metrics).
         """
+        # Utiliser le conteneur spécifié ou le conteneur par défaut
+        container = self.container
+        if container_name:
+            try:
+                container = self.database.get_container_client(container_name)
+            except Exception as e:
+                print(f"[⚠] Could not access container '{container_name}', falling back to default: {e}")
+                container = self.container
+        
         query = """
         SELECT TOP @limit * FROM c
         WHERE c.model_name = @model_name AND c.type = 'optuna_trial'
@@ -262,12 +272,13 @@ class CosmosDbLogger:
             {"name": "@model_name", "value": model_name}
         ]
         try:
-            trials = list(self.container.query_items(
+            trials = list(container.query_items(
                 query=query,
                 parameters=parameters,
                 enable_cross_partition_query=True
             ))
-            print(f"[✔] Retrieved {len(trials)} trials for model '{model_name}' with enriched metrics.")
+            container_info = f" from container '{container_name}'" if container_name else ""
+            print(f"[✔] Retrieved {len(trials)} trials for model '{model_name}' with enriched metrics{container_info}.")
             return trials
         except Exception as e:
             print(f"[✘] Error fetching trials from CosmosDB: {e}")

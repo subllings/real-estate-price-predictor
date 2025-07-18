@@ -385,7 +385,7 @@ async def health_check():
 
 @app.get("/experiments")
 async def get_experiments():
-    """Récupère tous les expériences de training depuis CosmosDB"""
+    """Récupère tous les expériences de training depuis CosmosDB avec métriques structurées"""
     try:
         import sys
         import os
@@ -398,32 +398,127 @@ async def get_experiments():
         from utils.cosmosdb_logger import CosmosDbLogger
         cosmos_logger = CosmosDbLogger()
         
-        # Récupérer tous les trials disponibles pour catboost
-        experiments = cosmos_logger.get_trials_for_model("catboost", limit=100)
-        
-        # Formatter les expériences pour l'affichage
+        # Essayer d'abord la nouvelle méthode avec ModelMetrics
         formatted_experiments = []
-        for exp in experiments:
-            formatted_exp = {
-                "id": exp.get("id", ""),
-                "trial_number": exp.get("trial_number", 0),
-                "experiment_name": exp.get("experiment_name", ""),
-                "model_type": exp.get("model_name", ""),
-                "timestamp": exp.get("timestamp", ""),
-                "r2_score": exp.get("r2_score", 0),
-                "r2_test": exp.get("r2_test", 0),
-                "mae": exp.get("mae", 0),
-                "mae_test": exp.get("mae_test", 0),
-                "rmse": exp.get("rmse", 0),
-                "rmse_test": exp.get("rmse_test", 0),
-                "hyperparameters": exp.get("hyperparameters", {}),
-                "feature_importance": exp.get("feature_importance", []),
-                "training_time": exp.get("training_time", 0),
-                "status": exp.get("status", "completed")
-            }
-            formatted_experiments.append(formatted_exp)
+        try:
+            print("🔍 Trying to fetch from ModelMetrics container...")
+            
+            # Accéder directement au container ModelMetrics
+            container = cosmos_logger.database.get_container_client('ModelMetrics')
+            query = """
+            SELECT TOP 100 * FROM c 
+            WHERE c.model_type = 'catboost' 
+            ORDER BY c.timestamp DESC
+            """
+            experiments = list(container.query_items(query=query, enable_cross_partition_query=True))
+            
+            for exp in experiments:
+                formatted_exp = {
+                    "id": exp.get("id", ""),
+                    "trial_number": exp.get("trial_number", 0),
+                    "experiment_name": exp.get("experiment_name", ""),
+                    "model_type": exp.get("model_type", "catboost"),
+                    "model_name": exp.get("model_name", "CatBoost CV (All Features)"),
+                    "timestamp": exp.get("timestamp", ""),
+                    
+                    # Métriques de performance
+                    "r2_train": exp.get("r2_train", 0),
+                    "r2_test": exp.get("r2_test", 0),
+                    "mae_train": exp.get("mae_train", 0),
+                    "mae_test": exp.get("mae_test", 0),
+                    "rmse_train": exp.get("rmse_train", 0),
+                    "rmse_test": exp.get("rmse_test", 0),
+                    
+                    # Analyse de généralisation
+                    "r2_gap": exp.get("r2_gap", 0),
+                    "generalization_status": exp.get("generalization_status", "Unknown"),
+                    "feature_count": exp.get("n_features", 2885),
+                    
+                    # Métadonnées importantes
+                    "training_time": exp.get("training_time", 0),
+                    "hyperparameters": exp.get("hyperparameters", {}),
+                    "feature_importance": exp.get("feature_importance", []),
+                    "status": exp.get("status", "completed")
+                }
+                formatted_experiments.append(formatted_exp)
+                
+            print(f"✅ Found {len(formatted_experiments)} experiments in ModelMetrics")
+            
+        except Exception as e:
+            print(f"⚠️ ModelMetrics fetch failed: {e}")
+            print("🔄 Falling back to legacy container...")
+            
+            # Fallback vers l'ancienne méthode
+            experiments = cosmos_logger.get_trials_for_model("catboost", limit=100)
+            
+            # Fonction pour calculer le diagnostic de généralisation
+            def calculate_generalization_status(r2_train, r2_test):
+                if not r2_train or not r2_test:
+                    return "Unknown"
+                
+                r2_gap = r2_train - r2_test
+                
+                # Logique alignée avec train_test_metrics_logger.py et CatBoost tuner
+                if r2_gap < 0:
+                    return "Possible underfitting"
+                elif r2_gap < 0.05:
+                    return "Excellent generalization"
+                elif r2_gap < 0.08:
+                    return "Good generalization"
+                elif r2_gap < 0.12:
+                    return "Moderate overfitting"
+                else:
+                    return "Strong overfitting"
+            
+            for exp in experiments:
+                # Support des métriques structurées ou format legacy
+                structured_metrics = exp.get("structured_metrics", {})
+                
+                # Extraire les valeurs R²
+                r2_train = structured_metrics.get("r2_train") or exp.get("r2_score", 0)
+                r2_test = structured_metrics.get("r2_test") or exp.get("r2_test", 0)
+                
+                # Calculer R² gap et diagnostic
+                r2_gap = (r2_train - r2_test) if (r2_train and r2_test) else 0
+                generalization_status = calculate_generalization_status(r2_train, r2_test)
+                
+                formatted_exp = {
+                    "id": exp.get("id", ""),
+                    "trial_number": exp.get("trial_number", 0),
+                    "experiment_name": exp.get("experiment_name", ""),
+                    "model_type": structured_metrics.get("model_type") or exp.get("model_name", "catboost"),
+                    "model_name": structured_metrics.get("model_name") or "CatBoost CV (All Features)",
+                    "timestamp": exp.get("timestamp", ""),
+                    
+                    # Métriques avec support structured_metrics ou format legacy
+                    "r2_train": r2_train,
+                    "r2_test": r2_test,
+                    "mae_train": structured_metrics.get("mae_train") or exp.get("mae", 0),
+                    "mae_test": structured_metrics.get("mae_test") or exp.get("mae_test", 0),
+                    "rmse_train": structured_metrics.get("rmse_train") or exp.get("rmse", 0),
+                    "rmse_test": structured_metrics.get("rmse_test") or exp.get("rmse_test", 0),
+                    
+                    # Diagnostics calculés dynamiquement
+                    "r2_gap": r2_gap,
+                    "generalization_status": generalization_status,
+                    "feature_count": structured_metrics.get("feature_count") or 2885,
+                    
+                    # Données supplémentaires
+                    "hyperparameters": exp.get("hyperparameters", {}),
+                    "feature_importance": exp.get("feature_importance", []),
+                    "training_time": exp.get("training_time", 0),
+                    "status": exp.get("status", "completed")
+                }
+                formatted_experiments.append(formatted_exp)
+            
+            print(f"✅ Found {len(formatted_experiments)} experiments in legacy container")
         
+        # Trier par R² test décroissant
+        formatted_experiments.sort(key=lambda x: x.get("r2_test", 0), reverse=True)
+        
+        print(f"📊 Returning {len(formatted_experiments)} experiments to frontend")
         return {"experiments": formatted_experiments}
+        
     except Exception as e:
         logger.exception("Failed to fetch experiments")
         raise HTTPException(status_code=500, detail=f"Failed to fetch experiments: {str(e)}")
@@ -431,7 +526,7 @@ async def get_experiments():
 
 @app.get("/experiments/summary")
 async def get_experiments_summary():
-    """Récupère un résumé des expériences de training"""
+    """Récupère un résumé des expériences de training avec métriques structurées"""
     try:
         import sys
         import os
@@ -444,40 +539,100 @@ async def get_experiments_summary():
         from utils.cosmosdb_logger import CosmosDbLogger
         cosmos_logger = CosmosDbLogger()
         
-        # Récupérer tous les trials disponibles pour catboost
-        experiments = cosmos_logger.get_trials_for_model("catboost", limit=100)
+        # Essayer d'abord la nouvelle méthode avec ModelMetrics
+        experiments = []
+        try:
+            print("🔍 Trying to fetch summary from ModelMetrics container...")
+            experiments = cosmos_logger.get_model_metrics("catboost", limit=100, container_name="ModelMetrics")
+            print(f"✅ Found {len(experiments)} experiments in ModelMetrics for summary")
+            
+        except Exception as e:
+            print(f"⚠️ ModelMetrics fetch failed: {e}")
+            print("🔄 Falling back to legacy container for summary...")
+            
+            # Fallback vers l'ancienne méthode
+            experiments = cosmos_logger.get_trials_for_model("catboost", limit=100)
+            print(f"✅ Found {len(experiments)} experiments in legacy container for summary")
         
         if not experiments:
             return {
                 "total_experiments": 0,
                 "best_r2_score": 0,
                 "average_r2_score": 0,
-                "latest_experiment": None
+                "latest_experiment": None,
+                "best_generalization": None,
+                "average_r2_gap": 0
             }
         
-        # Calculer les statistiques
-        r2_scores = [exp.get("r2_test", exp.get("r2_score", 0)) for exp in experiments]
-        r2_scores = [score for score in r2_scores if score > 0]  # Filtrer les scores invalides
+        # Extraire les R² test avec support des nouvelles métriques
+        r2_scores = []
+        r2_gaps = []
+        
+        for exp in experiments:
+            # Support format direct ou structured_metrics
+            structured_metrics = exp.get("structured_metrics", {})
+            
+            # R² test
+            r2_test = exp.get("r2_test") or structured_metrics.get("r2_test") or exp.get("r2_score", 0)
+            if r2_test > 0:
+                r2_scores.append(r2_test)
+            
+            # R² gap
+            r2_gap = exp.get("r2_gap") or structured_metrics.get("r2_gap", 0)
+            if r2_gap:
+                r2_gaps.append(abs(r2_gap))
         
         # Trouver la meilleure expérience
-        best_experiment = max(experiments, key=lambda x: x.get("r2_test", x.get("r2_score", 0)))
+        best_experiment = max(experiments, key=lambda x: 
+            x.get("r2_test") or 
+            x.get("structured_metrics", {}).get("r2_test") or 
+            x.get("r2_score", 0))
         
         # Trouver la dernière expérience
         latest_experiment = max(experiments, key=lambda x: x.get("timestamp", ""))
+        
+        # Trouver la meilleure généralisation (plus petit gap absolu)
+        best_generalization_exp = min(experiments, key=lambda x: 
+            abs(x.get("r2_gap") or 
+                x.get("structured_metrics", {}).get("r2_gap", 1.0)))
+        
+        # Préparer les données pour latest_experiment
+        latest_structured = latest_experiment.get("structured_metrics", {})
+        latest_r2 = (latest_experiment.get("r2_test") or 
+                    latest_structured.get("r2_test") or 
+                    latest_experiment.get("r2_score", 0))
+        
+        # Préparer les données pour best_generalization
+        best_gen_structured = best_generalization_exp.get("structured_metrics", {})
+        best_gen_gap = (best_generalization_exp.get("r2_gap") or 
+                       best_gen_structured.get("r2_gap", 0))
+        best_gen_status = (best_generalization_exp.get("generalization_status") or 
+                          best_gen_structured.get("generalization_status", "Unknown"))
         
         summary = {
             "total_experiments": len(experiments),
             "best_r2_score": max(r2_scores) if r2_scores else 0,
             "average_r2_score": sum(r2_scores) / len(r2_scores) if r2_scores else 0,
+            "average_r2_gap": sum(r2_gaps) / len(r2_gaps) if r2_gaps else 0,
             "latest_experiment": {
                 "id": latest_experiment.get("id", ""),
-                "model_type": latest_experiment.get("model_name", ""),
-                "r2_score": latest_experiment.get("r2_test", latest_experiment.get("r2_score", 0)),
+                "model_type": latest_experiment.get("model_type") or latest_structured.get("model_type") or latest_experiment.get("model_name", "catboost"),
+                "r2_score": latest_r2,
                 "timestamp": latest_experiment.get("timestamp", "")
+            },
+            "best_generalization": {
+                "id": best_generalization_exp.get("id", ""),
+                "r2_gap": best_gen_gap,
+                "generalization_status": best_gen_status
             }
         }
         
+        print(f"📊 Returning summary with {summary['total_experiments']} experiments")
         return summary
+        
+    except Exception as e:
+        logger.exception("Failed to fetch experiments summary")
+        raise HTTPException(status_code=500, detail=f"Failed to fetch experiments summary: {str(e)}")
     except Exception as e:
         logger.exception("Failed to fetch experiments summary")
         raise HTTPException(status_code=500, detail=f"Failed to fetch experiments summary: {str(e)}")

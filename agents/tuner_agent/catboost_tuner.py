@@ -10,6 +10,7 @@ from utils.configure_logging import configure_azure_logging
 
 import logging
 import optuna
+import time
 optuna.logging.set_verbosity(optuna.logging.INFO)
 import numpy as np
 import pandas as pd
@@ -51,6 +52,9 @@ class CatBoostTuner:
         self.use_gpu = False  # Temporarily disabled to avoid segfaults
         self.model_saver = ModelSaver()
         self.logger = CosmosDbLogger()
+        
+        # Initialize training time
+        self.training_time = 0.0
         
         # Initialiser l'agent cloud pour l'upload Azure
         if CLOUD_AGENT_AVAILABLE:
@@ -363,14 +367,21 @@ class CatBoostTuner:
         study = optuna.create_study(direction="minimize")
 
         print("[STEP] Starting optimization...")
+        start_time = time.time()
         study.optimize(self.objective, n_trials=self.n_trials, n_jobs=1)
+        end_time = time.time()
+        training_time = end_time - start_time
 
         print("[STEP] Optimization complete.")
         print(f"Best trial: {study.best_trial.number}")
         print(f"Best parameters: {study.best_trial.params}")
+        print(f"Training time: {training_time:.2f} seconds")
 
         self.best_params = study.best_trial.params
         self.best_params["verbose"] = 0
+
+        # Store training time for logging
+        self.training_time = training_time
 
         # === LOGGING AND SAVING ONLY FOR THE BEST MODEL ===
 
@@ -437,14 +448,17 @@ class CatBoostTuner:
             
             def analyze_generalization(r2_train, r2_test):
                 gap = r2_train - r2_test
-                if gap <= 0.02 and r2_test > 0.85:
-                    return "Excellent"
-                elif gap <= 0.05 and r2_test > 0.75:
-                    return "Good"
-                elif gap <= 0.10:
-                    return "Fair"
+                # Logique alignée avec train_test_metrics_logger.py
+                if gap < 0:
+                    return "Possible underfitting"
+                elif gap < 0.05:
+                    return "Excellent generalization"
+                elif gap < 0.08:
+                    return "Good generalization"
+                elif gap < 0.12:
+                    return "Moderate overfitting"
                 else:
-                    return "Poor"
+                    return "Strong overfitting"
             
             generalization_status = analyze_generalization(
                 global_metrics_train["r2"], 
@@ -473,7 +487,7 @@ class CatBoostTuner:
                 # Métadonnées du modèle
                 "hyperparameters": study.best_trial.params,
                 "feature_importance": [],  # Sera rempli si nécessaire
-                "training_time": 0.0,  # Sera rempli si on mesure le temps
+                "training_time": self.training_time,  # Temps d'entraînement mesuré
                 "n_features": self.X_train.shape[1],
                 
                 # Statut
