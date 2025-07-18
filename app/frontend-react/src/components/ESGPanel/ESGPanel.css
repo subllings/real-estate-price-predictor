@@ -152,10 +152,79 @@
   border: none;
 }
 
-.analysis-content p {
+/* Styles par défaut pour les paragraphes, sauf si fond rouge */
+/* Text color rules for dark green and dark red backgrounds */
+.analysis-content[style*="background:#28a745"], 
+.analysis-content[style*="background: #28a745"],
+.analysis-content[style*="background-color:#28a745"],
+.analysis-content[style*="background-color: #28a745"],
+.analysis-content[style*="background:#dc3545"], 
+.analysis-content[style*="background: #dc3545"],
+.analysis-content[style*="background-color:#dc3545"],
+.analysis-content[style*="background-color: #dc3545"] {
+  color: #000000 !important;
+  text-shadow: none !important;
+}
+
+.analysis-content[style*="background:#28a745"] p,
+.analysis-content[style*="background: #28a745"] p,
+.analysis-content[style*="background-color:#28a745"] p,
+.analysis-content[style*="background-color: #28a745"] p,
+.analysis-content[style*="background:#dc3545"] p,
+.analysis-content[style*="background: #dc3545"] p,
+.analysis-content[style*="background-color:#dc3545"] p,
+.analysis-content[style*="background-color: #dc3545"] p,
+.analysis-content[style*="background:#28a745"] div,
+.analysis-content[style*="background: #28a745"] div,
+.analysis-content[style*="background-color:#28a745"] div,
+.analysis-content[style*="background-color: #28a745"] div,
+.analysis-content[style*="background:#dc3545"] div,
+.analysis-content[style*="background: #dc3545"] div,
+.analysis-content[style*="background-color:#dc3545"] div,
+.analysis-content[style*="background-color: #dc3545"] div,
+.analysis-content[style*="background:#28a745"] span,
+.analysis-content[style*="background: #28a745"] span,
+.analysis-content[style*="background-color:#28a745"] span,
+.analysis-content[style*="background-color: #28a745"] span,
+.analysis-content[style*="background:#dc3545"] span,
+.analysis-content[style*="background: #dc3545"] span,
+.analysis-content[style*="background-color:#dc3545"] span,
+.analysis-content[style*="background-color: #dc3545"] span,
+.analysis-content[style*="background:#28a745"] ul,
+.analysis-content[style*="background: #28a745"] ul,
+.analysis-content[style*="background-color:#28a745"] ul,
+.analysis-content[style*="background-color: #28a745"] ul,
+.analysis-content[style*="background:#dc3545"] ul,
+.analysis-content[style*="background: #dc3545"] ul,
+.analysis-content[style*="background-color:#dc3545"] ul,
+.analysis-content[style*="background-color: #dc3545"] ul,
+.analysis-content[style*="background:#28a745"] li,
+.analysis-content[style*="background: #28a745"] li,
+.analysis-content[style*="background-color:#28a745"] li,
+.analysis-content[style*="background-color: #28a745"] li,
+.analysis-content[style*="background:#dc3545"] li,
+.analysis-content[style*="background: #dc3545"] li,
+.analysis-content[style*="background-color:#dc3545"] li,
+.analysis-content[style*="background-color: #dc3545"] li {
+  color: #000000 !important;
+  text-shadow: none !important;
+}
+
+.analysis-content:not([style*="background:#dc3545"]):not([style*="background: #dc3545"]):not([style*="background-color:#dc3545"]):not([style*="background-color: #dc3545"]) p {
   margin: 8px 0;
   color: #555;
   line-height: 1.6;
+}
+
+/* Styles spécifiques pour les éléments avec fond rouge foncé - TEXT NOIR */
+.analysis-content[style*="background:#dc3545"] p,
+.analysis-content[style*="background: #dc3545"] p,
+.analysis-content[style*="background-color:#dc3545"] p,
+.analysis-content[style*="background-color: #dc3545"] p {
+  color: #000000 !important;
+  margin: 8px 0;
+  line-height: 1.6;
+  text-shadow: none !important;
 }
 
 /* Remove border-left from blockquotes to avoid visual clutter */
@@ -772,4 +841,53 @@
   font-weight: 600;
   color: rgba(255, 255, 255, 0.9);
   text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+}
+
+/* Styles spécifiques pour le texte NOIR sur fond rouge foncé */
+.analysis-content[style*="background:#dc3545"], 
+.analysis-content[style*="background: #dc3545"],
+.analysis-content[style*="background-color:#dc3545"],
+.analysis-content[style*="background-color: #dc3545"] {
+  color: #000000 !important;
+}
+
+.analysis-content[style*="background:#dc3545"] p,
+.analysis-content[style*="background: #dc3545"] p,
+.analysis-content[style*="background-color:#dc3545"] p,
+.analysis-content[style*="background-color: #dc3545"] p,
+.analysis-content[style*="background:#dc3545"] div,
+.analysis-content[style*="background: #dc3545"] div,
+.analysis-content[style*="background-color:#dc3545"] div,
+.analysis-content[style*="background-color: #dc3545"] div,
+.analysis-content[style*="background:#dc3545"] span,
+.analysis-content[style*="background: #dc3545"] span,
+.analysis-content[style*="background-color:#dc3545"] span,
+.analysis-content[style*="background-color: #dc3545"] span {
+  color: #000000 !important;
+}
+
+/* Styles pour les éléments avec fond rouge foncé appliqué via style inline */
+[style*="background:#dc3545"],
+[style*="background: #dc3545"],
+[style*="background-color:#dc3545"],
+[style*="background-color: #dc3545"] {
+  color: #000000 !important;
+}
+
+[style*="background:#dc3545"] *,
+[style*="background: #dc3545"] *,
+[style*="background-color:#dc3545"] *,
+[style*="background-color: #dc3545"] * {
+  color: #000000 !important;
+}
+
+/* Styles spécifiques pour Investment Recommendations */
+.analysis-point .analysis-content[style*="background:#dc3545"] {
+  color: #000000 !important;
+  text-shadow: none !important;
+}
+
+.analysis-point .analysis-content[style*="background:#dc3545"] p {
+  color: #000000 !important;
+  text-shadow: none !important;
 }

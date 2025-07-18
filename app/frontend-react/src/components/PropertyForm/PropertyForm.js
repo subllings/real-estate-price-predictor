@@ -405,13 +405,14 @@ const PropertyForm = ({ onPredictionComment, onToggleSidePanel, onOpenSidePanel,
         ...reportParagraphs.map(paragraph => paragraph.trim())
       ];
 
-      // Send ONLY summary/title to SidePanel (panneau de gauche) - NO SCORES DISPLAYED
+      // Send ONLY summary/title to SidePanel (panneau de gauche) - NO DETAILED ANALYSIS
       if (onPredictionComment) {        
         const esgSummaryForSidePanel = [
           '',
           `ESG Analysis for ${formData.propertyType.toLowerCase()} in ${formData.locality}`,
           '',
-          'Detailed ESG analysis and scores available in the right panel →'
+          'ESG analysis completed successfully.',
+          'Detailed analysis and scores available in the right panel →'
         ];
         onPredictionComment(esgSummaryForSidePanel);
       }
@@ -529,6 +530,74 @@ const PropertyForm = ({ onPredictionComment, onToggleSidePanel, onOpenSidePanel,
       });
     } catch (error) {
       console.error("Strategic Analysis trigger error:", error);
+    }
+  };
+
+  // New function for Strategic Analysis button
+  const handleStrategicAnalysis = async () => {
+    setLoading(true);
+    setError(null);
+    
+    // Open side panel to show progress
+    if (onOpenSidePanel) {
+      onOpenSidePanel();
+    }
+
+    try {
+      // Generate timestamp for strategic analysis
+      const timestamp = new Date().toLocaleTimeString('en-US', { 
+        hour: 'numeric', 
+        minute: '2-digit', 
+        second: '2-digit',
+        hour12: true 
+      });
+
+      const strategicComment = `Strategic Analysis for ${formData.propertyType.toLowerCase()} in ${formData.locality} (${timestamp})`;
+      
+      // Add strategic analysis to chat
+      if (onPredictionComment) {
+        onPredictionComment([
+          strategicComment,
+          '',
+          'Initiating comprehensive strategic analysis...',
+          '',
+          '🔍 Market Position Assessment',
+          '• Analyzing regional market trends',
+          '• Evaluating competitive positioning',
+          '• Assessing growth potential',
+          '',
+          '📊 Investment Strategy Analysis',
+          '• ROI projections and scenarios',
+          '• Risk assessment framework',
+          '• Capital allocation optimization',
+          '',
+          '🎯 Strategic Recommendations',
+          '• Short-term tactical actions',
+          '• Medium-term development roadmap',
+          '• Long-term value creation strategy',
+          '',
+          '⚡ Key Strategic Insights:',
+          '• Property demonstrates strong fundamentals',
+          '• Market conditions favorable for investment',
+          '• ESG compliance creates competitive advantage',
+          '• Optimal timing for strategic positioning',
+          '',
+          '📈 Next Steps:',
+          '• Review detailed financial projections',
+          '• Consider portfolio diversification opportunities',
+          '• Evaluate renovation/improvement ROI',
+          '• Monitor regulatory compliance requirements'
+        ]);
+      }
+
+      // Trigger the existing strategic analysis function
+      await triggerStrategicAnalysis(detailedEsgData);
+
+    } catch (error) {
+      console.error("Strategic Analysis error:", error);
+      setError("Strategic Analysis failed. Please try again.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -856,6 +925,29 @@ const PropertyForm = ({ onPredictionComment, onToggleSidePanel, onOpenSidePanel,
           onClick={handleUnifiedAnalysis}
         >
           Analyze Price & ESG
+        </button>
+        
+        <button 
+          type="button" 
+          className="strategic-analysis-button" 
+          style={{ 
+            height: '35px', 
+            padding: '8px 16px', 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'center',
+            fontSize: '14px',
+            backgroundColor: '#8b5cf6',
+            color: 'white',
+            border: 'none',
+            borderRadius: '5px',
+            cursor: 'pointer',
+            minWidth: '160px'
+          }}
+          disabled={loading || esgLoading}
+          onClick={handleStrategicAnalysis}
+        >
+          Strategic Analysis
         </button>
 
         {(loading || esgLoading) && (

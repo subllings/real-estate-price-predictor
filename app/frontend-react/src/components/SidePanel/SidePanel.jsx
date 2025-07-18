@@ -136,14 +136,19 @@ const SidePanel = ({ user, isExpanded, onToggle, onClose, comments, clearComment
         
         // Combiner les messages ESG consécutifs
         if (currentComment.startsWith('ESG Analysis for')) {
-          // Remplacer par le format demandé
-          const combinedText = "ESG Analysis for house in Antwerpen (available in right pannel)";
+          // Utiliser le message réel envoyé depuis PropertyForm
+          let combinedText = currentComment;
           
-          // Skip le message suivant s'il contient des informations ESG complémentaires
-          if (i + 1 < comments.length && 
-              (comments[i + 1].includes('Detailed ESG analysis') || 
-               comments[i + 1].includes('right panel'))) {
-            i++; // Skip le prochain commentaire car on l'a remplacé
+          // Ajouter les messages ESG complémentaires qui suivent
+          while (i + 1 < comments.length && 
+                 (comments[i + 1].includes('ESG analysis completed') || 
+                  comments[i + 1].includes('right panel') ||
+                  comments[i + 1].includes('Detailed analysis and scores') ||
+                  comments[i + 1].trim() === '')) {
+            i++; // Skip les messages complémentaires
+            if (comments[i].trim() !== '') {
+              combinedText += '\n' + comments[i];
+            }
           }
           
           combinedComments.push(combinedText);
@@ -174,8 +179,8 @@ const SidePanel = ({ user, isExpanded, onToggle, onClose, comments, clearComment
         console.log("Processing comment:", comment);
         
         // Détecter les différents types de messages avec une meilleure logique
-        if (comment === "ESG Analysis for house in Antwerpen (available in right pannel)") {
-          subtype = "esg-title"; // Force le style ESG pour ce message spécifique
+        if (comment.startsWith('ESG Analysis for')) {
+          subtype = "esg-title"; // Tous les messages ESG Analysis
           console.log("ESG message detected, setting esg-title");
         } else if (comment.startsWith('Complete Analysis') || 
             comment.startsWith('Prediction for') ||
@@ -185,10 +190,10 @@ const SidePanel = ({ user, isExpanded, onToggle, onClose, comments, clearComment
           subtype = "prediction-title"; // Traiter le prix comme un titre aussi
         } else if (comment.startsWith('Model:')) {
           subtype = "model-info"; // Nouveau type pour les informations de modèle
-        } else if (comment.startsWith('ESG Analysis for') || 
-                   comment.includes('ESG ANALYSIS') ||
+        } else if (comment.includes('ESG ANALYSIS') ||
                    comment.includes('ESG analysis') ||
-                   comment.includes('available in right pannel')) {
+                   comment.includes('available in right panel') ||
+                   comment.includes('right panel →')) {
           subtype = "esg-title"; // Messages ESG en bleu pour cohérence
         } else if (comment.startsWith('Strategic Analysis') || 
                    comment.includes('STRATEGIC ANALYSIS')) {

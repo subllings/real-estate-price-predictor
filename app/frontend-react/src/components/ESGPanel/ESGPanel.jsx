@@ -19,6 +19,14 @@ const ESGPanel = ({ isOpen, onClose, onToggle, esgAnalysis, propertyData, esgLoa
     return '#dc3545'; // Red
   };
 
+  const getTextColorForBackground = (backgroundColor) => {
+    // For dark green and dark red backgrounds, use black text
+    if (backgroundColor === '#28a745' || backgroundColor === '#dc3545') {
+      return '#000000'; // Black text
+    }
+    return '#ffffff'; // White text for other backgrounds
+  };
+
   const getEsgImprovementColor = (improvement) => {
     if (improvement >= 15) return '#28a745'; // High improvement - green
     if (improvement >= 10) return '#8fd19e'; // Moderate improvement - light green
@@ -83,8 +91,9 @@ const ESGPanel = ({ isOpen, onClose, onToggle, esgAnalysis, propertyData, esgLoa
     } else if (point.match(/investment.*?(\d{1,3}(?:,\d{3})*(?:\.\d+)?)/i)) {
       const investMatch = point.match(/(\d{1,3}(?:,\d{3})*(?:\.\d+)?)/);
       if (investMatch) {
-        colorStyle.background = getInvestmentColor(parseFloat(investMatch[1].replace(/,/g, '')));
-        colorStyle.color = '#fff';
+        const investmentColor = getInvestmentColor(parseFloat(investMatch[1].replace(/,/g, '')));
+        colorStyle.background = investmentColor;
+        colorStyle.color = getTextColorForBackground(investmentColor);
         colorStyle.padding = '0.3em 0.7em';
         colorStyle.borderRadius = '0.5em';
         colorStyle.display = 'inline-block';
@@ -92,7 +101,7 @@ const ESGPanel = ({ isOpen, onClose, onToggle, esgAnalysis, propertyData, esgLoa
       }
     } else if (point.toLowerCase().includes('investment recommendations')) {
       colorStyle.background = '#dc3545';
-      colorStyle.color = '#fff';
+      colorStyle.color = getTextColorForBackground('#dc3545');
       colorStyle.padding = '1em';
       colorStyle.borderRadius = '1em';
       colorStyle.marginBottom = '0.7em';
@@ -100,8 +109,9 @@ const ESGPanel = ({ isOpen, onClose, onToggle, esgAnalysis, propertyData, esgLoa
     } else if (point.match(/ESG improvements.*?(\d{1,3})%/i)) {
       const esgMatch = point.match(/(\d{1,3})%/);
       if (esgMatch) {
-        colorStyle.background = getEsgImprovementColor(parseInt(esgMatch[1]));
-        colorStyle.color = '#fff';
+        const esgColor = getEsgImprovementColor(parseInt(esgMatch[1]));
+        colorStyle.background = esgColor;
+        colorStyle.color = getTextColorForBackground(esgColor);
         colorStyle.padding = '0.3em 0.7em';
         colorStyle.borderRadius = '0.5em';
         colorStyle.display = 'inline-block';
