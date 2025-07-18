@@ -176,7 +176,7 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  font-size: 0.875rem;
+  font-size: 2rem;
   order: 5;
 }
 
@@ -205,12 +205,13 @@
 
 /* Spinner animation */
 .spinner {
-  width: 16px;
-  height: 16px;
+  width: 26px;
+  height: 26px;
   border: 2px solid #e5e7eb;
   border-top: 2px solid #3b82f6;
   border-radius: 50%;
   animation: spin 1s linear infinite;
+  margin-top: 15px;
 }
 
 @keyframes spin {
