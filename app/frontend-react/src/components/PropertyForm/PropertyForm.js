@@ -28,7 +28,7 @@ const initialFormData = {
   hasTerrace: true,
 };
 
-const PropertyForm = ({ onPredictionComment, onToggleSidePanel, onOpenSidePanel, onOpenEsgPanel, onSetEsgAnalysis, onSetPropertyData, onSetPredictionData, onSetEsgData, onSetEsgLoading, onClearComments, onSendChatMessage }) => {
+const PropertyForm = ({ onPredictionComment, onToggleSidePanel, onOpenSidePanel, onOpenEsgPanel, onSetEsgAnalysis, onSetPropertyData, onSetPredictionData, onSetEsgData, onSetEsgLoading, onClearComments, onSendChatMessage, onResetStrategicAnalysis }) => {
   const [formData, setFormData] = useState(initialFormData);
   const [loading, setLoading] = useState(false);
   const [esgLoading, setEsgLoading] = useState(false);
@@ -277,6 +277,11 @@ const PropertyForm = ({ onPredictionComment, onToggleSidePanel, onOpenSidePanel,
     // Clear previous comments before starting new analysis
     if (onClearComments) {
       onClearComments();
+    }
+    
+    // Reset strategic analysis states when starting new analysis
+    if (onResetStrategicAnalysis) {
+      onResetStrategicAnalysis();
     }
     
     // Notify parent about loading state
@@ -558,40 +563,74 @@ const PropertyForm = ({ onPredictionComment, onToggleSidePanel, onOpenSidePanel,
       if (onPredictionComment) {
         onPredictionComment([
           strategicComment,
-          '',
-          'Initiating comprehensive strategic analysis...',
-          '',
-          '🔍 Market Position Assessment',
-          '• Analyzing regional market trends',
-          '• Evaluating competitive positioning',
-          '• Assessing growth potential',
-          '',
-          '📊 Investment Strategy Analysis',
-          '• ROI projections and scenarios',
-          '• Risk assessment framework',
-          '• Capital allocation optimization',
-          '',
-          '🎯 Strategic Recommendations',
-          '• Short-term tactical actions',
-          '• Medium-term development roadmap',
-          '• Long-term value creation strategy',
-          '',
-          '⚡ Key Strategic Insights:',
-          '• Property demonstrates strong fundamentals',
-          '• Market conditions favorable for investment',
-          '• ESG compliance creates competitive advantage',
-          '• Optimal timing for strategic positioning',
-          '',
-          '📈 Next Steps:',
-          '• Review detailed financial projections',
-          '• Consider portfolio diversification opportunities',
-          '• Evaluate renovation/improvement ROI',
-          '• Monitor regulatory compliance requirements'
         ]);
       }
 
-      // Trigger the existing strategic analysis function
-      await triggerStrategicAnalysis(detailedEsgData);
+      // Trigger the strategic analysis directly in the SidePanel using the same business logic
+      if (onSendChatMessage) {
+        // Prepare comprehensive ESG data for the strategic analysis INCLUDING ALL DETAILED DATA
+        const esgScores = detailedEsgData?.esg_scores || {};
+        const compliance = detailedEsgData?.compliance_status || {};
+        const financialImpact = detailedEsgData?.financial_impact || {};
+        const recommendations = detailedEsgData?.recommendations || [];
+        const analysisPoints = detailedEsgData?.analysis_points || [];
+        
+        // Include the complete ESG Analysis Report content
+        const fullEsgReport = detailedEsgData?.full_report || '';
+        
+        // Create comprehensive strategic analysis prompt with ALL ESG data including detailed analysis
+        const strategicAnalysisPrompt = `Generate a comprehensive strategic analysis for this Belgian real estate investment based on the complete ESG analysis data. Structure it with clear markdown headers:
+
+# Strategic Analysis – ${formData.locality} Property Investment
+
+## ESG Analysis Summary
+**Environmental Score:** ${esgScores.environmental || 'N/A'}/10 **Social Score:** ${esgScores.social || 'N/A'}/10 **Governance Score:** ${esgScores.governance || 'N/A'}/10 **Overall ESG Score:** ${esgScores.overall || 'N/A'}/10
+
+## Investment Positioning
+Based on the ESG analysis results above, analyze the investment potential for this ${formData.propertyType.toLowerCase()} property in ${formData.locality}.
+
+## Market Context
+Analyze the ${formData.locality} market, construction year ${formData.buildingConstructionYear || 'recent'}, and EPC rating ${formData.epcScore || 'modern'} positioning.
+
+## ESG Compliance Status
+${Object.entries(compliance).map(([key, value]) => `**${key.replace(/_/g, ' ').toUpperCase()}:** ${value}`).join('\n')}
+
+## Financial Impact Analysis
+${Object.entries(financialImpact).map(([key, value]) => `**${key.replace(/_/g, ' ').toUpperCase()}:** ${value}`).join('\n')}
+
+## Key ESG Analysis Points
+${analysisPoints.slice(0, 6).map(point => `• ${point}`).join('\n')}
+
+## ESG-Based Recommendations
+${recommendations.slice(0, 6).map(rec => `• ${rec}`).join('\n')}
+
+## Complete ESG Analysis Report Integration
+**Reference the detailed ESG analysis for comprehensive insights:**
+
+${fullEsgReport}
+
+## Strategic Recommendations
+
+### Short-term Actions (0-6 months)
+Immediate improvement opportunities based on ESG findings
+Quick wins for value enhancement from compliance analysis
+
+### Medium-term Strategy (6-24 months)  
+Major improvement projects aligned with ESG scores
+Market positioning optimization considering financial impact
+
+### Long-term Vision (2+ years)
+Future-proofing strategies based on governance assessment
+Regulatory compliance preparation for Belgian market
+
+## Risk Assessment
+Evaluate potential risks and mitigation strategies based on current ESG compliance status and market trends.
+
+Property details: Surface ${formData.habitableSurface}m², ${formData.bedroomCount} bedrooms, ${formData.buildingCondition} condition, ${formData.heatingType} heating.`;
+
+        // Send this to the SidePanel chat which will trigger the strategic analysis
+        await onSendChatMessage(strategicAnalysisPrompt);
+      }
 
     } catch (error) {
       console.error("Strategic Analysis error:", error);

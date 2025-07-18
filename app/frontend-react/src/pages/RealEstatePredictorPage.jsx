@@ -18,6 +18,9 @@ const RealEstatePredictorPage = () => {
   
   // Reference to SidePanel's sendMessageToChat function
   const [sendMessageToChat, setSendMessageToChat] = useState(null);
+  
+  // Reference to SidePanel's resetStrategicAnalysis function
+  const [resetStrategicAnalysis, setResetStrategicAnalysis] = useState(null);
 
   const handleAdminToggle = () => {
     setShowAdmin(!showAdmin);
@@ -61,6 +64,10 @@ const RealEstatePredictorPage = () => {
     setSendMessageToChat(() => sendMessageFunction);
   };
 
+  const handleSetResetStrategicAnalysis = (resetFunction) => {
+    setResetStrategicAnalysis(() => resetFunction);
+  };
+
   const handlePredictionComment = (newComments) => {
     // Filtrer les doublons avant d'ajouter
     setComments(prev => {
@@ -94,6 +101,7 @@ const RealEstatePredictorPage = () => {
         predictionData={predictionData}
         esgData={esgData}
         onSendChatMessage={handleSetSendMessageToChat}
+        onResetStrategicAnalysis={handleSetResetStrategicAnalysis}
       />
       
       {/* ESG Panel (Right) */}
@@ -121,6 +129,7 @@ const RealEstatePredictorPage = () => {
             onSetEsgLoading={setEsgLoading}
             onClearComments={clearComments}
             onSendChatMessage={handleSendChatMessage}
+            onResetStrategicAnalysis={resetStrategicAnalysis}
           />
           
           {showAdmin && (

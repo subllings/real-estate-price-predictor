@@ -3,7 +3,7 @@ import "./SidePanel.css";
 import axios from "axios";
 import { CHAT_API_URL } from "../../config/api";
 
-const SidePanel = ({ user, isExpanded, onToggle, onClose, comments, clearComments, propertyData, predictionData, esgData, onSendChatMessage }) => {
+const SidePanel = ({ user, isExpanded, onToggle, onClose, comments, clearComments, propertyData, predictionData, esgData, onSendChatMessage, onResetStrategicAnalysis }) => {
   const [chatInput, setChatInput] = useState("");
   const [messages, setMessages] = useState([
     { from: "agent", text: "Hello! How can I assist you today?" }
@@ -29,6 +29,20 @@ const SidePanel = ({ user, isExpanded, onToggle, onClose, comments, clearComment
   const [isResizing, setIsResizing] = useState(false);
   const [startX, setStartX] = useState(0);
   const [startWidth, setStartWidth] = useState(500);
+
+  // Fonction pour réinitialiser l'analyse stratégique
+  const resetStrategicAnalysis = () => {
+    setStrategicAnalysisGenerated(false);
+    setIsStrategicAnalysisLoading(false);
+    console.log("Strategic analysis states reset");
+  };
+
+  // Exposer la fonction au composant parent
+  useEffect(() => {
+    if (onResetStrategicAnalysis) {
+      onResetStrategicAnalysis(resetStrategicAnalysis);
+    }
+  }, [onResetStrategicAnalysis]);
 
   // Fonction pour envoyer un message au chat depuis l'extérieur
   const sendMessageToChat = async (message) => {
@@ -488,7 +502,7 @@ Property details: Surface ${analysisData.surface}m², ${analysisData.bedrooms} b
           text: `❌ **Strategic Analysis Error**\n\nUnable to generate strategic analysis: ${err.response?.data?.detail || err.message || 'API unavailable'}. The ESG analysis is still available in the right panel.`, 
           type: "prediction",
           subtype: "strategic-title",
-          timestamp: new Date().toISOString() 
+          timestamp: new Date().toISOString()
         }
       ]);
     }
@@ -568,6 +582,48 @@ Property details: Surface ${analysisData.surface}m², ${analysisData.bedrooms} b
     }
   };
 
+  // Fonction pour formater les messages utilisateur (sans couleurs, texte blanc)
+  const formatUserMessage = (text) => {
+    if (!text) return { __html: '' };
+    
+    let formattedText = text.toString().trim();
+    
+    // Vérifier si le message est vide
+    if (!formattedText) {
+      return { __html: '' };
+    }
+    
+    // Supprimer les emojis pour un style plus propre
+    formattedText = formattedText.replace(/[\u{1F600}-\u{1F64F}]|[\u{1F300}-\u{1F5FF}]|[\u{1F680}-\u{1F6FF}]|[\u{1F1E0}-\u{1F1FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]|[\u{1F900}-\u{1F9FF}]|[\u{1F018}-\u{1F0FF}]/gu, '');
+    
+    // Convertir les titres markdown en titres simples sans couleurs (tout en blanc)
+    formattedText = formattedText.replace(/(^|[\s\n])#{4}\s+([^\n]+)/gm, '$1<h5 style="margin: 10px 0 5px 0; font-weight: 600; color: white; font-size: 13px;">$2</h5>');
+    formattedText = formattedText.replace(/(^|[\s\n])#{3}\s+([^\n]+)/gm, '$1<h4 style="margin: 12px 0 6px 0; font-weight: bold; color: white; font-size: 14px;">$2</h4>');
+    formattedText = formattedText.replace(/(^|[\s\n])#{2}\s+([^\n]+)/gm, '$1<h3 style="margin: 14px 0 8px 0; font-weight: bold; color: white; font-size: 15px;">$2</h3>');
+    formattedText = formattedText.replace(/(^|[\s\n])#{1}\s+([^\n]+)/gm, '$1<h2 style="margin: 16px 0 10px 0; font-weight: bold; color: white; font-size: 17px;">$2</h2>');
+    
+    // Convertir **texte** en texte gras blanc
+    formattedText = formattedText.replace(/\*\*(.*?)\*\*/g, '<strong style="color: white;">$1</strong>');
+    
+    // Traiter les bullet points avec alignement correct (en blanc)
+    formattedText = formattedText.replace(/^[•\+\-]\s*(.*?)$/gm, '<div style="margin: 4px 0; padding-left: 16px; color: white; line-height: 1.4; position: relative;"><span style="position: absolute; left: 0; color: white; font-weight: bold;">•</span>$1</div>');
+    
+    // Convertir les sauts de ligne en <br/>
+    formattedText = formattedText.replace(/\n(?!\s*<)/g, '<br/>');
+    
+    // Nettoyer les <br/> en trop
+    formattedText = formattedText.replace(/(<br\/>){3,}/g, '<br/><br/>');
+    formattedText = formattedText.replace(/<br\/>\s*(<h[1-6])/g, '$1');
+    formattedText = formattedText.replace(/(<\/h[1-6]>)\s*<br\/>/g, '$1');
+    formattedText = formattedText.replace(/<br\/>\s*(<div)/g, '$1');
+    formattedText = formattedText.replace(/(<\/div>)\s*<br\/>/g, '$1');
+    
+    // Nettoyer les espaces en début et fin
+    formattedText = formattedText.trim();
+    
+    return { __html: formattedText };
+  };
+
   // Fonction pour convertir le markdown simple (**texte**) en HTML et supprimer les emojis
   const formatMessageText = (text) => {
     if (!text) return { __html: '' };
@@ -616,10 +672,11 @@ Property details: Surface ${analysisData.surface}m², ${analysisData.bedrooms} b
     
     // 4. Convertir les titres markdown # ## ### #### en titres HTML propres
     // Ordre important : du plus spécifique au moins spécifique
-    formattedText = formattedText.replace(/^#{4}\s+(.*?)$/gm, '<h5 style="margin: 10px 0 5px 0; font-weight: 600; color: #1565c0; font-size: 13px;">$1</h5>');
-    formattedText = formattedText.replace(/^#{3}\s+(.*?)$/gm, '<h4 style="margin: 12px 0 6px 0; font-weight: bold; color: #2563eb; font-size: 14px;">$1</h4>');
-    formattedText = formattedText.replace(/^#{2}\s+(.*?)$/gm, '<h3 style="margin: 14px 0 8px 0; font-weight: bold; color: #8b5a2b; font-size: 15px;">$1</h3>');
-    formattedText = formattedText.replace(/^#{1}\s+(.*?)$/gm, '<h2 style="margin: 16px 0 10px 0; font-weight: bold; color: #6a1b9a; font-size: 17px; border-bottom: 1px solid #e0e0e0; padding-bottom: 3px;">$1</h2>');
+    // Gérer les cas où les titres peuvent être au milieu du texte ou après des espaces
+    formattedText = formattedText.replace(/(^|[\s\n])#{4}\s+([^\n]+)/gm, '$1<h5 style="margin: 10px 0 5px 0; font-weight: 600; color: #1565c0; font-size: 13px;">$2</h5>');
+    formattedText = formattedText.replace(/(^|[\s\n])#{3}\s+([^\n]+)/gm, '$1<h4 style="margin: 12px 0 6px 0; font-weight: bold; color: #2563eb; font-size: 14px;">$2</h4>');
+    formattedText = formattedText.replace(/(^|[\s\n])#{2}\s+([^\n]+)/gm, '$1<h3 style="margin: 14px 0 8px 0; font-weight: bold; color: #8b5a2b; font-size: 15px;">$2</h3>');
+    formattedText = formattedText.replace(/(^|[\s\n])#{1}\s+([^\n]+)/gm, '$1<h2 style="margin: 16px 0 10px 0; font-weight: bold; color: #6a1b9a; font-size: 17px; border-bottom: 1px solid #e0e0e0; padding-bottom: 3px;">$2</h2>');
     
     // 4.1 Gérer les titres avec numéros qui peuvent être au milieu du texte
     formattedText = formattedText.replace(/(?:^|\n)#{3}\s*(\d+)\.\s+([^\n]+)/gm, '<h4 style="margin: 12px 0 6px 0; font-weight: bold; color: #2563eb; font-size: 14px;">$1. $2</h4>');
@@ -762,14 +819,6 @@ Property details: Surface ${analysisData.surface}m², ${analysisData.bedrooms} b
                   <h4>AI Chat Assistant</h4>
                   <div className="chat-header-buttons">
                     <button
-                      onClick={() => setIsStrategicAnalysisLoading(!isStrategicAnalysisLoading)}
-                      className="strategic-analysis-btn"
-                      style={{ backgroundColor: isStrategicAnalysisLoading ? '#dc3545' : '#007bff' }}
-                      title="Toggle Spinner"
-                    >
-                      {isStrategicAnalysisLoading ? 'Stop Spinner' : 'Test Spinner'}
-                    </button>
-                    <button
                       onClick={() => {
                         setStrategicAnalysisGenerated(false);
                         setIsStrategicAnalysisLoading(false);
@@ -832,7 +881,22 @@ Property details: Surface ${analysisData.surface}m², ${analysisData.bedrooms} b
                       return true;
                     })
                     .map((msg, idx) => {
-                      // Double vérification avant le rendu
+                      // Pour les messages utilisateur, utiliser un formatage simple sans couleurs
+                      if (msg.from === "user") {
+                        const userContent = formatUserMessage(msg.text);
+                        if (!userContent || !userContent.__html || userContent.__html.trim() === '') {
+                          return null;
+                        }
+                        return (
+                          <div
+                            key={idx}
+                            className="message user-msg"
+                            dangerouslySetInnerHTML={userContent}
+                          />
+                        );
+                      }
+                      
+                      // Pour les messages agent, utiliser le formatage avec couleurs
                       const formattedContent = formatMessageText(msg.text);
                       if (!formattedContent || !formattedContent.__html || formattedContent.__html.trim() === '') {
                         return null; // Ne pas rendre les messages vides
@@ -841,7 +905,7 @@ Property details: Surface ${analysisData.surface}m², ${analysisData.bedrooms} b
                       return (
                         <div
                           key={idx}
-                          className={`message ${msg.from === "user" ? "user-msg" : "agent-msg"} ${msg.type === "prediction" ? "prediction-msg" : ""} ${msg.subtype === "prediction-title" ? "prediction-title" 
+                          className={`message agent-msg ${msg.type === "prediction" ? "prediction-msg" : ""} ${msg.subtype === "prediction-title" ? "prediction-title" 
                             : ""} ${msg.subtype === "esg-title" ? "esg-title" : ""} ${msg.subtype === "strategic-title" ? "strategic-title" : ""} ${msg.subtype === "model-info" ? "model-info" : ""} ${msg.subtype === "prediction-comment" ? "prediction-comment" : ""}`}
                           dangerouslySetInnerHTML={formattedContent}
                         />
