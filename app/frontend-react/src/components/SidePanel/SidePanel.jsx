@@ -346,6 +346,22 @@ const SidePanel = ({ user, isExpanded, onToggle, onClose, comments, clearComment
       };
 
       console.log("Sending strategic analysis request with data:", analysisData);
+      console.log("ESG Data received:", esgData);
+      console.log("ESG Scores extracted:", esgData?.esg_scores);
+      console.log("Final ESG Scores in analysisData:", analysisData.esgScores);
+      console.log("ESG Individual Scores:", {
+        environment: analysisData.esgScores?.environment,
+        environmental: analysisData.esgScores?.environmental,
+        social: analysisData.esgScores?.social,
+        governance: analysisData.esgScores?.governance,
+        overall: analysisData.esgScores?.overall
+      });
+      console.log("ESG Scores Fallback Check:", {
+        enviromentFallback: analysisData.esgScores.environment || analysisData.esgScores.environmental || 'N/A',
+        socialFallback: analysisData.esgScores.social || 'N/A',
+        governanceFallback: analysisData.esgScores.governance || 'N/A',
+        overallFallback: analysisData.esgScores.overall || 'N/A'
+      });
 
       // Utiliser l'API Chat pour générer une analyse stratégique enrichie
       const prompt = `Generate a comprehensive strategic analysis for this Belgian real estate investment. Follow this EXACT structure with these specific headers only:
@@ -353,7 +369,7 @@ const SidePanel = ({ user, isExpanded, onToggle, onClose, comments, clearComment
 # Strategic Analysis – ${analysisData.municipality} Property Investment
 
 ## Investment Positioning
-Based on ESG scores (Environmental: ${analysisData.esgScores.environmental || 'N/A'}/10, Social: ${analysisData.esgScores.social || 'N/A'}/10, Governance: ${analysisData.esgScores.governance || 'N/A'}/10), analyze the investment potential.
+Based on ESG scores (Environmental: ${analysisData.esgScores.environment || analysisData.esgScores.environmental || 'N/A'}/10, Social: ${analysisData.esgScores.social || 'N/A'}/10, Governance: ${analysisData.esgScores.governance || 'N/A'}/10, Overall: ${analysisData.esgScores.overall || 'N/A'}/10), analyze the investment potential.
 
 ## Market Context
 Analyze the ${analysisData.municipality} market, construction year ${analysisData.buildingConstructionYear}, and EPC rating ${analysisData.esgScore} positioning. Include specific insights about the Antwerp market dynamics, rental demand, and property value trends.
@@ -772,33 +788,39 @@ Property details: Surface ${analysisData.surface}m², ${analysisData.bedrooms} b
     formattedText = formattedText.replace(/(?:^|\n)#{2}\s*(\d+)\.\s+([^\n]+)/gm, '<h3 style="margin: 14px 0 8px 0; font-weight: bold; color: #8b5a2b; font-size: 15px;">$1. $2</h3>');
     formattedText = formattedText.replace(/(?:^|\n)#{1}\s*(\d+)\.\s+([^\n]+)/gm, '<h2 style="margin: 16px 0 10px 0; font-weight: bold; color: #6a1b9a; font-size: 17px; border-bottom: 1px solid #e0e0e0; padding-bottom: 3px;">$1. $2</h2>');
     
-    // 5. Convertir **texte** en <strong>texte</strong> APRÈS les titres pour éviter les conflits
+    // 5. FORMATAGE SPÉCIALISÉ POUR LES TAGS *Risk:* et *Mitigation:* (AVANT les autres formattages)
+    // Convertir *Risk:* en span rouge sans icône
+    formattedText = formattedText.replace(/\*Risk:\*/g, '<span style="color: #d32f2f; font-weight: bold; background-color: #ffebee; padding: 2px 6px; border-radius: 3px; font-size: 12px;">RISK</span>');
+    // Convertir *Mitigation:* en span vert sans icône
+    formattedText = formattedText.replace(/\*Mitigation:\*/g, '<span style="color: #2e7d32; font-weight: bold; background-color: #e8f5e8; padding: 2px 6px; border-radius: 3px; font-size: 12px;">MITIGATION</span>');
+    
+    // 6. Convertir **texte** en <strong>texte</strong> APRÈS les titres et tags spécialisés pour éviter les conflits
     formattedText = formattedText.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
     
-    // 6. Traiter les puces différemment selon leur contexte
+    // 7. Traiter les puces différemment selon leur contexte
     // D'abord traiter les puces qui suivent "How:" ou "Why:"
     formattedText = formattedText.replace(/(Why:|How:)\s*\n?\s*-\s*(.+)/gi, '$1<br/><div style="margin: 4px 0 4px 16px; padding: 0; line-height: 1.4;"><span style="color: #6a1b9a; font-weight: bold;">•</span> $2</div>');
     
     // Ensuite traiter les puces normales en début de ligne
     formattedText = formattedText.replace(/^[•\+\-]\s*(.*?)$/gm, '<div style="margin: 2px 0 2px 16px; padding: 0; line-height: 1.4; position: relative;"><span style="position: absolute; left: -12px; color: #6a1b9a; font-weight: bold;">•</span>$1</div>');
     
-    // 7. Nettoyer les sauts de ligne excessifs
+    // 8. Nettoyer les sauts de ligne excessifs
     formattedText = formattedText.replace(/\n\s*\n\s*\n/g, '\n\n');
     
-    // 8. Convertir les sauts de ligne simples en <br/> mais éviter autour des balises HTML
+    // 9. Convertir les sauts de ligne simples en <br/> mais éviter autour des balises HTML
     formattedText = formattedText.replace(/\n(?!\s*<)/g, '<br/>');
     
-    // 9. Nettoyer les <br/> en trop et les lignes vides
+    // 10. Nettoyer les <br/> en trop et les lignes vides
     formattedText = formattedText.replace(/(<br\/>){3,}/g, '<br/><br/>');
     formattedText = formattedText.replace(/<br\/>\s*(<h[1-6])/g, '$1');
     formattedText = formattedText.replace(/(<\/h[1-6]>)\s*<br\/>/g, '$1');
     formattedText = formattedText.replace(/<br\/>\s*(<div)/g, '$1');
     formattedText = formattedText.replace(/(<\/div>)\s*<br\/>/g, '$1');
     
-    // 10. Supprimer les lignes vides restantes
+    // 11. Supprimer les lignes vides restantes
     formattedText = formattedText.replace(/<br\/>\s*<br\/>\s*<br\/>/g, '<br/><br/>');
     
-    // 11. Nettoyer les espaces en début et fin
+    // 12. Nettoyer les espaces en début et fin
     formattedText = formattedText.trim();
     
     // Dernière vérification : si le contenu final est vide, retourner vide

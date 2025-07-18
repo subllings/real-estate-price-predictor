@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import axios from "axios";
 import ResultCard from "../ResultCard";
 import StrategicAnalysisConclusion from "../EsgSummary/EsgSummary";
@@ -36,6 +36,33 @@ const PropertyForm = ({ onPredictionComment, onToggleSidePanel, onOpenSidePanel,
   const [error, setError] = useState(null);
   const [esgAnalysisAvailable, setEsgAnalysisAvailable] = useState(false);
   const [detailedEsgData, setDetailedEsgData] = useState(null);
+  
+  // ESG Score Variables - Store calculated values from EsgSummary
+  const [esgScores, setEsgScores] = useState({
+    environmental: 0,
+    social: 0,
+    governance: 0,
+    overall: 0
+  });
+  
+  // Console log for ESG scores in PropertyForm
+  console.log('PropertyForm ESG Scores:', esgScores);
+  
+  // Detailed ESG Score Summary Log for PropertyForm
+  console.log('=== PropertyForm ESG SCORE SUMMARY ===', {
+    Environmental: `${esgScores.environmental}/10`,
+    Social: `${esgScores.social}/10`,
+    Governance: `${esgScores.governance}/10`,
+    Overall: `${esgScores.overall}/10`,
+    rawScores: esgScores,
+    formData: formData,
+    timestamp: new Date().toLocaleTimeString()
+  });
+
+  // Calculate ESG scores on component mount and when formData changes
+  useEffect(() => {
+    calculateEsgScores(formData);
+  }, [formData]);
 
   const subtypesByPropertyType = {
     HOUSE: [
@@ -120,6 +147,93 @@ const PropertyForm = ({ onPredictionComment, onToggleSidePanel, onOpenSidePanel,
     }
 
     setFormData(updatedForm);
+    
+    // Recalculate ESG scores when form data changes
+    calculateEsgScores(updatedForm);
+  };
+
+  // Function to calculate ESG scores (matching EsgSummary logic)
+  const calculateEsgScores = (currentFormData) => {
+    if (!currentFormData) return;
+
+    const epcScores = {
+      'A_plus': 9.0, 'A': 8.5, 'B': 7.5, 'C': 6.5, 'D': 5.5, 'E': 4.5, 'F': 3.5, 'G': 2.5
+    };
+    
+    // Environmental score based on multiple factors
+    let environmental = epcScores[currentFormData.epcScore] || 6.0;
+    
+    // Adjust for heating type
+    const heatingAdjustment = {
+      'ELECTRIC': 0.5, 'GAS': 0, 'SOLAR': 1.5, 'HEAT_PUMP': 1.0, 'WOOD': 0.5
+    };
+    environmental += heatingAdjustment[currentFormData.heatingType] || 0;
+    
+    // Adjust for flood zone
+    if (currentFormData.floodZoneType === 'NON_FLOOD_ZONE') environmental += 0.5;
+    
+    // Social score based on location and amenities
+    let social = currentFormData.locality && ['Antwerpen', 'Brussels', 'Gent', 'Brugge', 'Leuven'].includes(currentFormData.locality) ? 8.0 : 7.0;
+    
+    // Adjust for property features
+    if (currentFormData.hasLivingRoom) social += 0.3;
+    if (currentFormData.hasTerrace) social += 0.2;
+    if (currentFormData.bedroomCount >= 3) social += 0.3;
+    
+    // Governance score based on building age and condition
+    let governance = currentFormData.buildingConstructionYear > 2000 ? 7.5 : 6.5;
+    
+    // Adjust for building condition
+    const conditionAdjustment = {
+      'AS_NEW': 1.0, 'GOOD': 0.5, 'RENOVATION_NEEDED': -0.5, 'TO_RESTORE': -1.0
+    };
+    governance += conditionAdjustment[currentFormData.buildingCondition] || 0;
+    
+    // Adjust for kitchen type
+    const kitchenAdjustment = {
+      'HYPER_EQUIPPED': 0.5, 'EQUIPPED': 0.2, 'SIMPLE': 0, 'NOT_INSTALLED': -0.5
+    };
+    governance += kitchenAdjustment[currentFormData.kitchenType] || 0;
+    
+    // Ensure scores are within valid range
+    environmental = Math.max(1, Math.min(10, environmental));
+    social = Math.max(1, Math.min(10, social));
+    governance = Math.max(1, Math.min(10, governance));
+    
+    const overall = (environmental + social + governance) / 3;
+
+    const calculatedScores = {
+      environmental: Math.round(environmental * 10) / 10,
+      social: Math.round(social * 10) / 10,
+      governance: Math.round(governance * 10) / 10,
+      overall: Math.round(overall * 10) / 10
+    };
+
+    setEsgScores(calculatedScores);
+    
+    // Console log for tracking ESG score changes
+    console.log('ESG Scores calculated in PropertyForm:', calculatedScores);
+    
+    // Detailed log when ESG scores are calculated
+    console.log('=== PropertyForm ESG CALCULATION COMPLETE ===', {
+      Environmental: `${calculatedScores.environmental}/10`,
+      Social: `${calculatedScores.social}/10`,
+      Governance: `${calculatedScores.governance}/10`,
+      Overall: `${calculatedScores.overall}/10`,
+      calculationInputs: {
+        epcScore: currentFormData.epcScore,
+        heatingType: currentFormData.heatingType,
+        floodZoneType: currentFormData.floodZoneType,
+        locality: currentFormData.locality,
+        bedroomCount: currentFormData.bedroomCount,
+        buildingConstructionYear: currentFormData.buildingConstructionYear,
+        buildingCondition: currentFormData.buildingCondition,
+        kitchenType: currentFormData.kitchenType
+      },
+      timestamp: new Date().toLocaleTimeString()
+    });
+    
+    return calculatedScores;
   };
 
   // New function for ESG Analysis button
@@ -166,6 +280,71 @@ const PropertyForm = ({ onPredictionComment, onToggleSidePanel, onOpenSidePanel,
       const response = await axios.post(ESG_API_URL, requestData);
       const esgData = response.data;
 
+      // Ensure ESG data has the correct structure, even if API returns different format
+      if (!esgData.esg_scores) {
+        // Calculate realistic ESG scores based on form data (matching EsgSummary logic)
+        const epcScores = {
+          'A_plus': 10.0, 'A': 9.5, 'B': 8.0, 'C': 6.5, 'D': 5.5, 'E': 4.5, 'F': 3.5, 'G': 2.5
+        };
+        
+        let environmental = epcScores[formData.epcScore] || 6.0;
+        
+        // Adjust for heating type
+        const heatingAdjustment = {
+          'ELECTRIC': 0.5, 'GAS': 0, 'SOLAR': 1.5, 'HEAT_PUMP': 1.0, 'WOOD': 0.5
+        };
+        environmental += heatingAdjustment[formData.heatingType] || 0;
+        
+        // Adjust for flood zone
+        if (formData.floodZoneType === 'NON_FLOOD_ZONE') environmental += 0.5;
+        
+        // Social score based on location and amenities
+        let social = formData.locality && ['Antwerpen', 'Brussels', 'Gent', 'Brugge', 'Leuven'].includes(formData.locality) ? 8.0 : 7.0;
+        
+        // Adjust for property features
+        if (formData.hasLivingRoom) social += 0.3;
+        if (formData.hasTerrace) social += 0.2;
+        if (formData.bedroomCount >= 3) social += 0.3;
+        
+        // Governance score based on building age and condition
+        let governance = formData.buildingConstructionYear > 2000 ? 7.5 : 6.5;
+        
+        // Adjust for building condition
+        const conditionAdjustment = {
+          'AS_NEW': 1.0, 'GOOD': 0.5, 'RENOVATION_NEEDED': -0.5, 'TO_RESTORE': -1.0
+        };
+        governance += conditionAdjustment[formData.buildingCondition] || 0;
+        
+        // Adjust for kitchen type
+        const kitchenAdjustment = {
+          'HYPER_EQUIPPED': 0.5, 'EQUIPPED': 0.2, 'SIMPLE': 0, 'NOT_INSTALLED': -0.5
+        };
+        governance += kitchenAdjustment[formData.kitchenType] || 0;
+        
+        // Ensure scores are within valid range
+        environmental = Math.max(1, Math.min(10, environmental));
+        social = Math.max(1, Math.min(10, social));
+        governance = Math.max(1, Math.min(10, governance));
+        
+        const overall = (environmental + social + governance) / 3;
+        
+        esgData.esg_scores = {
+          environmental: Math.round(environmental * 10) / 10,
+          environment: Math.round(environmental * 10) / 10,
+          social: Math.round(social * 10) / 10,
+          governance: Math.round(governance * 10) / 10,
+          overall: Math.round(overall * 10) / 10
+        };
+      } else {
+        // Ensure both 'environment' and 'environmental' fields exist for compatibility
+        if (esgData.esg_scores.environmental && !esgData.esg_scores.environment) {
+          esgData.esg_scores.environment = esgData.esg_scores.environmental;
+        }
+        if (esgData.esg_scores.environment && !esgData.esg_scores.environmental) {
+          esgData.esg_scores.environmental = esgData.esg_scores.environment;
+        }
+      }
+
       // Generate timestamp
       const now = new Date();
       const timestamp = now.toLocaleTimeString('en-US', { 
@@ -175,8 +354,32 @@ const PropertyForm = ({ onPredictionComment, onToggleSidePanel, onOpenSidePanel,
         hour12: true 
       });
 
-      // Create ESG Analysis chat comment with simplified format
-      const esgComment = `${formData.propertyType} in ${formData.locality}, ${formData.province} (${timestamp})`;
+      // Create ESG Analysis chat comment with ESG scores included
+      const esgScoresText = `ESG Scores - Environmental: ${esgScores.environmental}/10, Social: ${esgScores.social}/10, Governance: ${esgScores.governance}/10, Overall: ${esgScores.overall}/10`;
+      const esgComment = `${esgScoresText} | ${formData.propertyType} in ${formData.locality}, ${formData.province} (${timestamp})`;
+      
+      // Log the complete prompt in console
+      console.log('=== ESG ANALYSIS PROMPT WITH SCORES ===', {
+        esgScoresIncluded: esgScoresText,
+        fullPrompt: esgComment,
+        timestamp: timestamp,
+        calculatedScores: esgScores
+      });
+
+      // Dispatch event for AdminPanel to capture the prompt
+      window.dispatchEvent(new CustomEvent('llmPromptSent', {
+        detail: {
+          type: 'ESG_ANALYSIS',
+          prompt: esgComment,
+          timestamp: timestamp,
+          metadata: {
+            esgScoresIncluded: esgScoresText,
+            calculatedScores: esgScores,
+            location: formData.locality,
+            postalCode: formData.postalCode
+          }
+        }
+      }));
       
       // Format the detailed ESG analysis for chat
       const formattedAnalysis = [
@@ -224,16 +427,14 @@ const PropertyForm = ({ onPredictionComment, onToggleSidePanel, onOpenSidePanel,
       console.error("ESG Analysis error:", error);
       setError("ESG Analysis failed. Please try again.");
       
-      // Even if analysis fails, show fallback ESG data
+      // Even if analysis fails, show fallback ESG data using calculated scores
       const fallbackEsgData = {
         esg_scores: {
-          environmental: formData.epcScore === 'A_plus' || formData.epcScore === 'A' ? 8.5 : 
-                         formData.epcScore === 'B' ? 7.5 : 
-                         formData.epcScore === 'C' ? 6.5 : 
-                         formData.epcScore === 'D' ? 5.5 : 4.5,
-          social: 7.0,
-          governance: formData.buildingConstructionYear > 2000 ? 7.5 : 6.5,
-          overall: 7.0
+          environmental: esgScores.environmental,
+          environment: esgScores.environmental,
+          social: esgScores.social,
+          governance: esgScores.governance,
+          overall: esgScores.overall
         },
         financial_impact: {
           energy_cost_annual: `Estimated based on EPC ${formData.epcScore === 'A_plus' ? 'A+' : formData.epcScore?.replace('_', '+') || 'N/A'} rating`,
@@ -249,8 +450,85 @@ const PropertyForm = ({ onPredictionComment, onToggleSidePanel, onOpenSidePanel,
           "Consider energy efficiency improvements based on EPC rating",
           "Evaluate accessibility and social impact features",
           "Ensure compliance with Belgian building regulations"
-        ]
+        ],
+        full_report: `ESG Analysis Report for ${formData.propertyType} in ${formData.locality}, ${formData.province}
+
+Environmental Score: ${esgScores.environmental}/10
+- EPC Rating: ${formData.epcScore?.replace('_', '+') || 'N/A'}
+- Heating Type: ${formData.heatingType?.replace('_', ' ') || 'N/A'}
+- Flood Zone: ${formData.floodZoneType === 'NON_FLOOD_ZONE' ? 'Safe' : 'Risk Area'}
+
+Social Score: ${esgScores.social}/10
+- Location: ${formData.locality}, ${formData.province}
+- Property Features: ${formData.bedroomCount} bedrooms, ${formData.bathroomCount} bathrooms
+- Amenities: ${formData.hasLivingRoom ? 'Living room, ' : ''}${formData.hasTerrace ? 'Terrace' : 'No terrace'}
+
+Governance Score: ${esgScores.governance}/10
+- Construction Year: ${formData.buildingConstructionYear}
+- Building Condition: ${formData.buildingCondition?.replace('_', ' ') || 'N/A'}
+- Kitchen Type: ${formData.kitchenType?.replace('_', ' ') || 'N/A'}
+
+Overall ESG Score: ${esgScores.overall}/10
+
+Analysis completed using fallback data due to API unavailability.`
       };
+      
+      // Generate timestamp for fallback
+      const now = new Date();
+      const timestamp = now.toLocaleTimeString('en-US', { 
+        hour: 'numeric', 
+        minute: '2-digit', 
+        second: '2-digit',
+        hour12: true 
+      });
+
+      // Create fallback ESG comment with calculated scores
+      const esgScoresText = `ESG Scores - Environmental: ${esgScores.environmental}/10, Social: ${esgScores.social}/10, Governance: ${esgScores.governance}/10, Overall: ${esgScores.overall}/10`;
+      const fallbackEsgComment = `${esgScoresText} | ${formData.propertyType} in ${formData.locality}, ${formData.province} (${timestamp}) [FALLBACK]`;
+      
+      // Log the fallback prompt in console
+      console.log('=== ESG ANALYSIS FALLBACK PROMPT WITH SCORES ===', {
+        esgScoresIncluded: esgScoresText,
+        fullPrompt: fallbackEsgComment,
+        timestamp: timestamp,
+        calculatedScores: esgScores,
+        fallbackReason: error.message
+      });
+
+      // Dispatch event for AdminPanel to capture the fallback prompt
+      window.dispatchEvent(new CustomEvent('llmPromptSent', {
+        detail: {
+          type: 'ESG_ANALYSIS_FALLBACK',
+          prompt: fallbackEsgComment,
+          timestamp: timestamp,
+          metadata: {
+            esgScoresIncluded: esgScoresText,
+            calculatedScores: esgScores,
+            location: formData.locality,
+            postalCode: formData.postalCode,
+            fallbackReason: error.message
+          }
+        }
+      }));
+      
+      // Format the fallback analysis for chat
+      const formattedFallbackAnalysis = [
+        fallbackEsgComment,
+        '',
+        ...fallbackEsgData.full_report.split('\n\n')
+          .filter(paragraph => paragraph.trim().length > 0)
+          .map(paragraph => paragraph.trim())
+      ];
+
+      // Add to chat
+      if (onPredictionComment) {
+        onPredictionComment(formattedFallbackAnalysis);
+      }
+
+      // Set ESG analysis data
+      if (onSetEsgAnalysis) {
+        onSetEsgAnalysis(formattedFallbackAnalysis);
+      }
       
       setDetailedEsgData(fallbackEsgData);
       setEsgAnalysisAvailable(true);
@@ -393,6 +671,71 @@ const PropertyForm = ({ onPredictionComment, onToggleSidePanel, onOpenSidePanel,
       const esgResponse = await axios.post(ESG_API_URL, esgRequestData);
       const esgData = esgResponse.data;
 
+      // Ensure ESG data has the correct structure, even if API returns different format
+      if (!esgData.esg_scores) {
+        // Calculate realistic ESG scores based on form data (matching EsgSummary logic)
+        const epcScores = {
+          'A_plus': 10.0, 'A': 9.5, 'B': 8.0, 'C': 6.5, 'D': 5.5, 'E': 4.5, 'F': 3.5, 'G': 2.5
+        };
+        
+        let environmental = epcScores[formData.epcScore] || 6.0;
+        
+        // Adjust for heating type
+        const heatingAdjustment = {
+          'ELECTRIC': 0.5, 'GAS': 0, 'SOLAR': 1.5, 'HEAT_PUMP': 1.0, 'WOOD': 0.5
+        };
+        environmental += heatingAdjustment[formData.heatingType] || 0;
+        
+        // Adjust for flood zone
+        if (formData.floodZoneType === 'NON_FLOOD_ZONE') environmental += 0.5;
+        
+        // Social score based on location and amenities
+        let social = formData.locality && ['Antwerpen', 'Brussels', 'Gent', 'Brugge', 'Leuven'].includes(formData.locality) ? 8.0 : 7.0;
+        
+        // Adjust for property features
+        if (formData.hasLivingRoom) social += 0.3;
+        if (formData.hasTerrace) social += 0.2;
+        if (formData.bedroomCount >= 3) social += 0.3;
+        
+        // Governance score based on building age and condition
+        let governance = formData.buildingConstructionYear > 2000 ? 7.5 : 6.5;
+        
+        // Adjust for building condition
+        const conditionAdjustment = {
+          'AS_NEW': 1.0, 'GOOD': 0.5, 'RENOVATION_NEEDED': -0.5, 'TO_RESTORE': -1.0
+        };
+        governance += conditionAdjustment[formData.buildingCondition] || 0;
+        
+        // Adjust for kitchen type
+        const kitchenAdjustment = {
+          'HYPER_EQUIPPED': 0.5, 'EQUIPPED': 0.2, 'SIMPLE': 0, 'NOT_INSTALLED': -0.5
+        };
+        governance += kitchenAdjustment[formData.kitchenType] || 0;
+        
+        // Ensure scores are within valid range
+        environmental = Math.max(1, Math.min(10, environmental));
+        social = Math.max(1, Math.min(10, social));
+        governance = Math.max(1, Math.min(10, governance));
+        
+        const overall = (environmental + social + governance) / 3;
+        
+        esgData.esg_scores = {
+          environmental: Math.round(environmental * 10) / 10,
+          environment: Math.round(environmental * 10) / 10,
+          social: Math.round(social * 10) / 10,
+          governance: Math.round(governance * 10) / 10,
+          overall: Math.round(overall * 10) / 10
+        };
+      } else {
+        // Ensure both 'environment' and 'environmental' fields exist for compatibility
+        if (esgData.esg_scores.environmental && !esgData.esg_scores.environment) {
+          esgData.esg_scores.environment = esgData.esg_scores.environmental;
+        }
+        if (esgData.esg_scores.environment && !esgData.esg_scores.environmental) {
+          esgData.esg_scores.environmental = esgData.esg_scores.environment;
+        }
+      }
+
       // Count actual insights from the full report (paragraphs with substantial content)
       const reportParagraphs = esgData.full_report.split('\n\n')
         .filter(paragraph => {
@@ -453,12 +796,10 @@ const PropertyForm = ({ onPredictionComment, onToggleSidePanel, onOpenSidePanel,
       if (results.all) {
         const fallbackEsgData = {
           esg_scores: {
-            environmental: formData.epcScore === 'A_plus' || formData.epcScore === 'A' ? 8.5 : 
-                           formData.epcScore === 'B' ? 7.5 : 
-                           formData.epcScore === 'C' ? 6.5 : 
-                           formData.epcScore === 'D' ? 5.5 : 4.5,
+            environmental: 7.0, // Simplified fallback for error case
+            environment: 7.0,
             social: 7.0,
-            governance: formData.buildingConstructionYear > 2000 ? 7.5 : 6.5,
+            governance: 7.0,
             overall: 7.0
           },
           financial_impact: {
@@ -627,6 +968,28 @@ Regulatory compliance preparation for Belgian market
 Evaluate potential risks and mitigation strategies based on current ESG compliance status and market trends.
 
 Property details: Surface ${formData.habitableSurface}m², ${formData.bedroomCount} bedrooms, ${formData.buildingCondition} condition, ${formData.heatingType} heating.`;
+
+        // Dispatch event for AdminPanel to capture the strategic analysis prompt
+        window.dispatchEvent(new CustomEvent('llmPromptSent', {
+          detail: {
+            type: 'STRATEGIC_ANALYSIS',
+            prompt: strategicAnalysisPrompt,
+            timestamp: new Date().toLocaleTimeString('en-US', { 
+              hour: 'numeric', 
+              minute: '2-digit', 
+              second: '2-digit',
+              hour12: true 
+            }),
+            metadata: {
+              esgScores: esgScores,
+              location: formData.locality,
+              postalCode: formData.postalCode,
+              propertyType: formData.propertyType,
+              surface: formData.habitableSurface,
+              bedrooms: formData.bedroomCount
+            }
+          }
+        }));
 
         // Send this to the SidePanel chat which will trigger the strategic analysis
         await onSendChatMessage(strategicAnalysisPrompt);

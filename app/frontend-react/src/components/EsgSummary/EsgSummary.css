@@ -872,8 +872,9 @@
 
 .esg-scores-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  grid-template-columns: repeat(4, 1fr);
   gap: 1rem;
+  align-items: stretch;
 }
 
 .esg-score-item {
@@ -884,6 +885,10 @@
   border-radius: 8px;
   box-shadow: 0 4px 12px rgba(44, 62, 80, 0.4);
   transition: transform 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 80px;
 }
 
 .esg-score-item:hover {
@@ -1003,6 +1008,12 @@
   
   .esg-scores-grid {
     grid-template-columns: repeat(2, 1fr);
+    gap: 0.8rem;
+  }
+  
+  .esg-score-item {
+    min-height: 70px;
+    padding: 0.8rem;
   }
   
   .recommendation-item {
@@ -1030,6 +1041,16 @@
   }
   
   .esg-scores-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.6rem;
+  }
+  
+  .esg-score-item {
+    min-height: 60px;
+    padding: 0.6rem;
+  }
+  
+  .score-value {
+    font-size: 1.2rem;
   }
 }

@@ -518,7 +518,7 @@ const StrategicAnalysisConclusion = ({ formData, detailedEsgData, esgAnalysisAva
 
     return (
       <div className="strategic-dashboard-card">
-        <h3>Key Recommendations Dashboard</h3>
+        <h3>Key Property Insights</h3>
         <div className="recommendations-grid">
           {strategicSummary.key_insights.map((insight, index) => (
             <div key={index} className="recommendation-item">
@@ -860,6 +860,15 @@ const StrategicAnalysisConclusion = ({ formData, detailedEsgData, esgAnalysisAva
       {esgScores && (
         <div className="esg-scores-summary">
           <h3>ESG Scores Summary</h3>
+          {/* Console log for ESG Score Summary values */}
+          {console.log('=== ESG SCORE SUMMARY VALUES ===', {
+            Environmental: `${esgScores.environment}/10`,
+            Social: `${esgScores.social}/10`,
+            Governance: `${esgScores.governance}/10`,
+            Overall: `${esgScores.overall}/10`,
+            rawScores: esgScores,
+            timestamp: new Date().toLocaleTimeString()
+          })}
           <div className="esg-scores-grid">
             <div className="esg-score-item">
               <div className="score-value">{esgScores.environment}/10</div>

@@ -56,7 +56,9 @@ const GlobalMegaMenu = ({ onAdminToggle }) => {
   ];
 
   const handleItemClick = (item) => {
+    console.log('handleItemClick called with:', item);
     if (item.action === 'admin') {
+      console.log('Admin button clicked, calling onAdminToggle');
       onAdminToggle();
     }
   };

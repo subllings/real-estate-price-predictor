@@ -5,14 +5,18 @@ import RealEstatePredictorPage from './pages/RealEstatePredictorPage';
 import ESGAgentPage from './pages/ESGAgentPage';
 import ModelTrainingPage from './pages/ModelTrainingPage';
 import AdminPage from './pages/AdminPage';
-import SimpleAdminPanel from './components/SimpleAdminPanel';
+import AdminPanel from './components/AdminPanel/AdminPanel';
+import SimpleAdminPanelTest from './components/SimpleAdminPanelTest';
+import TestAdminPanel from './TestAdminPanel';
 import GlobalMegaMenu from './components/GlobalMegaMenu';
 
 function App() {
   const [isAdminVisible, setIsAdminVisible] = useState(false);
 
   const toggleAdmin = () => {
+    console.log('toggleAdmin called, current isAdminVisible:', isAdminVisible);
     setIsAdminVisible(!isAdminVisible);
+    console.log('toggleAdmin setting isAdminVisible to:', !isAdminVisible);
   };
 
   return (
@@ -29,6 +33,7 @@ function App() {
             <Route path="/esg-agent" element={<ESGAgentPage />} />
             <Route path="/training" element={<ModelTrainingPage />} />
             <Route path="/admin" element={<AdminPage />} />
+            <Route path="/test-admin" element={<TestAdminPanel />} />
             
             {/* Remaining relevant agent routes */}
             <Route path="/agent/finance" element={<div className="p-8 text-center">🚧 Real Estate Finance Agent - Coming Soon</div>} />
@@ -37,7 +42,13 @@ function App() {
         </main>
         
         {/* Global Admin Panel - Available on all pages for demo */}
-        {isAdminVisible && <SimpleAdminPanel onClose={() => setIsAdminVisible(false)} />}
+        {isAdminVisible && (
+          <AdminPanel 
+            isExpanded={isAdminVisible}
+            onToggle={toggleAdmin}
+            onClose={() => setIsAdminVisible(false)} 
+          />
+        )}
       </div>
     </Router>
   );
