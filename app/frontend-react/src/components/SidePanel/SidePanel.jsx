@@ -348,7 +348,7 @@ const SidePanel = ({ user, isExpanded, onToggle, onClose, comments, clearComment
       console.log("Sending strategic analysis request with data:", analysisData);
 
       // Utiliser l'API Chat pour générer une analyse stratégique enrichie
-      const prompt = `Generate a comprehensive strategic analysis for this Belgian real estate investment. Structure it with clear markdown headers:
+      const prompt = `Generate a comprehensive strategic analysis for this Belgian real estate investment. Follow this EXACT structure with these specific headers only:
 
 # Strategic Analysis – ${analysisData.municipality} Property Investment
 
@@ -359,22 +359,24 @@ Based on ESG scores (Environmental: ${analysisData.esgScores.environmental || 'N
 Analyze the ${analysisData.municipality} market, construction year ${analysisData.buildingConstructionYear}, and EPC rating ${analysisData.esgScore} positioning. Include specific insights about the Antwerp market dynamics, rental demand, and property value trends.
 
 ## Short-term Actions (0-6 months)
-- Immediate improvement opportunities
-- Quick wins for value enhancement
-- Priority maintenance items
+Provide immediate improvement opportunities, quick wins for value enhancement, and priority maintenance items.
 
 ## Medium-term Strategy (6-24 months)  
-- Major improvement projects
-- Market positioning optimization
-- Energy efficiency upgrades
+Cover major improvement projects, market positioning optimization, and energy efficiency upgrades.
 
 ## Long-term Vision (2+ years)
-- Future-proofing strategies
-- Regulatory compliance preparation
-- Portfolio expansion considerations
+Outline future-proofing strategies, regulatory compliance preparation, and portfolio expansion considerations.
 
 ## Risk Assessment
-Evaluate potential risks and mitigation strategies based on current ESG compliance and market trends.
+Evaluate potential investment risks and provide specific mitigation strategies. Focus on:
+- Market volatility and economic factors
+- Property-specific risks (age, condition, energy efficiency)
+- ESG compliance risks and regulatory changes
+- Financial risks (interest rates, financing, liquidity)
+- Operational risks (maintenance, vacancy, tenant issues)
+- Climate and environmental risks
+
+IMPORTANT: Use ONLY these exact section headers. Do not create additional sections or repeat any section. 
 
 Property details: Surface ${analysisData.surface}m², ${analysisData.bedrooms} bedrooms, ${analysisData.buildingCondition} condition, ${analysisData.heatingType} heating.`;
 
@@ -382,7 +384,7 @@ Property details: Surface ${analysisData.surface}m², ${analysisData.bedrooms} b
         messages: [
           {
             role: "system",
-            content: "You are a senior Belgian real estate investment strategist with 20+ years experience. Provide detailed, actionable strategic analysis focusing on ESG compliance, market positioning, and investment optimization. Use professional language with specific Belgian market insights."
+            content: "You are a senior Belgian real estate investment strategist with 20+ years experience. Provide detailed, actionable strategic analysis focusing on ESG compliance, market positioning, and investment optimization. Use professional language with specific Belgian market insights. For the Risk Assessment section, provide concrete, specific risks with practical mitigation strategies. Avoid generic statements and focus on actionable advice."
           },
           {
             role: "user", 
@@ -445,17 +447,90 @@ Property details: Surface ${analysisData.surface}m², ${analysisData.bedrooms} b
           return true;
         })
         .filter((section, index, array) => {
-          // Éviter les doublons en comparant les titres des sections
+          // Éviter les doublons en comparant les titres des sections avec normalisation
           const sectionTitle = section.match(/##?\s*([^\n]+)/)?.[1]?.toLowerCase().trim();
           if (!sectionTitle) return true;
           
-          // Vérifier si une section similaire existe déjà
+          // Normaliser les titres pour détecter les variantes
+          const normalizedTitle = sectionTitle
+            .replace(/\s*\([^)]*\)\s*/g, '') // Supprimer les parenthèses (6-24 months), (2+ years)
+            .replace(/[^\w\s]/g, '') // Supprimer la ponctuation
+            .replace(/\s+/g, ' ') // Normaliser les espaces
+            .trim();
+          
+          // Filtrer spécifiquement les doublons du titre principal "Strategic Analysis"
+          if (normalizedTitle.includes('strategic analysis') && normalizedTitle.includes('property investment')) {
+            // Vérifier si on a déjà une section avec ce titre
+            const hasExistingStrategicAnalysis = array.slice(0, index).some(prevSection => {
+              const prevTitle = prevSection.match(/##?\s*([^\n]+)/)?.[1]?.toLowerCase().trim();
+              if (!prevTitle) return false;
+              
+              const prevNormalizedTitle = prevTitle
+                .replace(/\s*\([^)]*\)\s*/g, '')
+                .replace(/[^\w\s]/g, '')
+                .replace(/\s+/g, ' ')
+                .trim();
+              
+              return prevNormalizedTitle.includes('strategic analysis') && prevNormalizedTitle.includes('property investment');
+            });
+            
+            if (hasExistingStrategicAnalysis) {
+              console.log(`Filtering duplicate Strategic Analysis title: "${sectionTitle}"`);
+              return false;
+            }
+          }
+          
+          // Vérifier si une section similaire existe déjà (logique générale)
           const isDuplicate = array.slice(0, index).some(prevSection => {
             const prevTitle = prevSection.match(/##?\s*([^\n]+)/)?.[1]?.toLowerCase().trim();
-            return prevTitle && prevTitle === sectionTitle;
+            if (!prevTitle) return false;
+            
+            const prevNormalizedTitle = prevTitle
+              .replace(/\s*\([^)]*\)\s*/g, '')
+              .replace(/[^\w\s]/g, '')
+              .replace(/\s+/g, ' ')
+              .trim();
+            
+            return prevNormalizedTitle === normalizedTitle;
           });
           
           return !isDuplicate;
+        })
+        .sort((a, b) => {
+          // Trier les sections selon un ordre logique prédéfini
+          const order = [
+            'strategic analysis',
+            'investment positioning',
+            'market context',
+            'short-term actions',
+            'medium-term strategy',
+            'long-term vision',
+            'risk assessment'
+          ];
+          
+          const getTitleOrder = (section) => {
+            const title = section.match(/##?\s*([^\n]+)/)?.[1]?.toLowerCase().trim();
+            if (!title) return 999;
+            
+            const normalizedTitle = title
+              .replace(/\s*\([^)]*\)\s*/g, '')
+              .replace(/[^\w\s]/g, '')
+              .replace(/\s+/g, ' ')
+              .trim();
+            
+            // Titre principal "Strategic Analysis" en premier
+            if (normalizedTitle.includes('strategic analysis') && normalizedTitle.includes('property investment')) {
+              return -1; // Toujours en premier
+            }
+            
+            const orderIndex = order.findIndex(orderTitle => 
+              normalizedTitle.includes(orderTitle) || orderTitle.includes(normalizedTitle)
+            );
+            
+            return orderIndex === -1 ? 999 : orderIndex;
+          };
+          
+          return getTitleOrder(a) - getTitleOrder(b);
         });
       
       // Désactiver le spinner avant d'ajouter les messages
@@ -822,7 +897,7 @@ Property details: Surface ${analysisData.surface}m², ${analysisData.bedrooms} b
               <div className="strategic-analysis-loading-fixed">
                 <div className="spinner"></div>
                 <span className="loading-text">
-                  Strategic Analysis in progress...
+                  ESG Strategic Analysis in progress...
                 </span>
               </div>
             )}
@@ -832,17 +907,7 @@ Property details: Surface ${analysisData.surface}m², ${analysisData.bedrooms} b
                 <div className="chat-header">
                   <h4>AI Chat Assistant</h4>
                   <div className="chat-header-buttons">
-                    <button
-                      onClick={() => {
-                        setStrategicAnalysisGenerated(false);
-                        setIsStrategicAnalysisLoading(false);
-                      }}
-                      className="strategic-analysis-btn"
-                      style={{ backgroundColor: '#6c757d' }}
-                      title="Reset states"
-                    >
-                      xxx
-                    </button>
+
                     <button
                       onClick={() => {
                         // Éviter les clics multiples quand l'analyse est déjà en cours
@@ -860,7 +925,7 @@ Property details: Surface ${analysisData.surface}m², ${analysisData.bedrooms} b
                       title="Generate strategic analysis"
                       disabled={isStrategicAnalysisLoading}
                     >
-                      {isStrategicAnalysisLoading ? 'Generating...' : 'Strategic Analysis'}
+                      {isStrategicAnalysisLoading ? 'Generating...' : 'ESG Strategic Analysis'}
                     </button>
                     <button
                       onClick={clearChatHistory}
