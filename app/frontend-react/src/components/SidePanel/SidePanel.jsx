@@ -113,7 +113,8 @@ const SidePanel = ({ user, isExpanded, onToggle, onClose, comments, clearComment
       // Délai pour laisser l'ESG analysis se finaliser
       setTimeout(() => {
         generateStrategicAnalysis();
-        setStrategicAnalysisGenerated(true);
+        // Ne pas définir setStrategicAnalysisGenerated(true) ici
+        // car cela sera fait dans generateStrategicAnalysis() seulement en cas de succès
       }, 2000); // 2 secondes de délai
     }
   }, [esgData, strategicAnalysisGenerated, propertyData]);
@@ -431,6 +432,11 @@ Property details: Surface ${analysisData.surface}m², ${analysisData.bedrooms} b
       
       // Désactiver le spinner avant d'ajouter les messages
       setIsStrategicAnalysisLoading(false);
+      
+      // Marquer l'analyse comme générée SEULEMENT si on a des sections valides
+      if (sections.length > 0) {
+        setStrategicAnalysisGenerated(true);
+      }
       
       // Ajouter les sections comme messages séparés
       sections.forEach((section, index) => {
@@ -763,19 +769,36 @@ Property details: Surface ${analysisData.surface}m², ${analysisData.bedrooms} b
                     >
                       {isStrategicAnalysisLoading ? 'Stop Spinner' : 'Test Spinner'}
                     </button>
-                    {!strategicAnalysisGenerated && !isStrategicAnalysisLoading && esgData && propertyData && (
-                      <button
-                        onClick={() => {
-                          console.log("Manual strategic analysis trigger");
-                          generateStrategicAnalysis();
-                          setStrategicAnalysisGenerated(true);
-                        }}
-                        className="strategic-analysis-btn"
-                        title="Generate strategic analysis"
-                      >
-                        Strategic Analysis
-                      </button>
-                    )}
+                    <button
+                      onClick={() => {
+                        setStrategicAnalysisGenerated(false);
+                        setIsStrategicAnalysisLoading(false);
+                      }}
+                      className="strategic-analysis-btn"
+                      style={{ backgroundColor: '#6c757d' }}
+                      title="Reset states"
+                    >
+                      xxx
+                    </button>
+                    <button
+                      onClick={() => {
+                        // Éviter les clics multiples quand l'analyse est déjà en cours
+                        if (isStrategicAnalysisLoading) {
+                          console.log("Strategic analysis already in progress, ignoring click");
+                          return;
+                        }
+                        
+                        console.log("Manual strategic analysis trigger");
+                        generateStrategicAnalysis();
+                        // Ne pas définir setStrategicAnalysisGenerated(true) ici
+                        // car cela sera fait dans generateStrategicAnalysis() seulement en cas de succès
+                      }}
+                      className="strategic-analysis-btn"
+                      title="Generate strategic analysis"
+                      disabled={isStrategicAnalysisLoading}
+                    >
+                      {isStrategicAnalysisLoading ? 'Generating...' : 'Strategic Analysis'}
+                    </button>
                     <button
                       onClick={clearChatHistory}
                       className="clear-chat-btn"
