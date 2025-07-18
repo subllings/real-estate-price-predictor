@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import "./AdminPanel.css";
 import { 
   X, 
@@ -22,19 +22,11 @@ const AdminPanel = ({ isExpanded, onToggle, onClose }) => {
   const [isDetached, setIsDetached] = useState(false);
   const [prompts, setPrompts] = useState([]);
   
-  // États pour le redimensionnement
+  // États pour le redimensionnement et drag & drop
   const [panelWidth, setPanelWidth] = useState(400);
   const [panelHeight, setPanelHeight] = useState(600);
   const [isResizing, setIsResizing] = useState(false);
-  const [startX, setStartX] = useState(0);
-  const [startY, setStartY] = useState(0);
-  const [startWidth, setStartWidth] = useState(400);
-  const [startHeight, setStartHeight] = useState(600);
-  const [resizeDirection, setResizeDirection] = useState('');
-  
-  // États pour le drag & drop
   const [isDragging, setIsDragging] = useState(false);
-  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [panelPosition, setPanelPosition] = useState({ x: 0, y: 0 });
   
   // Références
@@ -53,16 +45,38 @@ const AdminPanel = ({ isExpanded, onToggle, onClose }) => {
 
   // Écouter les prompts LLM globalement
   useEffect(() => {
+    console.log('🎯 AdminPanel: Setting up event listener for llmPromptSent');
+    
     const handlePromptSent = (event) => {
+      console.log('📨 AdminPanel: Event received!', event);
+      console.log('📨 AdminPanel: Event detail:', event.detail);
+      
+      if (!event.detail) {
+        console.error('❌ AdminPanel: Event detail is missing!');
+        return;
+      }
+      
       const { prompt, type, timestamp } = event.detail;
+      
+      if (!prompt) {
+        console.error('❌ AdminPanel: Prompt is missing from event detail!');
+        return;
+      }
+      
       const newPrompt = {
         id: Date.now(),
         prompt,
-        type,
+        type: type || 'UNKNOWN',
         timestamp: timestamp || new Date().toISOString(),
         length: prompt.length
       };
-      setPrompts(prev => [...prev, newPrompt]);
+      
+      console.log('📝 AdminPanel: Adding new prompt:', newPrompt);
+      setPrompts(prev => {
+        const updated = [...prev, newPrompt];
+        console.log('📊 AdminPanel: Total prompts:', updated.length);
+        return updated;
+      });
       
       // Auto-scroll vers le bas
       setTimeout(() => {
@@ -72,84 +86,168 @@ const AdminPanel = ({ isExpanded, onToggle, onClose }) => {
       }, 100);
     };
 
-    window.addEventListener('llm-prompt-sent', handlePromptSent);
-    return () => window.removeEventListener('llm-prompt-sent', handlePromptSent);
+    // Ajouter l'événement IMMÉDIATEMENT
+    window.addEventListener('llmPromptSent', handlePromptSent);
+    console.log('✅ AdminPanel: Event listener added successfully');
+    
+    // Marquer l'AdminPanel comme prêt
+    window.adminPanelReady = true;
+    console.log('✅ AdminPanel: Marked as ready');
+    
+    return () => {
+      console.log('🚮 AdminPanel: Removing event listener');
+      window.removeEventListener('llmPromptSent', handlePromptSent);
+      window.adminPanelReady = false;
+    };
   }, []);
 
+  // Fonction pour obtenir la classe CSS du curseur
+  const getResizeCursorClass = (direction) => {
+    switch (direction) {
+      case 'left':
+      case 'right':
+        return 'resize-ew';
+      case 'top':
+      case 'bottom':
+        return 'resize-ns';
+      case 'top-left':
+        return 'resize-nw';
+      case 'top-right':
+        return 'resize-ne';
+      case 'bottom-left':
+        return 'resize-sw';
+      case 'bottom-right':
+        return 'resize-se';
+      default:
+        return '';
+    }
+  };
+
   // Gestion du redimensionnement
-  const handleResizeStart = (e, direction) => {
+  const handleResizeStart = useCallback((e, direction) => {
     e.preventDefault();
+    e.stopPropagation();
+    
     setIsResizing(true);
-    setResizeDirection(direction);
-    setStartX(e.clientX);
-    setStartY(e.clientY);
-    setStartWidth(panelWidth);
-    setStartHeight(panelHeight);
     
-    document.addEventListener('mousemove', handleResize);
-    document.addEventListener('mouseup', handleResizeEnd);
-  };
-
-  const handleResize = (e) => {
-    if (!isResizing) return;
+    // Ajouter la classe curseur au body
+    const cursorClass = `resizing-${getResizeCursorClass(direction).replace('resize-', '')}`;
+    document.body.classList.add(cursorClass);
     
-    if (resizeDirection.includes('right')) {
-      const newWidth = startWidth + (e.clientX - startX);
-      setPanelWidth(Math.max(300, Math.min(window.innerWidth - 50, newWidth)));
-    }
-    if (resizeDirection.includes('left')) {
-      const newWidth = startWidth - (e.clientX - startX);
-      setPanelWidth(Math.max(300, Math.min(window.innerWidth - 50, newWidth)));
-    }
-    if (resizeDirection.includes('bottom')) {
-      const newHeight = startHeight + (e.clientY - startY);
-      setPanelHeight(Math.max(400, Math.min(window.innerHeight - 100, newHeight)));
-    }
-    if (resizeDirection.includes('top')) {
-      const newHeight = startHeight - (e.clientY - startY);
-      setPanelHeight(Math.max(400, Math.min(window.innerHeight - 100, newHeight)));
-    }
-  };
-
-  const handleResizeEnd = () => {
-    setIsResizing(false);
-    setResizeDirection('');
-    document.removeEventListener('mousemove', handleResize);
-    document.removeEventListener('mouseup', handleResizeEnd);
-  };
+    const startX = e.clientX;
+    const startY = e.clientY;
+    const startWidth = panelWidth;
+    const startHeight = panelHeight;
+    const startPosX = panelPosition.x;
+    const startPosY = panelPosition.y;
+    
+    const handleResizeMove = (e) => {
+      const deltaX = e.clientX - startX;
+      const deltaY = e.clientY - startY;
+      
+      let newWidth = startWidth;
+      let newHeight = startHeight;
+      let newX = startPosX;
+      let newY = startPosY;
+      
+      // Redimensionnement horizontal
+      if (direction === 'right' || direction.includes('right')) {
+        newWidth = Math.max(300, startWidth + deltaX);
+      } else if (direction === 'left' || direction.includes('left')) {
+        const potentialWidth = startWidth - deltaX;
+        if (potentialWidth >= 300) {
+          newWidth = potentialWidth;
+          newX = startPosX + deltaX;
+        } else {
+          newWidth = 300;
+          newX = startPosX + startWidth - 300;
+        }
+      }
+      
+      // Redimensionnement vertical
+      if (direction === 'bottom' || direction.includes('bottom')) {
+        newHeight = Math.max(400, startHeight + deltaY);
+      } else if (direction === 'top' || direction.includes('top')) {
+        const potentialHeight = startHeight - deltaY;
+        if (potentialHeight >= 400) {
+          newHeight = potentialHeight;
+          newY = startPosY + deltaY;
+        } else {
+          newHeight = 400;
+          newY = startPosY + startHeight - 400;
+        }
+      }
+      
+      // Contraintes de fenêtre
+      newWidth = Math.min(newWidth, window.innerWidth - 50);
+      newHeight = Math.min(newHeight, window.innerHeight - 100);
+      
+      // Contraintes de position
+      newX = Math.max(0, Math.min(window.innerWidth - newWidth, newX));
+      newY = Math.max(0, Math.min(window.innerHeight - newHeight, newY));
+      
+      // Appliquer les changements immédiatement
+      setPanelWidth(newWidth);
+      setPanelHeight(newHeight);
+      setPanelPosition({ x: newX, y: newY });
+    };
+    
+    const handleResizeStop = () => {
+      setIsResizing(false);
+      
+      // Retirer la classe curseur du body
+      document.body.classList.remove(cursorClass);
+      
+      document.removeEventListener('mousemove', handleResizeMove);
+      document.removeEventListener('mouseup', handleResizeStop);
+    };
+    
+    document.addEventListener('mousemove', handleResizeMove);
+    document.addEventListener('mouseup', handleResizeStop);
+  }, [panelWidth, panelHeight, panelPosition]);
 
   // Gestion du drag & drop
-  const handleDragStart = (e) => {
+  const handleDragStart = useCallback((e) => {
     if (!isDetached) return;
+    e.preventDefault();
+    e.stopPropagation();
     
     setIsDragging(true);
+    document.body.classList.add('dragging-panel');
+    
     const rect = panelRef.current.getBoundingClientRect();
-    setDragOffset({
-      x: e.clientX - rect.left,
-      y: e.clientY - rect.top
-    });
+    const offsetX = e.clientX - rect.left;
+    const offsetY = e.clientY - rect.top;
     
-    document.addEventListener('mousemove', handleDrag);
-    document.addEventListener('mouseup', handleDragEnd);
-  };
+    const handleDragMove = (e) => {
+      const newX = e.clientX - offsetX;
+      const newY = e.clientY - offsetY;
+      
+      // Contraintes pour garder le panel dans la fenêtre
+      const constrainedX = Math.max(0, Math.min(window.innerWidth - panelWidth, newX));
+      const constrainedY = Math.max(0, Math.min(window.innerHeight - panelHeight, newY));
+      
+      setPanelPosition({ x: constrainedX, y: constrainedY });
+    };
+    
+    const handleDragStop = () => {
+      setIsDragging(false);
+      document.body.classList.remove('dragging-panel');
+      document.removeEventListener('mousemove', handleDragMove);
+      document.removeEventListener('mouseup', handleDragStop);
+    };
+    
+    document.addEventListener('mousemove', handleDragMove);
+    document.addEventListener('mouseup', handleDragStop);
+  }, [isDetached, panelWidth, panelHeight]);
 
-  const handleDrag = (e) => {
-    if (!isDragging || !isDetached) return;
-    
-    const newX = e.clientX - dragOffset.x;
-    const newY = e.clientY - dragOffset.y;
-    
-    setPanelPosition({
-      x: Math.max(0, Math.min(window.innerWidth - panelWidth, newX)),
-      y: Math.max(0, Math.min(window.innerHeight - panelHeight, newY))
-    });
-  };
-
-  const handleDragEnd = () => {
-    setIsDragging(false);
-    document.removeEventListener('mousemove', handleDrag);
-    document.removeEventListener('mouseup', handleDragEnd);
-  };
+  // Cleanup des event listeners quand le composant est démonté
+  useEffect(() => {
+    return () => {
+      // Nettoyer les classes CSS du body
+      document.body.classList.remove('dragging-panel', 'resizing-ew', 'resizing-ns', 'resizing-nw', 'resizing-ne', 'resizing-sw', 'resizing-se');
+    };
+  }, []);
 
   // Fonctions utilitaires pour les prompts
   const clearPrompts = () => {
@@ -177,11 +275,27 @@ const AdminPanel = ({ isExpanded, onToggle, onClose }) => {
     URL.revokeObjectURL(url);
   };
 
+  // Fonction de test pour envoyer un prompt
+  const sendTestPrompt = () => {
+    console.log('🧪 AdminPanel: Sending test prompt...');
+    window.dispatchEvent(new CustomEvent('llmPromptSent', {
+      detail: {
+        type: 'TEST_PROMPT',
+        prompt: 'Test prompt sent from AdminPanel - ' + new Date().toLocaleTimeString(),
+        timestamp: new Date().toISOString(),
+        metadata: {
+          source: 'adminPanel',
+          test: true
+        }
+      }
+    }));
+  };
+
   // Style dynamique basé sur l'état
   const panelStyle = {
     width: panelWidth,
     height: isDetached ? panelHeight : '100vh',
-    position: isDetached ? 'fixed' : 'fixed',
+    position: 'fixed',
     top: isDetached ? panelPosition.y : '0',
     left: isDetached ? panelPosition.x : 'auto',
     right: isDetached ? 'auto' : '0',
@@ -189,7 +303,9 @@ const AdminPanel = ({ isExpanded, onToggle, onClose }) => {
     transform: isDetached ? 'none' : (isExpanded ? 'translateX(0)' : 'translateX(100%)'),
     boxShadow: isDetached ? '0 20px 60px rgba(0,0,0,0.3)' : 'none',
     borderRadius: isDetached ? '12px' : '0',
-    overflow: 'hidden'
+    overflow: 'hidden',
+    userSelect: isDragging || isResizing ? 'none' : 'auto',
+    pointerEvents: 'auto'
   };
 
   const renderPromptVisualization = () => (
@@ -202,6 +318,10 @@ const AdminPanel = ({ isExpanded, onToggle, onClose }) => {
         <button onClick={exportPrompts} className="prompt-control-btn">
           <Download size={16} />
           Export
+        </button>
+        <button onClick={sendTestPrompt} className="prompt-control-btn" style={{ backgroundColor: '#28a745' }}>
+          <MessageSquare size={16} />
+          Test Prompt
         </button>
         <span className="prompt-count">{prompts.length} prompts</span>
       </div>
@@ -266,7 +386,7 @@ const AdminPanel = ({ isExpanded, onToggle, onClose }) => {
   return (
     <div 
       ref={panelRef}
-      className={`admin-panel ${isExpanded ? 'expanded' : ''} ${isDetached ? 'detached' : ''}`}
+      className={`admin-panel ${isExpanded ? 'expanded' : ''} ${isDetached ? 'detached' : ''} ${isDragging ? 'dragging' : ''} ${isResizing ? 'resizing' : ''}`}
       style={panelStyle}
     >
       {/* Resize handles */}

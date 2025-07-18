@@ -238,6 +238,8 @@ const PropertyForm = ({ onPredictionComment, onToggleSidePanel, onOpenSidePanel,
 
   // New function for ESG Analysis button
   const handleESGAnalysis = async () => {
+    console.log('🎯 handleESGAnalysis called - Starting ESG analysis process...');
+    
     setEsgLoading(true);
     setError(null);
     
@@ -276,6 +278,17 @@ const PropertyForm = ({ onPredictionComment, onToggleSidePanel, onOpenSidePanel,
         estimatedPrice: results.all || 400000,
         analysis_depth: "detailed"
       };
+
+      console.log("🚨 URGENT: About to call ESG API with data:", requestData);
+      
+      // Send prompt to AdminPanel
+      window.dispatchEvent(new CustomEvent('llmPromptSent', {
+        detail: {
+          prompt: `ESG Analysis Request: ${JSON.stringify(requestData)}`,
+          timestamp: new Date().toISOString(),
+          type: 'ESG_ANALYSIS'
+        }
+      }));
 
       const response = await axios.post(ESG_API_URL, requestData);
       const esgData = response.data;
@@ -367,19 +380,30 @@ const PropertyForm = ({ onPredictionComment, onToggleSidePanel, onOpenSidePanel,
       });
 
       // Dispatch event for AdminPanel to capture the prompt
-      window.dispatchEvent(new CustomEvent('llmPromptSent', {
-        detail: {
-          type: 'ESG_ANALYSIS',
-          prompt: esgComment,
-          timestamp: timestamp,
-          metadata: {
-            esgScoresIncluded: esgScoresText,
-            calculatedScores: esgScores,
-            location: formData.locality,
-            postalCode: formData.postalCode
-          }
+      console.log('📤 PropertyForm: Preparing to send event to AdminPanel...');
+      console.log('📤 PropertyForm: AdminPanel ready?', window.adminPanelReady);
+      
+      const eventDetail = {
+        type: 'ESG_ANALYSIS',
+        prompt: esgComment,
+        timestamp: timestamp,
+        metadata: {
+          esgScoresIncluded: esgScoresText,
+          calculatedScores: esgScores,
+          location: formData.locality,
+          postalCode: formData.postalCode
         }
-      }));
+      };
+      
+      console.log('📤 PropertyForm: Event detail to send:', eventDetail);
+      
+      const customEvent = new CustomEvent('llmPromptSent', {
+        detail: eventDetail
+      });
+      
+      console.log('📤 PropertyForm: Dispatching event...');
+      window.dispatchEvent(customEvent);
+      console.log('✅ PropertyForm: Event dispatched successfully!');
       
       // Format the detailed ESG analysis for chat
       const formattedAnalysis = [
@@ -546,8 +570,23 @@ Analysis completed using fallback data due to API unavailability.`
     }
   };
 
+  // CHECK BUTTON STATE FOR DEBUGGING
+  useEffect(() => {
+    console.log('🔍 BUTTON STATE CHECK:');
+    console.log('   loading:', loading);
+    console.log('   esgLoading:', esgLoading);
+    console.log('   button disabled:', loading || esgLoading);
+    console.log('   formData:', formData);
+  }, [loading, esgLoading, formData]);
+
   // New unified function that combines price prediction and ESG analysis
   const handleUnifiedAnalysis = async (e) => {
+    console.log('🚨🚨🚨 === LOG PROMPT Analyze Price & ESG BUTTON CLICKED === 🚨🚨🚨');
+    console.log('🚨 handleUnifiedAnalysis called at:', new Date().toISOString());
+    console.log('🚨 Form data:', formData);
+    console.log('🚨 AdminPanel ready?', window.adminPanelReady);
+    console.log('🚨🚨🚨 === STARTING UNIFIED ANALYSIS === 🚨🚨🚨');
+    
     e.preventDefault();
     setLoading(true);
     setEsgLoading(true);
@@ -667,6 +706,24 @@ Analysis completed using fallback data due to API unavailability.`
         estimatedPrice: predictedPrice,
         analysis_depth: "detailed"
       };
+
+      console.log("🚨 URGENT: About to call ESG API with data:", esgRequestData);
+      
+      // Send prompt to AdminPanel
+      console.log("🚨 URGENT: Dispatching event to AdminPanel...");
+      console.log("🚨 AdminPanel ready?", window.adminPanelReady);
+      
+      const promptEvent = new CustomEvent('llmPromptSent', {
+        detail: {
+          prompt: `ESG Analysis Request: ${JSON.stringify(esgRequestData)}`,
+          timestamp: new Date().toISOString(),
+          type: 'ESG_ANALYSIS'
+        }
+      });
+      
+      console.log("🚨 URGENT: Event detail:", promptEvent.detail);
+      window.dispatchEvent(promptEvent);
+      console.log("🚨 URGENT: Event dispatched successfully!");
 
       const esgResponse = await axios.post(ESG_API_URL, esgRequestData);
       const esgData = esgResponse.data;
@@ -852,6 +909,27 @@ Analysis completed using fallback data due to API unavailability.`
 
           const strategicComment = `Strategic Analysis - ${timestamp}`;
           
+          // Send Strategic Analysis prompt to AdminPanel
+          console.log("🚨 URGENT: Dispatching Strategic Analysis prompt to AdminPanel...");
+          console.log("🚨 AdminPanel ready?", window.adminPanelReady);
+          
+          const strategicPrompt = `ESG Strategic Analysis Request:
+Property: ${formData.propertyType} in ${formData.locality}, ${formData.province}
+ESG Scores: Environmental: ${esgScores.environmental}/10, Social: ${esgScores.social}/10, Governance: ${esgScores.governance}/10, Overall: ${esgScores.overall}/10
+Request: Generate comprehensive strategic positioning and recommendations including market analysis, ESG risk assessment, investment recommendations, and strategic action items.`;
+          
+          const strategicEvent = new CustomEvent('llmPromptSent', {
+            detail: {
+              prompt: strategicPrompt,
+              timestamp: new Date().toISOString(),
+              type: 'ESG_STRATEGIC_ANALYSIS'
+            }
+          });
+          
+          console.log("🚨 URGENT: Strategic Analysis Event detail:", strategicEvent.detail);
+          window.dispatchEvent(strategicEvent);
+          console.log("🚨 URGENT: Strategic Analysis Event dispatched successfully!");
+          
           // Add strategic analysis indicator to chat
           if (onPredictionComment) {
             onPredictionComment([
@@ -1004,6 +1082,8 @@ Property details: Surface ${formData.habitableSurface}m², ${formData.bedroomCou
   };
 
   const handleViewDetailedESGReport = async () => {
+    console.log('🚀 handleViewDetailedESGReport called - Starting ESG analysis...');
+    
     try {
       // First clear ESG panel and show loading state
       if (onSetEsgAnalysis) {
@@ -1055,6 +1135,17 @@ Property details: Surface ${formData.habitableSurface}m², ${formData.bedroomCou
       };
 
       // Call the ESG Analysis API
+      console.log("🚨 URGENT: About to call ESG API with data:", esgRequestData);
+      
+      // Send prompt to AdminPanel
+      window.dispatchEvent(new CustomEvent('llmPromptSent', {
+        detail: {
+          prompt: `ESG Analysis Request: ${JSON.stringify(esgRequestData)}`,
+          timestamp: new Date().toISOString(),
+          type: 'ESG_ANALYSIS'
+        }
+      }));
+
       const response = await axios.post(ESG_API_URL, esgRequestData);
       
       if (response.data) {
@@ -1324,7 +1415,13 @@ Property details: Surface ${formData.habitableSurface}m², ${formData.bedroomCou
             minWidth: '180px'
           }}
           disabled={loading || esgLoading}
-          onClick={handleUnifiedAnalysis}
+          onClick={(e) => {
+            console.log('🖱️ BUTTON CLICKED! Event:', e);
+            console.log('🖱️ loading:', loading, 'esgLoading:', esgLoading);
+            console.log('🖱️ button disabled:', loading || esgLoading);
+            console.log('🖱️ About to call handleUnifiedAnalysis...');
+            handleUnifiedAnalysis(e);
+          }}
         >
           Analyze Price & ESG
         </button>

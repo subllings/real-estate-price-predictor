@@ -15,7 +15,7 @@ class TunerAgentOrchestrator:
 
         # Default settings – override if needed
         self.n_trials = 1 if TEST_MODE else 50
-        self.n_splits = 3
+        self.n_splits = 5  # 5-fold cross-validation sur les données d'entraînement
         self.early_stopping_rounds = 20
         self.use_gpu = True
         self.random_state = 42

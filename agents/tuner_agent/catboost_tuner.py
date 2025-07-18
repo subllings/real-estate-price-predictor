@@ -10,7 +10,7 @@ optuna.logging.set_verbosity(optuna.logging.INFO)
 import numpy as np
 import pandas as pd
 from datetime import datetime
-from sklearn.model_selection import KFold
+from sklearn.model_selection import KFold, train_test_split
 from sklearn.metrics import mean_squared_error
 from catboost import CatBoostRegressor
 from typing import Optional, Dict, Any
@@ -21,12 +21,24 @@ from utils.model_evaluator import ModelEvaluator
 from utils.data_loader import DataLoader
 from utils.constants import ML_READY_DATA_FILE, TEST_MODE
 
+# Cloud training agent pour l'upload Azure
+try:
+    from agents.cloud_training_agent import CloudTrainingAgent
+    CLOUD_AGENT_AVAILABLE = True
+except ImportError:
+    print("⚠️  CloudTrainingAgent not available. Models will be saved locally only.")
+    CLOUD_AGENT_AVAILABLE = False
+
 
     
 class CatBoostTuner:
     def __init__(self, X, y, n_trials: int, n_splits: int, early_stopping_rounds: int, optuna_params: Optional[Dict[str, Any]] = None, random_state: int = 42, use_gpu: bool = False):
-        self.X = X
-        self.y = y
+        # MÉTHODE CLASSIQUE : Séparation initiale 80/20 pour holdout test
+        self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(
+            X, y, test_size=0.2, random_state=random_state, shuffle=True
+        )
+        print(f"[INFO] Séparation initiale: {len(self.X_train)} train / {len(self.X_test)} test (80/20)")
+        
         self.n_trials = n_trials
         self.n_splits = n_splits
         self.early_stopping_rounds = early_stopping_rounds
@@ -35,6 +47,14 @@ class CatBoostTuner:
         self.use_gpu = False  # Temporarily disabled to avoid segfaults
         self.model_saver = ModelSaver()
         self.logger = CosmosDbLogger()
+        
+        # Initialiser l'agent cloud pour l'upload Azure
+        if CLOUD_AGENT_AVAILABLE:
+            self.cloud_agent = CloudTrainingAgent()
+            print(f"[INFO] CloudTrainingAgent initialized for Azure upload")
+        else:
+            self.cloud_agent = None
+            print(f"[INFO] CloudTrainingAgent not available - local save only")
 
         print(f"[INFO] GPU usage forced to: {self.use_gpu} (for stability)")
 
@@ -221,22 +241,23 @@ class CatBoostTuner:
         # Validation of generated parameters (skip removed params)
         self.validate_trial_params(self.optuna_params, params, removed_params=removed_params)
 
-        # Cross-validation with robust error handling to avoid segfaults
+        # Cross-validation UNIQUEMENT sur les données d'entraînement (80%)
         kf = KFold(n_splits=self.n_splits, shuffle=True, random_state=self.random_state)
         fold_scores = []
         
         print(f"[DEBUG] Trial {trial.number} params: {params}")
         
         try:
-            for fold_idx, (train_idx, val_idx) in enumerate(kf.split(self.X)):
-                X_train, X_val = self.X.iloc[train_idx], self.X.iloc[val_idx]
-                y_train, y_val = self.y.iloc[train_idx], self.y.iloc[val_idx]
+            # CV sur les 80% d'entraînement seulement
+            for fold_idx, (train_idx, val_idx) in enumerate(kf.split(self.X_train)):
+                X_train_fold, X_val_fold = self.X_train.iloc[train_idx], self.X_train.iloc[val_idx]
+                y_train_fold, y_val_fold = self.y_train.iloc[train_idx], self.y_train.iloc[val_idx]
                 
                 print(f"[DEBUG] Training fold {fold_idx + 1}/{self.n_splits}")
                 
                 # Préparer les paramètres d'entraînement
                 fit_params = {
-                    "eval_set": (X_val, y_val),
+                    "eval_set": (X_val_fold, y_val_fold),
                     "use_best_model": True,
                     "verbose": False
                 }
@@ -248,10 +269,10 @@ class CatBoostTuner:
                     fit_params["early_stopping_rounds"] = self.early_stopping_rounds
                 
                 model = CatBoostRegressor(**params)
-                model.fit(X_train, y_train, **fit_params)
+                model.fit(X_train_fold, y_train_fold, **fit_params)
                 
-                preds = model.predict(X_val)
-                rmse = np.sqrt(mean_squared_error(y_val, preds))
+                preds = model.predict(X_val_fold)
+                rmse = np.sqrt(mean_squared_error(y_val_fold, preds))
                 fold_scores.append(rmse)
                 print(f"[DEBUG] Fold {fold_idx + 1} RMSE: {rmse:.2f}")
         
@@ -272,15 +293,15 @@ class CatBoostTuner:
             
             print("[INFO] Retrying with safe parameters...")
             try:
-                for fold_idx, (train_idx, val_idx) in enumerate(kf.split(self.X)):
-                    X_train, X_val = self.X.iloc[train_idx], self.X.iloc[val_idx]
-                    y_train, y_val = self.y.iloc[train_idx], self.y.iloc[val_idx]
+                for fold_idx, (train_idx, val_idx) in enumerate(kf.split(self.X_train)):
+                    X_train_fold, X_val_fold = self.X_train.iloc[train_idx], self.X_train.iloc[val_idx]
+                    y_train_fold, y_val_fold = self.y_train.iloc[train_idx], self.y_train.iloc[val_idx]
                     
                     model = CatBoostRegressor(**safe_params)
-                    model.fit(X_train, y_train, verbose=False)
+                    model.fit(X_train_fold, y_train_fold, verbose=False)
                     
-                    preds = model.predict(X_val)
-                    rmse = np.sqrt(mean_squared_error(y_val, preds))
+                    preds = model.predict(X_val_fold)
+                    rmse = np.sqrt(mean_squared_error(y_val_fold, preds))
                     fold_scores.append(rmse)
                     
             except Exception as e2:
@@ -298,24 +319,34 @@ class CatBoostTuner:
         if avg_rmse < self.best_score:
             self.best_score = avg_rmse
             
-            # Entraîner le modèle final sur toutes les données
+            # ÉVALUATION FINALE sur le holdout test set (20% jamais vus)
+            print(f"[INFO] Nouveau meilleur score! Entraînement du modèle final sur 80% des données")
+            
+            # Entraîner le modèle final sur TOUTES les données d'entraînement (80%)
             final_model = CatBoostRegressor(**params)
-            final_model.fit(self.X, self.y, verbose=False)
+            final_model.fit(self.X_train, self.y_train, verbose=False)
             
-            # Évaluer le modèle - utiliser les mêmes données pour train et test dans ce contexte
-            # (car on n'a pas de vrai test set séparé ici)
+            # Évaluer le modèle sur le holdout test set (20% jamais vus)
             evaluator = ModelEvaluator(f"catboost_trial_{trial.number}")
-            predictions = final_model.predict(self.X)
             
-            train_metrics, train_range_metrics = evaluator.evaluate(self.y, predictions)
-            # Pour test_metrics, utiliser les mêmes données (limitation du contexte actuel)
-            test_metrics, test_range_metrics = train_metrics.copy(), train_range_metrics.copy()
+            # Prédictions sur les données d'entraînement (80%)
+            train_predictions = final_model.predict(self.X_train)
+            train_metrics, train_range_metrics = evaluator.evaluate(self.y_train, train_predictions)
+            
+            # Prédictions sur le holdout test set (20% JAMAIS VUS)
+            test_predictions = final_model.predict(self.X_test)
+            test_metrics, test_range_metrics = evaluator.evaluate(self.y_test, test_predictions)
+            
+            # Calculer le R² gap (différence entre train et test)
+            r2_gap = train_metrics['r2'] - test_metrics['r2']
+            print(f"[INFO] R² Train: {train_metrics['r2']:.4f}, R² Test: {test_metrics['r2']:.4f}, R² Gap: {r2_gap:.4f}")
             
             self.best_model = final_model
             self.best_model_metrics = {
                 "train": train_metrics,
                 "test": test_metrics,
-                "by_price_range": test_range_metrics
+                "by_price_range": test_range_metrics,
+                "r2_gap": r2_gap
             }
 
         return avg_rmse
@@ -394,6 +425,51 @@ class CatBoostTuner:
             },
             "metrics_by_price_range": metrics_by_range
         })
+
+        # === UPLOAD AZURE (si disponible) ===
+        if self.cloud_agent and self.cloud_agent.blob_client:
+            print("[STEP] Uploading model to Azure Blob Storage...")
+            try:
+                # Préparer les métadonnées pour Azure
+                azure_metadata = {
+                    "model_name": model_name,
+                    "model_type": "catboost",
+                    "version": f"v{datetime.now().strftime('%Y%m%d_%H%M%S')}",
+                    "created_at": datetime.now().isoformat(),
+                    "performance": {
+                        "r2_train": global_metrics_train["r2"],
+                        "r2_test": global_metrics_test["r2"],
+                        "r2_gap": self.best_model_metrics.get("r2_gap", 0),
+                        "mae_test": global_metrics_test["mae"],
+                        "rmse_test": global_metrics_test["rmse"],
+                        "validation_samples": len(self.X_test)
+                    },
+                    "optuna_study": {
+                        "n_trials": len(study.trials),
+                        "best_trial": study.best_trial.number,
+                        "best_params": study.best_params
+                    },
+                    "features": self.X.columns.tolist(),
+                    "n_features": len(self.X.columns),
+                    "status": "production_ready" if global_metrics_test["r2"] >= 0.85 else "candidate"
+                }
+                
+                # Upload vers Azure (méthode synchrone)
+                cloud_version = self.cloud_agent._upload_to_cloud_sync(
+                    best_model, azure_metadata, self.X.columns.tolist(), study
+                )
+                
+                # Enregistrer dans CosmosDB
+                if self.cloud_agent.cosmos_client:
+                    self.cloud_agent._register_model_sync(cloud_version, azure_metadata)
+                
+                print(f"✅ Model uploaded to Azure: {cloud_version}")
+                
+            except Exception as e:
+                print(f"⚠️  Azure upload failed: {e}")
+                print("   Model saved locally only.")
+        else:
+            print("[INFO] Azure not configured - model saved locally only")
 
         
 

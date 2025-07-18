@@ -174,7 +174,8 @@ def call_azure_openai_chat(messages: List[dict], temperature: float = 0.7, max_t
     }
 
     try:
-        print("Payload sent to Azure OpenAI:", payload)  
+        print("=================================\n")
+        print("Payload from UI to to call_azure_openai_cha", payload)  
         response = requests.post(url, headers=headers, json=payload)
         response.raise_for_status()
         return response.json()["choices"][0]["message"]["content"]
@@ -982,6 +983,9 @@ async def create_strategic_analysis_summary(request: StrategicSummaryRequest):
 
     Keep it concise but informative. Use European number formatting (spaces for thousands: €417 675).
     """
+
+    print(">>> ======== DEBUG PROMPT: /strategic-analysis-summary ==============")
+    print("/strategic-analysis-summary: ", prompt)
 
     # Call Azure OpenAI for condensed analysis
     response_text = call_azure_openai_chat(

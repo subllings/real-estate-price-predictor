@@ -290,6 +290,115 @@ class CloudTrainingAgent:
                 self.blob_client.create_container(container)
             except:
                 pass  # Container might already exist
+
+            # Get container client
+            container_client = self.blob_client.get_container_client(container)
+
+            # Upload model binary
+            model_blob = f"models/{version}/model.pkl"
+            model_bytes = pickle.dumps(model)
+            container_client.upload_blob(
+                name=model_blob,
+                data=model_bytes,
+                overwrite=True
+            )
+
+            # Upload metadata
+            metadata_blob = f"models/{version}/metadata.json"
+            metadata_enhanced = {
+                **metadata,
+                "cloud_artifacts": {
+                    "model_blob": model_blob,
+                    "metadata_blob": metadata_blob,
+                    "features_blob": f"models/{version}/features.json",
+                    "trials_blob": f"models/{version}/trials.json"
+                }
+            }
+
+            container_client.upload_blob(
+                name=metadata_blob,
+                data=json.dumps(metadata_enhanced, indent=2),
+                overwrite=True
+            )
+
+            # Upload features
+            features_blob = f"models/{version}/features.json"
+            container_client.upload_blob(
+                name=features_blob,
+                data=json.dumps({"features": feature_names}),
+                overwrite=True
+            )
+
+            # Upload trials data
+            trials_blob = f"models/{version}/trials.json"
+            trials_data = {
+                "study_name": study.study_name,
+                "n_trials": len(study.trials),
+                "best_params": study.best_params,
+                "best_value": study.best_value,
+                "trials": [
+                    {
+                        "number": trial.number,
+                        "value": trial.value,
+                        "params": trial.params,
+                        "state": trial.state.name
+                    }
+                    for trial in study.trials
+                ]
+            }
+
+            container_client.upload_blob(
+                name=trials_blob,
+                data=json.dumps(trials_data, indent=2),
+                overwrite=True
+            )
+            
+            print(f"☁️  Model artifacts uploaded to Azure Blob Storage")
+            return version
+            
+        except Exception as e:
+            print(f"⚠️  Failed to upload to cloud: {e}")
+            return metadata["version"]
+    
+    async def _register_model(self, version, metadata):
+        """Register model in Cosmos DB registry"""
+        
+        if not self.cosmos_client:
+            return
+        
+        try:
+            database = self.cosmos_client.get_database_client(self.config["azure"]["cosmos_database"])
+            container = database.get_container_client(self.config["azure"]["cosmos_container"])
+            
+            # Create model record
+            model_record = {
+                "id": version,
+                "partition_key": version,
+                **metadata,
+                "registered_at": datetime.now().isoformat()
+            }
+            
+            container.create_item(model_record)
+            print(f"📝 Model registered in Cosmos DB: {version}")
+            
+        except Exception as e:
+            print(f"⚠️  Failed to register model: {e}")
+    
+    def _upload_to_cloud_sync(self, model, metadata, feature_names, study):
+        """Version synchrone de l'upload vers Azure"""
+        
+        if not self.blob_client:
+            return metadata["version"]
+        
+        version = metadata["version"]
+        container = self.config["azure"]["storage_container"]
+        
+        try:
+            # Ensure container exists
+            try:
+                self.blob_client.create_container(container)
+            except:
+                pass  # Container might already exist
             
             # Upload model binary
             model_blob = f"models/{version}/model.pkl"
@@ -308,8 +417,7 @@ class CloudTrainingAgent:
                 "cloud_artifacts": {
                     "model_blob": model_blob,
                     "metadata_blob": metadata_blob,
-                    "features_blob": f"models/{version}/features.json",
-                    "trials_blob": f"models/{version}/trials.json"
+                    "features_blob": f"models/{version}/features.json"
                 }
             }
             
@@ -329,40 +437,15 @@ class CloudTrainingAgent:
                 overwrite=True
             )
             
-            # Upload trials data
-            trials_blob = f"models/{version}/trials.json"
-            trials_data = {
-                "study_name": study.study_name,
-                "n_trials": len(study.trials),
-                "best_params": study.best_params,
-                "best_value": study.best_value,
-                "trials": [
-                    {
-                        "number": trial.number,
-                        "value": trial.value,
-                        "params": trial.params,
-                        "state": trial.state.name
-                    }
-                    for trial in study.trials
-                ]
-            }
-            
-            self.blob_client.upload_blob(
-                container=container,
-                blob=trials_blob,
-                data=json.dumps(trials_data, indent=2),
-                overwrite=True
-            )
-            
-            print(f"☁️  Model artifacts uploaded to Azure Blob Storage")
+            print(f"☁️  Model artifacts uploaded to Azure Blob Storage: {version}")
             return version
             
         except Exception as e:
             print(f"⚠️  Failed to upload to cloud: {e}")
             return metadata["version"]
     
-    async def _register_model(self, version, metadata):
-        """Register model in Cosmos DB registry"""
+    def _register_model_sync(self, version, metadata):
+        """Version synchrone de l'enregistrement dans CosmosDB"""
         
         if not self.cosmos_client:
             return
