@@ -1,3 +1,14 @@
+import logging
+import sys
+import os
+
+# Add the project root to the Python path
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
+sys.path.append(project_root)
+
+# Configuration des logs Azure (doit être fait avant les imports Azure)
+from utils.configure_logging import configure_azure_logging
+
 from .catboost_tuner import CatBoostTuner
 from .xgboost_tuner import XGBoostTuner
 from .llm_tuner_agent import LLMTunerAgent 

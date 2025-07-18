@@ -2,10 +2,14 @@ import sys, os
 import time
 import datetime
 import argparse
+import logging
 
 # Add the project root to the PYTHONPATH
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.append(project_root)
+
+# Configuration des logs Azure (doit être fait avant les imports Azure)
+from utils.configure_logging import configure_azure_logging
 
 from agents.tuner_agent.tuner_agent_orchestrator import TunerAgentOrchestrator
 

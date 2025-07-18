@@ -149,16 +149,7 @@ const ModelTrainingPage = () => {
                 <div className="text-sm text-gray-600">Average R² Score</div>
               </div>
               <div className="text-center">
-                <div className="text-2xl font-bold text-gray-600">
-                  {summary.latest_experiment?.timestamp ? 
-                    new Date(summary.latest_experiment.timestamp).toLocaleDateString('en-US', {
-                      year: 'numeric',
-                      month: '2-digit',
-                      day: '2-digit'
-                    }) : 
-                    'N/A'
-                  }
-                </div>
+                <div className="text-2xl font-bold text-gray-600">{summary.latest_experiment?.split('_')[1]?.split('T')[0]}</div>
                 <div className="text-sm text-gray-600">Latest Date</div>
               </div>
             </div>

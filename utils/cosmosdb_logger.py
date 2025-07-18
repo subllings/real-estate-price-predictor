@@ -1,10 +1,14 @@
 import os
+import logging
 from datetime import datetime
 from azure.cosmos import CosmosClient, PartitionKey, exceptions
 from dotenv import load_dotenv
 from utils.constants import ML_READY_DATA_FILE, TEST_MODE
 import numpy as np
 from datetime import datetime
+
+# Configuration des logs Azure (doit être fait avant les imports Azure)
+from utils.configure_logging import configure_azure_logging
 
 
 load_dotenv()
@@ -311,3 +315,170 @@ class CosmosDbLogger:
         }
         results = self.container.query_items(query=query, enable_cross_partition_query=True)
         return [item["model_name"] for item in results]
+
+    def create_model_metrics_container(self, container_name: str = "ModelMetrics"):
+        """
+        Créer le container ModelMetrics pour les métriques structurées
+        """
+        try:
+            if COSMOS_SERVERLESS:
+                # Serverless account - no throughput parameter
+                model_metrics_container = self.database.create_container_if_not_exists(
+                    id=container_name,
+                    partition_key=PartitionKey(path="/model_type")
+                )
+            else:
+                # Provisioned throughput account
+                model_metrics_container = self.database.create_container_if_not_exists(
+                    id=container_name,
+                    partition_key=PartitionKey(path="/model_type"),
+                    offer_throughput=400
+                )
+            
+            print(f"[✔] Container '{container_name}' créé/vérifié avec succès.")
+            return model_metrics_container
+            
+        except exceptions.CosmosHttpResponseError as e:
+            print(f"[CosmosDB] Erreur lors de la création du container {container_name}: {e}")
+            raise
+
+    def log_model_metrics(self, metrics: dict, container_name: str = "ModelMetrics"):
+        """
+        Logger les métriques de modèle dans le container ModelMetrics
+        """
+        try:
+            # Créer/obtenir le container ModelMetrics
+            model_metrics_container = self.create_model_metrics_container(container_name)
+            
+            # Générer un ID unique
+            timestamp = datetime.utcnow().isoformat()
+            metrics_id = f"model_metrics_{timestamp}"
+            
+            # Structure standardisée pour les métriques
+            record = {
+                "id": metrics_id,
+                "model_type": metrics.get("model_type", "catboost"),
+                "model_name": metrics.get("model_name", "CatBoost CV (All Features)"),
+                "timestamp": timestamp,
+                "trial_number": metrics.get("trial_number", 0),
+                "experiment_name": metrics.get("experiment_name", ""),
+                
+                # Métriques de performance
+                "r2_train": metrics.get("r2_train", 0.0),
+                "r2_test": metrics.get("r2_test", 0.0),
+                "mae_train": metrics.get("mae_train", 0.0),
+                "mae_test": metrics.get("mae_test", 0.0),
+                "rmse_train": metrics.get("rmse_train", 0.0),
+                "rmse_test": metrics.get("rmse_test", 0.0),
+                
+                # Analyse de généralisation
+                "r2_gap": metrics.get("r2_gap", 0.0),
+                "generalization_status": metrics.get("generalization_status", "Unknown"),
+                
+                # Métadonnées du modèle
+                "hyperparameters": metrics.get("hyperparameters", {}),
+                "feature_importance": metrics.get("feature_importance", []),
+                "training_time": metrics.get("training_time", 0.0),
+                "n_features": metrics.get("n_features", 0),
+                
+                # Statut
+                "status": metrics.get("status", "completed"),
+                "is_production_ready": metrics.get("is_production_ready", False),
+                
+                # Métadonnées système
+                "source": "catboost_tuner"
+            }
+            
+            # Conversion JSON-compatible
+            clean_record = self._convert_np_types(record)
+            
+            # Insérer dans le container ModelMetrics
+            model_metrics_container.create_item(body=clean_record)
+            
+            print(f"[✔] Métriques de modèle loggées dans {container_name}: {metrics_id}")
+            return metrics_id
+            
+        except Exception as e:
+            print(f"[✘] Erreur lors du logging des métriques de modèle: {e}")
+            raise
+
+    def get_model_metrics(self, model_type: str = "catboost", limit: int = 100, container_name: str = "ModelMetrics"):
+        """
+        Récupérer les métriques de modèle depuis le container ModelMetrics
+        """
+        try:
+            # Obtenir le container ModelMetrics
+            model_metrics_container = self.database.get_container_client(container_name)
+            
+            query = """
+                SELECT * FROM c 
+                WHERE c.model_type = @model_type 
+                ORDER BY c.timestamp DESC
+                OFFSET 0 LIMIT @limit
+            """
+            
+            parameters = [
+                {"name": "@model_type", "value": model_type},
+                {"name": "@limit", "value": limit}
+            ]
+            
+            items = list(model_metrics_container.query_items(
+                query=query,
+                parameters=parameters,
+                enable_cross_partition_query=True
+            ))
+            
+            print(f"[✔] Récupéré {len(items)} métriques de modèle pour {model_type}")
+            return items
+            
+        except Exception as e:
+            print(f"[✘] Erreur lors de la récupération des métriques de modèle: {e}")
+            return []
+
+    def get_model_summary(self, model_type: str = "catboost", container_name: str = "ModelMetrics"):
+        """
+        Récupérer un résumé des métriques pour un type de modèle
+        """
+        try:
+            metrics = self.get_model_metrics(model_type, limit=1000, container_name=container_name)
+            
+            if not metrics:
+                return {
+                    "total_experiments": 0,
+                    "best_r2_score": 0,
+                    "average_r2_score": 0,
+                    "latest_experiment": None
+                }
+            
+            # Calculer les statistiques
+            r2_scores = [m.get("r2_test", 0) for m in metrics if m.get("r2_test", 0) > 0]
+            
+            # Trouver la meilleure expérience
+            best_experiment = max(metrics, key=lambda x: x.get("r2_test", 0))
+            
+            # Trouver la dernière expérience
+            latest_experiment = max(metrics, key=lambda x: x.get("timestamp", ""))
+            
+            summary = {
+                "total_experiments": len(metrics),
+                "best_r2_score": max(r2_scores) if r2_scores else 0,
+                "average_r2_score": sum(r2_scores) / len(r2_scores) if r2_scores else 0,
+                "latest_experiment": {
+                    "id": latest_experiment.get("id", ""),
+                    "model_type": latest_experiment.get("model_name", ""),
+                    "r2_score": latest_experiment.get("r2_test", 0),
+                    "timestamp": latest_experiment.get("timestamp", "")
+                }
+            }
+            
+            print(f"[✔] Résumé généré pour {model_type}: {len(metrics)} expériences")
+            return summary
+            
+        except Exception as e:
+            print(f"[✘] Erreur lors de la génération du résumé: {e}")
+            return {
+                "total_experiments": 0,
+                "best_r2_score": 0,
+                "average_r2_score": 0,
+                "latest_experiment": None
+            }

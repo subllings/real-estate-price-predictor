@@ -7,11 +7,19 @@ import os
 import json
 import pickle
 import asyncio
+import logging
 from datetime import datetime
 from typing import Dict, Any, Optional
 import pandas as pd
 import numpy as np
 from pathlib import Path
+
+# Configuration des logs Azure (doit être fait avant les imports Azure)
+import sys
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+sys.path.append(project_root)
+
+from utils.configure_logging import configure_azure_logging
 
 # Azure imports (to be installed)
 try:
@@ -403,9 +411,8 @@ class CloudTrainingAgent:
             # Upload model binary
             model_blob = f"models/{version}/model.pkl"
             model_bytes = pickle.dumps(model)
-            self.blob_client.upload_blob(
-                container=container,
-                blob=model_blob,
+            blob_client = self.blob_client.get_blob_client(container=container, blob=model_blob)
+            blob_client.upload_blob(
                 data=model_bytes,
                 overwrite=True
             )
@@ -421,18 +428,16 @@ class CloudTrainingAgent:
                 }
             }
             
-            self.blob_client.upload_blob(
-                container=container,
-                blob=metadata_blob,
+            blob_client = self.blob_client.get_blob_client(container=container, blob=metadata_blob)
+            blob_client.upload_blob(
                 data=json.dumps(metadata_enhanced, indent=2),
                 overwrite=True
             )
             
             # Upload features
             features_blob = f"models/{version}/features.json"
-            self.blob_client.upload_blob(
-                container=container,
-                blob=features_blob,
+            blob_client = self.blob_client.get_blob_client(container=container, blob=features_blob)
+            blob_client.upload_blob(
                 data=json.dumps({"features": feature_names}),
                 overwrite=True
             )

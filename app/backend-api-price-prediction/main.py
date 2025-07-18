@@ -373,3 +373,141 @@ def promote_model(model_id: str, variant: str = "all_features"):
     except Exception as e:
         logger.exception(f"Failed to promote model {model_id}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# === TRAINING EXPERIMENTS ENDPOINTS ===
+
+@app.get("/health")
+async def health_check():
+    """Point de contrôle de santé de l'API"""
+    return {"status": "healthy", "service": "Real Estate Price Prediction API"}
+
+
+@app.get("/experiments")
+async def get_experiments():
+    """Récupère tous les expériences de training depuis CosmosDB"""
+    try:
+        import sys
+        import os
+        
+        # Ajouter le répertoire parent au path pour accéder à utils
+        parent_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        if parent_dir not in sys.path:
+            sys.path.append(parent_dir)
+        
+        from utils.cosmosdb_logger import CosmosDbLogger
+        cosmos_logger = CosmosDbLogger()
+        
+        # Récupérer tous les trials disponibles pour catboost
+        experiments = cosmos_logger.get_trials_for_model("catboost", limit=100)
+        
+        # Formatter les expériences pour l'affichage
+        formatted_experiments = []
+        for exp in experiments:
+            formatted_exp = {
+                "id": exp.get("id", ""),
+                "trial_number": exp.get("trial_number", 0),
+                "experiment_name": exp.get("experiment_name", ""),
+                "model_type": exp.get("model_name", ""),
+                "timestamp": exp.get("timestamp", ""),
+                "r2_score": exp.get("r2_score", 0),
+                "r2_test": exp.get("r2_test", 0),
+                "mae": exp.get("mae", 0),
+                "mae_test": exp.get("mae_test", 0),
+                "rmse": exp.get("rmse", 0),
+                "rmse_test": exp.get("rmse_test", 0),
+                "hyperparameters": exp.get("hyperparameters", {}),
+                "feature_importance": exp.get("feature_importance", []),
+                "training_time": exp.get("training_time", 0),
+                "status": exp.get("status", "completed")
+            }
+            formatted_experiments.append(formatted_exp)
+        
+        return {"experiments": formatted_experiments}
+    except Exception as e:
+        logger.exception("Failed to fetch experiments")
+        raise HTTPException(status_code=500, detail=f"Failed to fetch experiments: {str(e)}")
+
+
+@app.get("/experiments/summary")
+async def get_experiments_summary():
+    """Récupère un résumé des expériences de training"""
+    try:
+        import sys
+        import os
+        
+        # Ajouter le répertoire parent au path pour accéder à utils
+        parent_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        if parent_dir not in sys.path:
+            sys.path.append(parent_dir)
+        
+        from utils.cosmosdb_logger import CosmosDbLogger
+        cosmos_logger = CosmosDbLogger()
+        
+        # Récupérer tous les trials disponibles pour catboost
+        experiments = cosmos_logger.get_trials_for_model("catboost", limit=100)
+        
+        if not experiments:
+            return {
+                "total_experiments": 0,
+                "best_r2_score": 0,
+                "average_r2_score": 0,
+                "latest_experiment": None
+            }
+        
+        # Calculer les statistiques
+        r2_scores = [exp.get("r2_test", exp.get("r2_score", 0)) for exp in experiments]
+        r2_scores = [score for score in r2_scores if score > 0]  # Filtrer les scores invalides
+        
+        # Trouver la meilleure expérience
+        best_experiment = max(experiments, key=lambda x: x.get("r2_test", x.get("r2_score", 0)))
+        
+        # Trouver la dernière expérience
+        latest_experiment = max(experiments, key=lambda x: x.get("timestamp", ""))
+        
+        summary = {
+            "total_experiments": len(experiments),
+            "best_r2_score": max(r2_scores) if r2_scores else 0,
+            "average_r2_score": sum(r2_scores) / len(r2_scores) if r2_scores else 0,
+            "latest_experiment": {
+                "id": latest_experiment.get("id", ""),
+                "model_type": latest_experiment.get("model_name", ""),
+                "r2_score": latest_experiment.get("r2_test", latest_experiment.get("r2_score", 0)),
+                "timestamp": latest_experiment.get("timestamp", "")
+            }
+        }
+        
+        return summary
+    except Exception as e:
+        logger.exception("Failed to fetch experiments summary")
+        raise HTTPException(status_code=500, detail=f"Failed to fetch experiments summary: {str(e)}")
+
+
+@app.get("/experiments/{experiment_id}")
+async def get_experiment_detail(experiment_id: str):
+    """Récupère les détails d'une expérience spécifique"""
+    try:
+        import sys
+        import os
+        
+        # Ajouter le répertoire parent au path pour accéder à utils
+        parent_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        if parent_dir not in sys.path:
+            sys.path.append(parent_dir)
+        
+        from utils.cosmosdb_logger import CosmosDbLogger
+        cosmos_logger = CosmosDbLogger()
+        
+        # Récupérer tous les trials et chercher celui avec l'ID demandé
+        experiments = cosmos_logger.get_trials_for_model("catboost", limit=100)
+        experiment = next((exp for exp in experiments if exp.get("id") == experiment_id), None)
+        
+        if not experiment:
+            raise HTTPException(status_code=404, detail="Experiment not found")
+        
+        return experiment
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.exception(f"Failed to fetch experiment {experiment_id}")
+        raise HTTPException(status_code=500, detail=f"Failed to fetch experiment: {str(e)}")

@@ -5,6 +5,10 @@ os.environ["OMP_NUM_THREADS"] = "1"
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
 sys.path.append(project_root)
 
+# Configuration des logs Azure (doit être fait avant les imports Azure)
+from utils.configure_logging import configure_azure_logging
+
+import logging
 import optuna
 optuna.logging.set_verbosity(optuna.logging.INFO)
 import numpy as np
@@ -386,7 +390,7 @@ class CatBoostTuner:
         # Sauvegarde du modèle + features
         model_path = self.model_saver.save_model_and_features(
             model=best_model,
-            features=self.X.columns.tolist(),
+            features=self.X_train.columns.tolist(),
             model_name=model_name,
             metrics=global_metrics_test,
             metrics_by_price_range=metrics_by_range,
@@ -404,7 +408,7 @@ class CatBoostTuner:
             mae_test=global_metrics_test["mae"],
             rmse_test=global_metrics_test["rmse"],
             r2_test=global_metrics_test["r2"],
-            n_features=self.X.shape[1],
+            n_features=self.X_train.shape[1],
             data_file=ML_READY_DATA_FILE,
             test_mode=TEST_MODE,
             is_perfect=is_perfect,
@@ -425,6 +429,65 @@ class CatBoostTuner:
             },
             "metrics_by_price_range": metrics_by_range
         })
+
+        # === NOUVEAU : Logging des métriques structurées dans ModelMetrics ===
+        try:
+            # Analyser la généralisation
+            r2_gap = global_metrics_train["r2"] - global_metrics_test["r2"]
+            
+            def analyze_generalization(r2_train, r2_test):
+                gap = r2_train - r2_test
+                if gap <= 0.02 and r2_test > 0.85:
+                    return "Excellent"
+                elif gap <= 0.05 and r2_test > 0.75:
+                    return "Good"
+                elif gap <= 0.10:
+                    return "Fair"
+                else:
+                    return "Poor"
+            
+            generalization_status = analyze_generalization(
+                global_metrics_train["r2"], 
+                global_metrics_test["r2"]
+            )
+            
+            # Préparer les métriques structurées pour React
+            structured_metrics = {
+                "model_type": "catboost",
+                "model_name": f"CatBoost CV (All Features){' [TEST]' if TEST_MODE else ''}",
+                "trial_number": study.best_trial.number,
+                "experiment_name": "optuna_best_trial",
+                
+                # Métriques de performance
+                "r2_train": global_metrics_train["r2"],
+                "r2_test": global_metrics_test["r2"],
+                "mae_train": global_metrics_train["mae"],
+                "mae_test": global_metrics_test["mae"],
+                "rmse_train": global_metrics_train["rmse"],
+                "rmse_test": global_metrics_test["rmse"],
+                
+                # Analyse de généralisation
+                "r2_gap": r2_gap,
+                "generalization_status": generalization_status,
+                
+                # Métadonnées du modèle
+                "hyperparameters": study.best_trial.params,
+                "feature_importance": [],  # Sera rempli si nécessaire
+                "training_time": 0.0,  # Sera rempli si on mesure le temps
+                "n_features": self.X_train.shape[1],
+                
+                # Statut
+                "status": "completed",
+                "is_production_ready": global_metrics_test["r2"] >= 0.85 and r2_gap <= 0.05
+            }
+            
+            # Logger dans le container ModelMetrics
+            metrics_id = self.logger.log_model_metrics(structured_metrics)
+            print(f"[✔] Métriques structurées loggées dans ModelMetrics: {metrics_id}")
+            
+        except Exception as e:
+            print(f"[⚠️] Erreur lors du logging des métriques structurées: {e}")
+            # Ne pas faire échouer le processus principal
 
         # === UPLOAD AZURE (si disponible) ===
         if self.cloud_agent and self.cloud_agent.blob_client:
@@ -449,14 +512,14 @@ class CatBoostTuner:
                         "best_trial": study.best_trial.number,
                         "best_params": study.best_params
                     },
-                    "features": self.X.columns.tolist(),
-                    "n_features": len(self.X.columns),
+                    "features": self.X_train.columns.tolist(),
+                    "n_features": len(self.X_train.columns),
                     "status": "production_ready" if global_metrics_test["r2"] >= 0.85 else "candidate"
                 }
                 
                 # Upload vers Azure (méthode synchrone)
                 cloud_version = self.cloud_agent._upload_to_cloud_sync(
-                    best_model, azure_metadata, self.X.columns.tolist(), study
+                    best_model, azure_metadata, self.X_train.columns.tolist(), study
                 )
                 
                 # Enregistrer dans CosmosDB
