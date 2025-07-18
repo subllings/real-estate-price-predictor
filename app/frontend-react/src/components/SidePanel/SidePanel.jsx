@@ -356,21 +356,22 @@ const SidePanel = ({ user, isExpanded, onToggle, onClose, comments, clearComment
 Based on ESG scores (Environmental: ${analysisData.esgScores.environmental || 'N/A'}/10, Social: ${analysisData.esgScores.social || 'N/A'}/10, Governance: ${analysisData.esgScores.governance || 'N/A'}/10), analyze the investment potential.
 
 ## Market Context
-Analyze the ${analysisData.municipality} market, construction year ${analysisData.buildingConstructionYear}, and EPC rating ${analysisData.epcScore} positioning.
+Analyze the ${analysisData.municipality} market, construction year ${analysisData.buildingConstructionYear}, and EPC rating ${analysisData.esgScore} positioning. Include specific insights about the Antwerp market dynamics, rental demand, and property value trends.
 
-## Strategic Recommendations
-
-### Short-term Actions (0-6 months)
+## Short-term Actions (0-6 months)
 - Immediate improvement opportunities
 - Quick wins for value enhancement
+- Priority maintenance items
 
-### Medium-term Strategy (6-24 months)  
+## Medium-term Strategy (6-24 months)  
 - Major improvement projects
 - Market positioning optimization
+- Energy efficiency upgrades
 
-### Long-term Vision (2+ years)
+## Long-term Vision (2+ years)
 - Future-proofing strategies
 - Regulatory compliance preparation
+- Portfolio expansion considerations
 
 ## Risk Assessment
 Evaluate potential risks and mitigation strategies based on current ESG compliance and market trends.
@@ -442,6 +443,19 @@ Property details: Surface ${analysisData.surface}m², ${analysisData.bedrooms} b
           if (lowerSection === 'recommended next steps available') return false;
           
           return true;
+        })
+        .filter((section, index, array) => {
+          // Éviter les doublons en comparant les titres des sections
+          const sectionTitle = section.match(/##?\s*([^\n]+)/)?.[1]?.toLowerCase().trim();
+          if (!sectionTitle) return true;
+          
+          // Vérifier si une section similaire existe déjà
+          const isDuplicate = array.slice(0, index).some(prevSection => {
+            const prevTitle = prevSection.match(/##?\s*([^\n]+)/)?.[1]?.toLowerCase().trim();
+            return prevTitle && prevTitle === sectionTitle;
+          });
+          
+          return !isDuplicate;
         });
       
       // Désactiver le spinner avant d'ajouter les messages
