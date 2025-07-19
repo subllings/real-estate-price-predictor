@@ -1,0 +1,711 @@
+/* ESG Analysis Report - Independent CSS File */
+/* NO SHARED STYLES - COMPLETELY STANDALONE */
+
+.esg-analysis-report-panel {
+  position: fixed;
+  top: 0;
+  right: -500px;
+  width: 520px;
+  height: 100vh;
+  background: #f5f5f5;
+  box-shadow: -6px 0 25px rgba(0, 0, 0, 0.2);
+  transition: right 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 1100;
+  display: flex;
+  flex-direction: column;
+  border-left: 4px solid #4a9eff;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+}
+
+.esg-analysis-report-panel.open {
+  right: 0;
+}
+
+/* Header Section */
+.esg-analysis-report-header {
+  background: linear-gradient(135deg, #4a9eff 0%, #357abd 100%);
+  color: white;
+  padding: 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.esg-analysis-report-title {
+  flex: 1;
+}
+
+.esg-analysis-report-title h3 {
+  margin: 0 0 10px 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: -0.02em;
+}
+
+.esg-analysis-report-subtitle {
+  margin: 0;
+  font-size: 0.95rem;
+  opacity: 0.85;
+  font-weight: 700 !important;
+  color: #ffffff !important;
+  line-height: 1.4;
+}
+
+.esg-analysis-report-close {
+  background: rgba(255, 255, 255, 0.15);
+  border: none;
+  color: white;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 1.3rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+  margin-left: 16px;
+}
+
+.esg-analysis-report-close:hover {
+  background: rgba(255, 255, 255, 0.25);
+  transform: scale(1.05);
+}
+
+/* Content Section */
+.esg-analysis-report-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0;
+  background: #f5f5f5;
+}
+
+.esg-analysis-report-container {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Analysis Header */
+.esg-analysis-report-analysis-header {
+  background: #f5f5f5;
+  padding: 24px;
+  border-bottom: 1px solid #e0e0e0;
+  flex-shrink: 0;
+}
+
+.esg-analysis-report-badge {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.esg-analysis-report-badge-icon {
+  font-size: 1.3rem;
+  color: #4a9eff;
+}
+
+.esg-analysis-report-badge-text {
+  background: #4a9eff;
+  color: white !important;
+  padding: 8px 20px;
+  border-radius: 25px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.esg-analysis-report-meta {
+  color: #666666;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  margin: 0;
+}
+
+/* Analysis Sections */
+.esg-analysis-report-sections {
+  flex: 1;
+  padding: 24px;
+  overflow-y: auto;
+  background: #f5f5f5;
+}
+
+.esg-analysis-report-point {
+  margin-bottom: 28px;
+  padding: 20px;
+  background: #ffffff;
+  border: 1px solid #e8e8e8;
+  border-radius: 12px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
+  transition: box-shadow 0.2s ease;
+}
+
+.esg-analysis-report-point:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.esg-analysis-report-point:first-child {
+  margin-top: 0;
+}
+
+.esg-analysis-report-point:last-child {
+  margin-bottom: 0;
+}
+
+.esg-analysis-report-section-title {
+  color: #4a9eff;
+  font-size: 1.2rem;
+  font-weight: 700;
+  margin: 0 0 12px 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  line-height: 1.3;
+}
+
+.esg-analysis-report-section-title::before {
+  content: "▶";
+  font-size: 0.9rem;
+  color: #4a9eff;
+  opacity: 0.8;
+}
+
+.esg-analysis-report-section-content {
+  color: #333333 !important;
+  line-height: 1.7;
+  margin: 0;
+  font-size: 1rem;
+  background: transparent !important;
+  border: none !important;
+}
+
+/* Force black text on ALL content - ABSOLUTE PRIORITY */
+.esg-analysis-report-section-content,
+.esg-analysis-report-section-content *,
+.esg-analysis-report-section-content p,
+.esg-analysis-report-section-content div,
+.esg-analysis-report-section-content span,
+.esg-analysis-report-section-content li,
+.esg-analysis-report-section-content ul,
+.esg-analysis-report-section-content ol,
+.esg-analysis-report-section-content strong,
+.esg-analysis-report-section-content em,
+.esg-analysis-report-section-content a {
+  color: #333333 !important;
+  background: transparent !important;
+  text-shadow: none !important;
+}
+
+.esg-analysis-report-section-content p {
+  margin: 10px 0;
+  color: #333333 !important;
+  line-height: 1.7;
+}
+
+.esg-analysis-report-section-content ul,
+.esg-analysis-report-section-content ol {
+  margin: 12px 0;
+  padding-left: 20px;
+  color: #333333 !important;
+}
+
+.esg-analysis-report-section-content li {
+  margin: 6px 0;
+  color: #333333 !important;
+  line-height: 1.6;
+}
+
+/* Loading States */
+.esg-analysis-report-loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  text-align: center;
+  padding: 60px 24px;
+  background: #ffffff;
+}
+
+.esg-analysis-report-loading-spinner {
+  width: 60px;
+  height: 60px;
+  border: 4px solid #e6f3ff;
+  border-top: 4px solid #4a9eff;
+  border-radius: 50%;
+  animation: esg-analysis-report-spin 1.2s linear infinite;
+  margin-bottom: 32px;
+}
+
+@keyframes esg-analysis-report-spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.esg-analysis-report-loading-text h4 {
+  margin: 0 0 16px 0;
+  font-size: 1.4rem;
+  font-weight: 600;
+  color: #4a9eff;
+}
+
+.esg-analysis-report-loading-text p {
+  margin: 0 0 24px 0;
+  color: #666666;
+  font-size: 1.1rem;
+  line-height: 1.6;
+  max-width: 400px;
+}
+
+.esg-analysis-report-loading-progress {
+  margin-top: 20px;
+}
+
+.esg-analysis-report-progress-dots {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+}
+
+.esg-analysis-report-progress-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #4a9eff;
+  animation: esg-analysis-report-bounce 1.4s ease-in-out infinite both;
+}
+
+.esg-analysis-report-progress-dot:nth-child(1) {
+  animation-delay: -0.32s;
+}
+
+.esg-analysis-report-progress-dot:nth-child(2) {
+  animation-delay: -0.16s;
+}
+
+.esg-analysis-report-progress-dot:nth-child(3) {
+  animation-delay: 0s;
+}
+
+@keyframes esg-analysis-report-bounce {
+  0%, 80%, 100% {
+    transform: scale(0);
+    opacity: 0.5;
+  }
+  40% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* Empty State */
+.esg-analysis-report-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  text-align: center;
+  padding: 60px 24px;
+  background: #ffffff;
+  color: #666666;
+}
+
+.esg-analysis-report-empty-icon {
+  font-size: 4rem;
+  margin-bottom: 24px;
+  opacity: 0.4;
+  color: #4a9eff;
+  background: rgba(74, 158, 255, 0.08);
+  padding: 30px;
+  border-radius: 50%;
+  width: 120px;
+  height: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.esg-analysis-report-empty-state h4 {
+  margin: 0 0 16px 0;
+  color: #555555;
+  font-weight: 600;
+  font-size: 1.3rem;
+}
+
+.esg-analysis-report-empty-state p {
+  margin: 0;
+  line-height: 1.6;
+  max-width: 350px;
+  color: #777777;
+  font-size: 1.1rem;
+}
+
+/* Footer Section */
+.esg-analysis-report-footer {
+  background: #f8f9fa;
+  padding: 20px 24px;
+  flex-shrink: 0;
+  border-top: 1px solid #e0e0e0;
+}
+
+.esg-analysis-report-disclaimer {
+  background: #fff8e1;
+  border: 1px solid #ffcc02;
+  border-radius: 10px;
+  padding: 18px;
+}
+
+.esg-analysis-report-disclaimer p {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #f57c00;
+  line-height: 1.5;
+}
+
+.esg-analysis-report-disclaimer strong {
+  color: #ef6c00;
+  font-weight: 600;
+}
+
+/* Side Tab for Opening Panel */
+.esg-analysis-report-tab {
+  position: fixed;
+  right: 0;
+  top: 45%;
+  transform: translateY(-50%);
+  width: 45px;
+  height: 140px;
+  background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%);
+  border-top-left-radius: 25px;
+  border-bottom-left-radius: 25px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 1110;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: -3px 0 15px rgba(0, 0, 0, 0.15);
+  border-left: 3px solid #1565c0;
+}
+
+.esg-analysis-report-tab:hover {
+  width: 55px;
+  background: linear-gradient(135deg, #1565c0 0%, #0d47a1 100%);
+  box-shadow: -4px 0 20px rgba(0, 0, 0, 0.25);
+}
+
+.esg-analysis-report-tab.hidden {
+  right: -45px;
+}
+
+.esg-analysis-report-tab-text {
+  color: white;
+  font-size: 1.1rem;
+  font-weight: 700;
+  transform: rotate(90deg);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+  letter-spacing: 0.05em;
+}
+
+/* Responsive Design */
+@media (max-width: 1400px) {
+  .esg-analysis-report-panel {
+    width: 450px;
+    right: -450px;
+  }
+}
+
+@media (max-width: 1200px) {
+  .esg-analysis-report-panel {
+    width: 400px;
+    right: -400px;
+  }
+}
+
+@media (max-width: 768px) {
+  .esg-analysis-report-panel {
+    width: 100%;
+    right: -100%;
+  }
+
+  .esg-analysis-report-panel.open {
+    right: 0;
+  }
+
+  .esg-analysis-report-tab {
+    display: none;
+  }
+}
+
+/* Scrollbar Styling */
+.esg-analysis-report-content::-webkit-scrollbar,
+.esg-analysis-report-sections::-webkit-scrollbar {
+  width: 8px;
+}
+
+.esg-analysis-report-content::-webkit-scrollbar-track,
+.esg-analysis-report-sections::-webkit-scrollbar-track {
+  background: #f5f5f5;
+  border-radius: 4px;
+}
+
+.esg-analysis-report-content::-webkit-scrollbar-thumb,
+.esg-analysis-report-sections::-webkit-scrollbar-thumb {
+  background: #cccccc;
+  border-radius: 4px;
+}
+
+.esg-analysis-report-content::-webkit-scrollbar-thumb:hover,
+.esg-analysis-report-sections::-webkit-scrollbar-thumb:hover {
+  background: #aaaaaa;
+}
+
+/* Animation Effects */
+.esg-analysis-report-point {
+  animation: esg-analysis-report-fade-in-up 0.6s ease-out;
+  animation-fill-mode: both;
+}
+
+.esg-analysis-report-point:nth-child(1) { animation-delay: 0.1s; }
+.esg-analysis-report-point:nth-child(2) { animation-delay: 0.2s; }
+.esg-analysis-report-point:nth-child(3) { animation-delay: 0.3s; }
+.esg-analysis-report-point:nth-child(4) { animation-delay: 0.4s; }
+.esg-analysis-report-point:nth-child(5) { animation-delay: 0.5s; }
+
+@keyframes esg-analysis-report-fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Panel Opening Animation */
+.esg-analysis-report-panel {
+  animation: esg-analysis-report-slide-in 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes esg-analysis-report-slide-in {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+/* Override ANY dynamic styling - MAXIMUM PRIORITY */
+.esg-analysis-report-section-content[style],
+.esg-analysis-report-section-content[style] *,
+.esg-analysis-report-section-content[style] p,
+.esg-analysis-report-section-content[style] div,
+.esg-analysis-report-section-content[style] span {
+  color: #333333 !important;
+  background: transparent !important;
+  text-shadow: none !important;
+}
+
+/* Additional safety measures for text color */
+.esg-analysis-report-panel * {
+  color: inherit;
+}
+
+.esg-analysis-report-section-content {
+  color: #333333;
+}
+
+/* Bullet Points Styling */
+.bullet-content {
+  margin: 0;
+  padding: 0;
+}
+
+.bullet-point {
+  display: flex;
+  align-items: flex-start;
+  margin-bottom: 0.8em;
+  line-height: 1.6;
+}
+
+.bullet {
+  color: #4a9eff;
+  font-weight: bold;
+  margin-right: 0.8em;
+  margin-top: 0.1em;
+  flex-shrink: 0;
+  font-size: 1.1em;
+}
+
+.bullet-text {
+  flex: 1;
+  color: #333333;
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
+/* Ensure bullet points work well in all contexts */
+.esg-analysis-report-section-content .bullet-content {
+  padding-left: 0;
+  border-left: none;
+}
+
+.esg-analysis-report-section-content .bullet-point {
+  margin-left: 0;
+  padding-left: 0;
+}
+
+/* ESG Risk Level Border Colors */
+.esg-risk-high {
+  border-right: 4px solid #dc3545 !important; /* Red - High risk */
+  padding-right: 1.5em !important;
+}
+
+.esg-risk-medium {
+  border-right: 4px solid #ff9800 !important; /* Orange - Medium risk */
+  padding-right: 1.5em !important;
+}
+
+.esg-risk-low {
+  border-right: 4px solid #ffc107 !important; /* Yellow - Low risk/monitoring */
+  padding-right: 1.5em !important;
+}
+
+.esg-risk-excellent {
+  border-right: 4px solid #28a745 !important; /* Green - Excellent performance */
+  padding-right: 1.5em !important;
+}
+
+.esg-risk-neutral {
+  border-right: none !important;
+  padding-right: 1em !important;
+}
+
+/* Enhanced Empty State Design */
+.esg-analysis-report-no-analysis {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 70vh;
+  padding: 3em 2em;
+}
+
+.esg-empty-state {
+  text-align: center;
+  max-width: 400px;
+  width: 100%;
+}
+
+/* ESG Logo */
+.esg-logo-container {
+  margin-bottom: 3em;
+}
+
+.esg-logo {
+  display: flex;
+  justify-content: center;
+  gap: 0.5em;
+  margin-bottom: 0.8em;
+}
+
+.esg-letter {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.8rem;
+  font-weight: bold;
+  color: white;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.esg-e {
+  background: linear-gradient(135deg, #28a745 0%, #20c997 100%); /* Green - Environmental */
+}
+
+.esg-s {
+  background: linear-gradient(135deg, #4a9eff 0%, #357abd 100%); /* Blue - Social */
+}
+
+.esg-g {
+  background: linear-gradient(135deg, #6f42c1 0%, #e83e8c 100%); /* Purple - Governance */
+}
+
+.esg-logo-subtitle {
+  font-size: 0.85rem;
+  color: #6c757d;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+}
+
+/* Main Content */
+.esg-empty-content {
+  margin-bottom: 3em;
+}
+
+.esg-empty-title {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #4a9eff;
+  margin: 0 0 1.2em 0;
+  letter-spacing: -0.02em;
+}
+
+.esg-empty-description {
+  font-size: 1.1rem;
+  color: #6c757d;
+  line-height: 1.7;
+  margin: 0;
+}
+
+/* Call to Action */
+.esg-cta-container {
+  padding: 1.8em;
+  background: rgba(74, 158, 255, 0.1);
+  border-radius: 1em;
+  border: 2px dashed #4a9eff;
+}
+
+.esg-cta-text {
+  font-size: 1rem;
+  color: #495057;
+  margin: 0 0 0.8em 0;
+  line-height: 1.6;
+}
+
+.esg-cta-text strong {
+  color: #4a9eff;
+  font-weight: 700;
+}
+
+/* Responsive adjustments */
+@media (max-width: 480px) {
+  .esg-letter {
+    width: 50px;
+    height: 50px;
+    font-size: 1.5rem;
+  }
+  
+  .esg-empty-title {
+    font-size: 1.5rem;
+  }
+  
+  .esg-features-preview {
+    gap: 0.8em;
+  }
+  
+  .esg-feature-item {
+    padding: 0.6em 1em;
+  }
+}

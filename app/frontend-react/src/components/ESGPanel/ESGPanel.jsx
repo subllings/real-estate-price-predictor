@@ -1,5 +1,5 @@
 import React from 'react';
-import './ESGPanel.css';
+import './ESGAnalysisReport.css';
 
 const ESGPanel = ({ isOpen, onClose, onToggle, esgAnalysis, propertyData, esgLoading }) => {
   // Color logic helpers
@@ -20,12 +20,20 @@ const ESGPanel = ({ isOpen, onClose, onToggle, esgAnalysis, propertyData, esgLoa
   };
 
   const getTextColorForBackground = (backgroundColor) => {
-    // For dark green and dark red backgrounds, use black text
-    if (backgroundColor === '#28a745' || backgroundColor === '#dc3545') {
-      return '#000000'; // Black text
-    }
-    return '#ffffff'; // White text for other backgrounds
-  };
+    if (!backgroundColor) return '#000000';
+
+    // Convert hex to RGB
+    const hex = backgroundColor.replace('#', '');
+    const r = parseInt(hex.substring(0, 2), 16);
+    const g = parseInt(hex.substring(2, 4), 16);
+    const b = parseInt(hex.substring(4, 6), 16);
+
+    // Calculate relative luminance
+    const luminance = 0.299 * r + 0.587 * g + 0.114 * b;
+
+    // Threshold: use black text if background is light, otherwise white
+    return luminance > 160 ? '#000000' : '#ffffff';
+};
 
   const getEsgImprovementColor = (improvement) => {
     if (improvement >= 15) return '#28a745'; // High improvement - green
@@ -34,90 +42,208 @@ const ESGPanel = ({ isOpen, onClose, onToggle, esgAnalysis, propertyData, esgLoa
     return '#f8d7da'; // Very low - light red
   };
 
-  // Action points summary generator
+  // Function to determine ESG risk level based on content
+  const getESGRiskLevel = (content) => {
+    if (!content || typeof content !== 'string') return 'low'; // Default to low risk
+    
+    const lowerContent = content.toLowerCase();
+    
+    // High risk indicators - Red border
+    if (lowerContent.includes('high risk') || 
+        lowerContent.includes('non-compliant') || 
+        lowerContent.includes('poor performance') ||
+        lowerContent.includes('major investment') ||
+        lowerContent.includes('significant cost') ||
+        lowerContent.includes('urgent') ||
+        lowerContent.includes('critical') ||
+        lowerContent.includes('expensive') ||
+        lowerContent.includes('costly') ||
+        lowerContent.includes('epc f') ||
+        lowerContent.includes('epc g') ||
+        lowerContent.includes('failing') ||
+        lowerContent.includes('violation')) {
+      return 'high'; // Red
+    }
+    
+    // Medium risk indicators - Orange border
+    if (lowerContent.includes('medium risk') || 
+        lowerContent.includes('moderate investment') ||
+        lowerContent.includes('consider upgrade') ||
+        lowerContent.includes('improvement needed') ||
+        lowerContent.includes('attention required') ||
+        lowerContent.includes('upgrade') ||
+        lowerContent.includes('investment') ||
+        lowerContent.includes('cost') ||
+        lowerContent.includes('epc d') ||
+        lowerContent.includes('epc e') ||
+        lowerContent.includes('below average')) {
+      return 'medium'; // Orange
+    }
+    
+    // Low risk/monitoring - Yellow border
+    if (lowerContent.includes('low risk') || 
+        lowerContent.includes('minor investment') ||
+        lowerContent.includes('optional upgrade') ||
+        lowerContent.includes('recommendation') ||
+        lowerContent.includes('monitor') ||
+        lowerContent.includes('maintain') ||
+        lowerContent.includes('consider') ||
+        lowerContent.includes('potential') ||
+        lowerContent.includes('epc c') ||
+        lowerContent.includes('average performance')) {
+      return 'low'; // Yellow
+    }
+    
+    // Excellent/positive indicators - Green border
+    if (lowerContent.includes('excellent') || 
+        lowerContent.includes('outstanding') ||
+        lowerContent.includes('highly efficient') ||
+        lowerContent.includes('compliant') ||
+        lowerContent.includes('best in class') ||
+        lowerContent.includes('future-proof') ||
+        lowerContent.includes('a+') ||
+        lowerContent.includes('epc a') ||
+        lowerContent.includes('superior') ||
+        lowerContent.includes('among the best') ||
+        lowerContent.includes('exceeds') ||
+        lowerContent.includes('optimal') ||
+        lowerContent.includes('energy efficient') ||
+        lowerContent.includes('low consumption') ||
+        lowerContent.includes('savings')) {
+      return 'excellent'; // Green
+    }
+    
+    return 'neutral'; // Default neutral (no special border)
+  };
+
+  // Function to get border color based on ESG risk level
+  const getESGBorderColor = (riskLevel) => {
+    switch (riskLevel) {
+      case 'high': return '#dc3545'; // Red - High risk
+      case 'medium': return '#ff9800'; // Orange - Medium risk  
+      case 'low': return '#ffc107'; // Yellow - Low risk/monitoring
+      case 'excellent': return '#28a745'; // Green - Excellent performance
+      default: return 'transparent'; // No border for neutral
+    }
+  };
+
+  // Function to format text with markdown bold markers
+  const formatTextWithMarkdown = (text) => {
+    if (!text || typeof text !== 'string') return text;
+    
+    // Split text by ** markers and format as bold
+    const parts = text.split(/\*\*(.*?)\*\*/g);
+    return parts.map((part, index) => {
+      // Every odd index is the text between ** markers
+      if (index % 2 === 1) {
+        return <strong key={index} style={{ color: '#2c5aa0', fontWeight: 'bold' }}>{part}</strong>;
+      }
+      return part;
+    });
+  };
+
+  // Action points summary generator - creates concise actionable recommendations
   const summarizeActionPoints = (analysisArr) => {
     if (!analysisArr || analysisArr.length === 0) return null;
-    // Group recommendations by category
-    const categories = {
-      Energy: [],
-      Investment: [],
-      Compliance: [],
-      ESG: [],
-      Other: []
-    };
+    
+    // Extract key actionable insights instead of duplicating full content
+    const actionableInsights = [];
+    
     analysisArr.forEach(pt => {
+      if (!pt || typeof pt !== 'string') return;
+      
       const lower = pt.toLowerCase();
-      if (lower.includes('epc') || lower.includes('energy')) categories.Energy.push(pt);
-      else if (lower.includes('investment') || lower.includes('cost') || lower.includes('upgrade')) categories.Investment.push(pt);
-      else if (lower.includes('compliance') || lower.includes('regulation')) categories.Compliance.push(pt);
-      else if (lower.includes('esg') || lower.includes('improvement')) categories.ESG.push(pt);
-      else categories.Other.push(pt);
+      
+      // Extract specific actionable recommendations with detailed descriptions
+      if (lower.includes('investment') && lower.includes('recommend')) {
+        actionableInsights.push("Monitor investment opportunities: Keep track of emerging energy efficiency technologies and government incentives that could further improve the property's performance and value.");
+      }
+      
+      if (lower.includes('a+') && lower.includes('maintain')) {
+        actionableInsights.push("Maintain A+ EPC rating: Schedule annual maintenance of heating, ventilation, and insulation systems to preserve the exceptional energy performance and avoid rating degradation.");
+      }
+      
+      if (lower.includes('heat pump') || lower.includes('heating system')) {
+        actionableInsights.push("Optimize heating system: Install smart thermostats and zoning controls to maximize efficiency and reduce operational costs while maintaining comfort levels.");
+      }
+      
+      if (lower.includes('solar') || lower.includes('renewable')) {
+        actionableInsights.push("Consider renewable energy integration: Assess the feasibility of adding solar panels or battery storage systems to further reduce energy costs and carbon footprint.");
+      }
+      
+      if (lower.includes('smart') && lower.includes('meter')) {
+        actionableInsights.push("Implement smart monitoring: Install advanced energy monitoring systems to track consumption patterns, identify optimization opportunities, and ensure regulatory compliance.");
+      }
+      
+      if (lower.includes('compliance') && lower.includes('regulation')) {
+        actionableInsights.push("Stay regulatory compliant: Monitor upcoming changes in Belgian energy regulations and ensure the property continues to meet or exceed all requirements for rentals and sales.");
+      }
+      
+      if (lower.includes('rental') && lower.includes('premium')) {
+        actionableInsights.push("Maximize rental value: Highlight the A+ energy rating in marketing materials to justify premium rents and attract environmentally conscious tenants willing to pay more for low utility costs.");
+      }
     });
-    // Only show categories with content
-    const shownCats = Object.entries(categories).filter(([cat, arr]) => arr.length > 0);
-    if (shownCats.length === 0) return null;
+    
+    // Remove duplicates and limit to most relevant actions
+    const uniqueActions = [...new Set(actionableInsights)].slice(0, 6);
+    
+    if (uniqueActions.length === 0) return null;
+    
     return (
       <div className="action-summary" style={{ marginTop: '1.5em', padding: '1em', background: '#f6f8fa', borderRadius: '0.7em', boxShadow: '0 2px 8px #eee' }}>
-        <h4 style={{ marginBottom: '0.7em', color: '#007bff' }}>Actionable Summary</h4>
-        {shownCats.map(([cat, arr], i) => (
-          <div key={cat} style={{ marginBottom: '1em' }}>
-            <div style={{ fontWeight: 'bold', color: '#333', marginBottom: '0.3em' }}>{cat} Recommendations:</div>
-            <ul style={{ margin: 0, paddingLeft: '1.2em' }}>
-              {arr.map((act, idx) => <li key={idx} style={{ marginBottom: '0.5em' }}>{act}</li>)}
-            </ul>
-          </div>
-        ))}
+        <h4 style={{ marginBottom: '0.7em', color: '#4a9eff', fontSize: '1.3rem', fontWeight: 'bold' }}>Key Action Items</h4>
+        <div style={{ display: 'grid', gap: '0.8em' }}>
+          {uniqueActions.map((action, idx) => {
+            const [title, description] = action.split(': ');
+            return (
+              <div key={idx} style={{ 
+                padding: '1em', 
+                backgroundColor: '#fff',
+                borderRadius: '0.5em',
+                border: '1px solid #e0e0e0',
+                fontSize: '0.95rem',
+                lineHeight: '1.5'
+              }}>
+                <div style={{ fontWeight: 'bold', color: '#2c5aa0', marginBottom: '0.4em' }}>
+                  {title}
+                </div>
+                <div style={{ color: '#555' }}>
+                  {description}
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </div>
     );
   };
   const isLoadingState = esgAnalysis && esgAnalysis.length > 0 && 
     esgAnalysis[0].includes('Generating ESG analysis in progress');
 
+  // Simplified formatting with ESG risk-based border colors
   const formatAnalysisPoint = (point, index) => {
-    // Check if this is a loading message - remove all emoji checks
+    // Skip empty or whitespace-only points
+    if (!point || point.trim() === '') {
+      return null;
+    }
+
+    // Check if this is a loading message
     const isLoadingMessage = point.includes('Generating') || point.includes('analysis in progress') || 
       point.includes('Azure OpenAI') || point.includes('Processing');
 
-    // Color logic for EPC, investment, ESG improvement
-    let colorStyle = {};
-    if (point.match(/EPC\s([A-G][+]?)/)) {
-      const epcMatch = point.match(/EPC\s([A-G][+]?)/);
-      colorStyle.background = getEpcColor(epcMatch[1]);
-      colorStyle.color = '#fff';
-      colorStyle.padding = '0.3em 0.7em';
-      colorStyle.borderRadius = '0.5em';
-      colorStyle.display = 'inline-block';
-      colorStyle.marginBottom = '0.5em';
-    } else if (point.match(/investment.*?(\d{1,3}(?:,\d{3})*(?:\.\d+)?)/i)) {
-      const investMatch = point.match(/(\d{1,3}(?:,\d{3})*(?:\.\d+)?)/);
-      if (investMatch) {
-        const investmentColor = getInvestmentColor(parseFloat(investMatch[1].replace(/,/g, '')));
-        colorStyle.background = investmentColor;
-        colorStyle.color = getTextColorForBackground(investmentColor);
-        colorStyle.padding = '0.3em 0.7em';
-        colorStyle.borderRadius = '0.5em';
-        colorStyle.display = 'inline-block';
-        colorStyle.marginBottom = '0.5em';
-      }
-    } else if (point.toLowerCase().includes('investment recommendations')) {
-      colorStyle.background = '#dc3545';
-      colorStyle.color = getTextColorForBackground('#dc3545');
-      colorStyle.padding = '1em';
-      colorStyle.borderRadius = '1em';
-      colorStyle.marginBottom = '0.7em';
-      colorStyle.display = 'block';
-    } else if (point.match(/ESG improvements.*?(\d{1,3})%/i)) {
-      const esgMatch = point.match(/(\d{1,3})%/);
-      if (esgMatch) {
-        const esgColor = getEsgImprovementColor(parseInt(esgMatch[1]));
-        colorStyle.background = esgColor;
-        colorStyle.color = getTextColorForBackground(esgColor);
-        colorStyle.padding = '0.3em 0.7em';
-        colorStyle.borderRadius = '0.5em';
-        colorStyle.display = 'inline-block';
-        colorStyle.marginBottom = '0.5em';
-      }
-    }
+    // Determine ESG risk level and corresponding CSS class
+    const riskLevel = getESGRiskLevel(point);
+    const riskClass = `esg-risk-${riskLevel}`;
+
+    // Base style for all content
+    let colorStyle = {
+      background: 'transparent',
+      color: '#333333',
+      padding: '1em',
+      borderRadius: '0.5em',
+      marginBottom: '0.7em',
+      display: 'block'
+    };
 
     // Detect if the point starts with markdown-style formatting
     if (point.includes('**') && point.includes(':**')) {
@@ -126,9 +252,9 @@ const ESGPanel = ({ isOpen, onClose, onToggle, esgAnalysis, propertyData, esgLoa
         const title = parts[0].replace(/\*\*/g, '').trim();
         const content = parts[1].trim();
         return (
-          <div key={index} className="analysis-point">
-            <h4 className="analysis-title">{title}</h4>
-            <div className={`analysis-content ${isLoadingMessage ? 'loading-message' : ''}`} style={colorStyle}>
+          <div key={index} className="esg-analysis-report-point">
+            <h4 className="esg-analysis-report-section-title">{title}</h4>
+            <div className={`esg-analysis-report-section-content ${riskClass} ${isLoadingMessage ? 'loading-message' : ''}`} style={colorStyle}>
               {formatContentWithBullets(content)}
             </div>
           </div>
@@ -136,16 +262,16 @@ const ESGPanel = ({ isOpen, onClose, onToggle, esgAnalysis, propertyData, esgLoa
       }
     }
 
-    // For regular points with special loading message styling
+    // For regular points with black text, white background and colored border
     return (
-      <div key={index} className="analysis-point">
-        <div className={`analysis-content ${isLoadingMessage ? 'loading-message' : ''}`} style={colorStyle}>
+      <div key={index} className="esg-analysis-report-point">
+        <div className={`esg-analysis-report-section-content ${riskClass} ${isLoadingMessage ? 'loading-message' : ''}`} style={colorStyle}>
           {formatContentWithBullets(point)}
           {isLoadingMessage && (
-            <span className="esg-loading-dots">
-              <span className="esg-loading-dot"></span>
-              <span className="esg-loading-dot"></span>
-              <span className="esg-loading-dot"></span>
+            <span className="esg-analysis-report-loading-dots">
+              <span className="esg-analysis-report-loading-dot"></span>
+              <span className="esg-analysis-report-loading-dot"></span>
+              <span className="esg-analysis-report-loading-dot"></span>
             </span>
           )}
         </div>
@@ -199,95 +325,123 @@ const ESGPanel = ({ isOpen, onClose, onToggle, esgAnalysis, propertyData, esgLoa
 
   return (
     <>
-      {/* Onglet visible pour rouvrir le panel */}
+      {/* Tab for reopening the panel */}
       <div
-        className={`esg-panel-tab ${isOpen ? 'hidden' : ''}`}
+        className={`esg-analysis-report-tab ${isOpen ? 'hidden' : ''}`}
         onClick={onToggle}
         title="Open ESG Analysis"
       >
-        <span className="esg-panel-tab-text">ESG</span>
+        <span className="esg-analysis-report-tab-text">ESG</span>
       </div>
       
-      <div className={`esg-panel ${isOpen ? 'open' : ''}`}>
-        <div className="esg-panel-header">
-          <div className="esg-panel-title">
+      <div className={`esg-analysis-report-panel ${isOpen ? 'open' : ''}`}>
+        <div className="esg-analysis-report-header">
+          <div className="esg-analysis-report-title">
             <h3>ESG Analysis Report</h3>
             {propertyData && (
-              <p className="property-summary">
+              <p className="esg-analysis-report-subtitle">
                 {propertyData.propertyType} in {propertyData.locality}, {propertyData.province}
               </p>
             )}
           </div>
           <button
             onClick={onClose}
-            className="esg-panel-close"
+            className="esg-analysis-report-close"
             aria-label="Close ESG Panel"
           >
             ✕
           </button>
         </div>
 
-        <div className="esg-panel-content">
+        <div className="esg-analysis-report-content">
           {esgAnalysis && esgAnalysis.length > 0 ? (
-            <div className="esg-analysis-container">
-              <div className="analysis-header">
-                <div className="analysis-badge">
-                  <span className="badge-text">
+            <div className="esg-analysis-report-container">
+              <div className="esg-analysis-report-analysis-header">
+                <div className="esg-analysis-report-badge">
+                  <span className="esg-analysis-report-badge-text">
                     {isLoadingState ? 'Analysis in progress...' : 'Detailed Analysis'}
                   </span>
                 </div>
-                <div className="analysis-meta">
+                <div className="esg-analysis-report-meta">
                   {isLoadingState ? 
                     <div className="loading-meta">
-                      <div className="spinner"></div>
-                      <span>Azure OpenAI LLM Agent active</span>
+                      <div className="esg-analysis-report-loading-spinner"></div>
+                      <span>Generating insights...</span>
                     </div> : 
-                    `6 insights generated`
+                    <span>{esgAnalysis.length} insights generated</span>
                   }
                 </div>
               </div>
 
-              <div className="analysis-sections">
+              <div className="esg-analysis-report-sections">
                 {isLoadingState ? (
-                  <div className="analysis-loading">
-                    <div className="loading-spinner-large"></div>
-                    <div className="loading-message">
+                  <div className="esg-analysis-report-loading-state">
+                    <div className="esg-analysis-report-loading-spinner"></div>
+                    <div className="esg-analysis-report-loading-text">
                       <h4>ESG Analysis in Progress...</h4>
                       <p>Our AI is analyzing the environmental, social, and governance aspects of your property.</p>
-                      <div className="loading-steps">
-                        <div className="step">• Energy assessment</div>
-                        <div className="step">• Regulatory compliance</div>
-                        <div className="step">• Improvement recommendations</div>
+                      <div className="esg-analysis-report-loading-progress">
+                        <div className="esg-analysis-report-progress-dots">
+                          <div className="esg-analysis-report-progress-dot"></div>
+                          <div className="esg-analysis-report-progress-dot"></div>
+                          <div className="esg-analysis-report-progress-dot"></div>
+                        </div>
                       </div>
                     </div>
                   </div>
                 ) : (
                   <>
-                    {esgAnalysis.map((point, index) => formatAnalysisPoint(point, index))}
+                    {esgAnalysis.map((point, index) => formatAnalysisPoint(point, index)).filter(Boolean)}
                     {summarizeActionPoints(esgAnalysis)}
                   </>
                 )}
               </div>
 
               {!isLoadingState && (
-                <div className="analysis-footer">
-                  <div className="disclaimer">
+                <div className="esg-analysis-report-footer">
+                  <div className="esg-analysis-report-disclaimer">
                     <p><strong>Disclaimer:</strong> Generated by AI for informational purposes. Please consult with ESG experts for detailed assessments.</p>
                   </div>
                 </div>
               )}
             </div>
           ) : esgLoading ? (
-            <div className="esg-loading-container">
-              <div className="esg-loading-spinner"></div>
-              <div className="esg-loading-text">
+            <div className="esg-analysis-report-loading-state">
+              <div className="esg-analysis-report-loading-spinner"></div>
+              <div className="esg-analysis-report-loading-text">
                 <h4>ESG Analysis in Progress...</h4>
                 <p>Our AI is analyzing the environmental, social, and governance aspects of your property. Please wait...</p>
               </div>
             </div>
           ) : (
-            <div className="no-analysis">
-              <p>No ESG analysis available. Click "Analyze Price & ESG" to generate a comprehensive report.</p>
+            <div className="esg-analysis-report-no-analysis">
+              <div className="esg-empty-state">
+                {/* ESG Logo/Icon */}
+                <div className="esg-logo-container">
+                  <div className="esg-logo">
+                    <div className="esg-letter esg-e">E</div>
+                    <div className="esg-letter esg-s">S</div>
+                    <div className="esg-letter esg-g">G</div>
+                  </div>
+                  <div className="esg-logo-subtitle">Environmental • Social • Governance</div>
+                </div>
+
+                {/* Main message */}
+                <div className="esg-empty-content">
+                  <h3 className="esg-empty-title">Ready for ESG Analysis</h3>
+                  <p className="esg-empty-description">
+                    Get comprehensive insights into your property's environmental impact, 
+                    social compliance, and governance standards with our AI-powered analysis.
+                  </p>
+                </div>
+
+                {/* Call to action */}
+                <div className="esg-cta-container">
+                  <p className="esg-cta-text">
+                    Click <strong>"Analyze Price & ESG"</strong> to generate your comprehensive report
+                  </p>
+                </div>
+              </div>
             </div>
           )}
         </div>
