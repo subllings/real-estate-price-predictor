@@ -775,85 +775,10 @@ const StrategicAnalysisConclusion = ({ formData, detailedEsgData, esgAnalysisAva
   // Show loading state if ESG is being analyzed
   if (esgLoading) {
     return (
-      <div style={{ background: 'transparent', border: 'none', padding: '0', margin: '0' }}>
-        <div style={{ background: 'transparent', border: 'none', textAlign: 'center' }}>
-          <style>
-            {`
-              @keyframes spin {
-                0% { transform: rotate(0deg); }
-                100% { transform: rotate(360deg); }
-              }
-            `}
-          </style>
-          <h2 style={{ color: '#2c3e50', fontSize: '2.2rem', fontWeight: '700', marginBottom: '2rem' }}>
-            Conclusion of Strategic Analysis
-          </h2>
-          <div style={{ 
-            textAlign: 'center', 
-            padding: '2rem', 
-            background: 'transparent', 
-            border: 'none',
-            boxShadow: 'none',
-            borderRadius: '0'
-          }}>
-            <div style={{ 
-              display: 'flex', 
-              flexDirection: 'column', 
-              alignItems: 'center', 
-              gap: '1.5rem',
-              background: 'transparent',
-              border: 'none'
-            }}>
-              <div style={{
-                width: '40px',
-                height: '40px',
-                border: '3px solid #e3f2fd',
-                borderTop: '3px solid #007bff',
-                borderRadius: '50%',
-                animation: 'spin 1s linear infinite'
-              }}></div>
-              <p style={{ 
-                fontSize: '1.2rem', 
-                fontWeight: '500', 
-                color: '#007bff', 
-                margin: '0' 
-              }}>
-                Analysis in progress...
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (!formData || !esgScores) {
-    return (
-      <div className="strategic-analysis-conclusion">
-        <div className="strategic-header">
-          <h2>Conclusion of Strategic Analysis</h2>
-          <div className="strategic-loading">Fill the form to see strategic analysis</div>
-        </div>
-      </div>
-    );
-  }
-
-  const scoreLetter = getScoreLetter(esgScores.overall);
-
-  return (
-    <>
-      {esgScores && (
+      <>
+        {/* ESG Scores Summary - Always displayed as it's static */}
         <div className="esg-scores-summary">
           <h3>ESG Scores Summary</h3>
-          {/* Console log for ESG Score Summary values */}
-          {console.log('=== ESG SCORE SUMMARY VALUES ===', {
-            Environmental: `${esgScores.environment}/10`,
-            Social: `${esgScores.social}/10`,
-            Governance: `${esgScores.governance}/10`,
-            Overall: `${esgScores.overall}/10`,
-            rawScores: esgScores,
-            timestamp: new Date().toLocaleTimeString()
-          })}
           <div className="esg-scores-grid">
             <div 
               className="esg-score-item"
@@ -929,7 +854,160 @@ const StrategicAnalysisConclusion = ({ formData, detailedEsgData, esgAnalysisAva
             </div>
           </div>
         </div>
-      )}
+
+        <div style={{ background: 'transparent', border: 'none', padding: '0', margin: '0' }}>
+          <div style={{ background: 'transparent', border: 'none', textAlign: 'center' }}>
+            <style>
+              {`
+                @keyframes spin {
+                  0% { transform: rotate(0deg); }
+                  100% { transform: rotate(360deg); }
+                }
+              `}
+            </style>
+
+            <div style={{ 
+              textAlign: 'center', 
+              padding: '2rem', 
+              background: 'transparent', 
+              border: 'none',
+              boxShadow: 'none',
+              borderRadius: '0'
+            }}>
+              <div style={{ 
+                display: 'flex', 
+                flexDirection: 'column', 
+                alignItems: 'center', 
+                gap: '1.5rem',
+                background: 'transparent',
+                border: 'none'
+              }}>
+                <div style={{
+                  width: '40px',
+                  height: '40px',
+                  border: '3px solid #e3f2fd',
+                  borderTop: '3px solid #007bff',
+                  borderRadius: '50%',
+                  animation: 'spin 1s linear infinite'
+                }}></div>
+                <p style={{ 
+                  fontSize: '1.2rem', 
+                  fontWeight: '500', 
+                  color: '#007bff', 
+                  margin: '0' 
+                }}>
+                  Analysis in progress...
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </>
+    );
+  }
+
+  if (!formData || !esgScores) {
+    return (
+      <div className="strategic-analysis-conclusion">
+        <div className="strategic-header">
+          <h2>Conclusion of Strategic Analysis</h2>
+          <div className="strategic-loading">Fill the form to see strategic analysis</div>
+        </div>
+      </div>
+    );
+  }
+
+  const scoreLetter = getScoreLetter(esgScores.overall);
+
+  return (
+    <>
+      {/* ESG Scores Summary - Always displayed as it's static */}
+      <div className="esg-scores-summary">
+        <h3>ESG Scores Summary</h3>
+        {/* Console log for ESG Score Summary values */}
+        {console.log('=== ESG SCORE SUMMARY VALUES ===', {
+          Environmental: `${esgScores.environment}/10`,
+          Social: `${esgScores.social}/10`,
+          Governance: `${esgScores.governance}/10`,
+          Overall: `${esgScores.overall}/10`,
+          rawScores: esgScores,
+          timestamp: new Date().toLocaleTimeString()
+        })}
+        <div className="esg-scores-grid">
+          <div 
+            className="esg-score-item"
+            style={{
+              background: getScoreColor(esgScores.environment).gradient,
+              boxShadow: `0 4px 12px ${getScoreColor(esgScores.environment).shadow}`
+            }}
+          >
+            <div className="score-value">{esgScores.environment}/10</div>
+            <div className="score-label">Environmental</div>
+          </div>
+          <div 
+            className="esg-score-item"
+            style={{
+              background: getScoreColor(esgScores.social).gradient,
+              boxShadow: `0 4px 12px ${getScoreColor(esgScores.social).shadow}`
+            }}
+          >
+            <div className="score-value">{esgScores.social}/10</div>
+            <div className="score-label">Social</div>
+          </div>
+          <div 
+            className="esg-score-item"
+            style={{
+              background: getScoreColor(esgScores.governance).gradient,
+              boxShadow: `0 4px 12px ${getScoreColor(esgScores.governance).shadow}`
+            }}
+          >
+            <div className="score-value">{esgScores.governance}/10</div>
+            <div className="score-label">Governance</div>
+          </div>
+          <div 
+            className="esg-score-item overall"
+            style={{
+              background: getScoreColor(esgScores.overall).gradient,
+              boxShadow: `0 4px 12px ${getScoreColor(esgScores.overall).shadow}`
+            }}
+          >
+            <div className="score-value">{esgScores.overall}/10</div>
+            <div className="score-label">Overall ESG</div>
+          </div>
+        </div>
+        
+        {/* ESG Calculation Methodology */}
+        <div className="esg-methodology">
+          <h4>ESG Score Calculation</h4>
+          <p>
+            Our ESG scores are calculated based on property characteristics and market data:
+          </p>
+          <ul>
+            <li><strong>Environmental:</strong> Energy efficiency (EPC rating), heating systems, flood risk, and carbon footprint</li>
+            <li><strong>Social:</strong> Location quality, accessibility, community services, and neighborhood safety</li>
+            <li><strong>Governance:</strong> Legal compliance, building regulations, property management standards</li>
+            <li><strong>Overall:</strong> Weighted average of all three pillars with emphasis on environmental factors</li>
+          </ul>
+          <div className="score-legend">
+            <span className="legend-item">
+              <span className="legend-color" style={{background: 'linear-gradient(135deg, #4ade80 0%, #22c55e 100%)'}}></span>
+              8-10: Excellent
+            </span>
+            <span className="legend-item">
+              <span className="legend-color" style={{background: 'linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)'}}></span>
+              6-8: Good
+            </span>
+            <span className="legend-item">
+              <span className="legend-color" style={{background: 'linear-gradient(135deg, #fb923c 0%, #ea580c 100%)'}}></span>
+              3-6: Fair
+            </span>
+            <span className="legend-item">
+              <span className="legend-color" style={{background: 'linear-gradient(135deg, #f87171 0%, #dc2626 100%)'}}></span>
+              0-3: Poor
+            </span>
+          </div>
+        </div>
+      </div>
 
       <div className="strategic-analysis-conclusion">
         <div className="strategic-header">
@@ -958,23 +1036,65 @@ const StrategicAnalysisConclusion = ({ formData, detailedEsgData, esgAnalysisAva
           </div>
         )}
 
-        {strategicSummary && (
-          <div className="strategic-summary-section">
-            <div className="strategic-summary-card">
-              <h3>Executive Summary</h3>
-              <div className="summary-content">
-                <p>{strategicSummary.summary}</p>
-              </div>
-            </div>
-          </div>
-        )}
-
         <div className="strategic-dashboards-grid">
           {renderFinancialImpactDashboard()}
           {renderComplianceStatusDashboard()}
           {renderKeyRecommendationsDashboard()}
           {renderConfidenceTimelineDashboard()}
         </div>
+
+        {/* Executive Summary - Dynamic content from API */}
+        {strategicSummary && (
+          <div className="executive-summary-section">
+            <div className="executive-summary-card">
+              <div className="executive-summary-header">
+                <h3>Executive Summary</h3>
+                <div className="executive-summary-badge">
+                  <span>Strategic Analysis</span>
+                </div>
+              </div>
+              <div className="executive-summary-content">
+                <div className="summary-main-text">
+                  <p>{strategicSummary.summary}</p>
+                </div>
+                
+                {strategicSummary.key_insights && strategicSummary.key_insights.length > 0 && (
+                  <div className="summary-key-insights">
+                    <h4>Key Strategic Insights</h4>
+                    <ul>
+                      {strategicSummary.key_insights.slice(0, 3).map((insight, index) => (
+                        <li key={index}>{insight}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {strategicSummary.recommendations && strategicSummary.recommendations.length > 0 && (
+                  <div className="summary-recommendations">
+                    <h4>Priority Recommendations</h4>
+                    <div className="recommendations-grid">
+                      {strategicSummary.recommendations.slice(0, 3).map((rec, index) => (
+                        <div key={index} className="recommendation-item">
+                          <span className="recommendation-priority">#{index + 1}</span>
+                          <span className="recommendation-text">{rec}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div className="summary-footer">
+                  <div className="summary-timestamp">
+                    <span>Analysis completed: {strategicSummary.timestamp}</span>
+                  </div>
+                  <div className="summary-confidence">
+                    <span>Confidence Level: {strategicSummary.confidence_score || 'High'}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </>
   );
