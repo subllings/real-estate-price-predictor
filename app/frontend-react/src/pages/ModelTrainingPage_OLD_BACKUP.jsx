@@ -1,11 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useExperiments } from '../hooks/useExperiments';
 
 const ModelTrainingPage = () => {
   const [activeTab, setActiveTab] = useState('experiments');
   const [isTraining, setIsTraining] = useState(false);
-  const [selectedModel, setSelectedModel] = useState(null);
-  const [showHyperparametersPanel, setShowHyperparametersPanel] = useState(false);
   
   const { 
     experiments, 
@@ -17,33 +15,14 @@ const ModelTrainingPage = () => {
 
   const tabs = [
     { id: 'pipeline', label: 'Training Pipeline' },
-    { id: 'experiments', label: 'Experiments & Optimization' },
+    { id: 'experiments', label: 'Experiments' },
+    { id: 'optimization', label: 'Optimization' },
     { id: 'deployment', label: 'Deployment' }
   ];
 
   const startTraining = () => {
     setIsTraining(true);
     setTimeout(() => setIsTraining(false), 5000);
-  };
-
-  const handleModelClick = (experiment) => {
-    setSelectedModel(experiment);
-    setShowHyperparametersPanel(true);
-  };
-
-  const getTopHyperparametersForModel = (modelName) => {
-    // Filtrer les expériences pour ce modèle spécifique
-    const modelExperiments = experiments.filter(exp => 
-      exp.model_name && exp.model_name.includes(modelName.split(' ')[0]) // Match base model name
-    );
-    
-    // Trier par R² et prendre les 10 meilleurs
-    const topExperiments = modelExperiments
-      .filter(exp => exp.hyperparameters) // Seulement ceux avec hyperparamètres
-      .sort((a, b) => (b.r2_test || 0) - (a.r2_test || 0))
-      .slice(0, 10);
-    
-    return topExperiments;
   };
 
   const formatDate = (timestamp) => {
@@ -185,150 +164,6 @@ const ModelTrainingPage = () => {
     }
   };
 
-  const renderHyperparametersPanel = () => {
-    if (!selectedModel) return null;
-
-    const topHyperparameters = getTopHyperparametersForModel(selectedModel.model_name);
-
-    return (
-      <div className={`fixed left-0 top-0 h-full bg-white shadow-2xl transform transition-transform duration-300 ease-in-out z-50 ${
-        showHyperparametersPanel ? 'translate-x-0' : '-translate-x-full'
-      }`} style={{ width: '500px' }}>
-        
-        {/* Header */}
-        <div className="bg-blue-500 text-white p-4 flex items-center justify-between">
-          <div>
-            <h3 className="text-lg font-semibold">Hyperparameters</h3>
-            <p className="text-sm opacity-90">{selectedModel.model_name}</p>
-          </div>
-          <button
-            onClick={() => setShowHyperparametersPanel(false)}
-            className="text-white hover:bg-blue-600 p-2 rounded-md transition-colors"
-          >
-            ✕
-          </button>
-        </div>
-
-        {/* Content */}
-        <div className="p-4 h-full overflow-y-auto">
-          
-          {/* Model Summary */}
-          <div className="bg-gray-50 p-4 rounded-lg mb-4">
-            <div className="grid grid-cols-2 gap-4 text-sm">
-              <div>
-                <span className="font-medium text-gray-600">Best R² Score:</span>
-                <div className={`text-lg font-bold ${getScoreColor(selectedModel.r2_test)}`}>
-                  {formatR2Score(selectedModel.r2_test)}
-                </div>
-              </div>
-              <div>
-                <span className="font-medium text-gray-600">Trial Number:</span>
-                <div className="text-lg font-bold text-gray-900">
-                  {selectedModel.trial_number || 'Baseline'}
-                </div>
-              </div>
-              <div>
-                <span className="font-medium text-gray-600">Training Time:</span>
-                <div className="text-lg font-bold text-gray-900">
-                  {formatTrainingTime(selectedModel.training_time)}
-                </div>
-              </div>
-              <div>
-                <span className="font-medium text-gray-600">Status:</span>
-                <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                  selectedModel.generalization_status === 'Excellent generalization' ? 'bg-green-100 text-green-800' :
-                  selectedModel.generalization_status === 'Good generalization' ? 'bg-blue-100 text-blue-800' :
-                  selectedModel.generalization_status === 'Moderate overfitting' ? 'bg-yellow-100 text-yellow-800' :
-                  'bg-gray-100 text-gray-800'
-                }`}>
-                  {selectedModel.generalization_status || 'Unknown'}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* Top Hyperparameters */}
-          <div className="mb-4">
-            <h4 className="text-md font-semibold text-gray-900 mb-3">
-              Top 10 Hyperparameter Configurations for {selectedModel.model_name.split(' ')[0]}
-            </h4>
-            
-            {topHyperparameters.length === 0 ? (
-              <div className="text-gray-500 text-center py-8">
-                No hyperparameter data available for this model type
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {topHyperparameters.map((exp, index) => (
-                  <div key={exp.id || index} className="border rounded-lg p-3 hover:bg-gray-50">
-                    
-                    {/* Rank & Performance */}
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center space-x-2">
-                        <div className={`w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-bold ${
-                          index === 0 ? 'bg-yellow-500' : 
-                          index === 1 ? 'bg-gray-400' : 
-                          index === 2 ? 'bg-amber-600' : 'bg-gray-300'
-                        }`}>
-                          {index + 1}
-                        </div>
-                        <span className="text-sm font-medium">
-                          Trial {exp.trial_number || 'N/A'}
-                        </span>
-                      </div>
-                      <div className={`text-sm font-medium ${getScoreColor(exp.r2_test)}`}>
-                        R² {formatR2Score(exp.r2_test)}
-                      </div>
-                    </div>
-
-                    {/* Hyperparameters */}
-                    {exp.hyperparameters && (
-                      <div className="grid grid-cols-2 gap-2 text-xs">
-                        {Object.entries(exp.hyperparameters).slice(0, 8).map(([key, value]) => (
-                          <div key={key} className="bg-gray-100 p-2 rounded">
-                            <div className="font-medium text-gray-600 truncate">{key}</div>
-                            <div className="text-gray-900 truncate">
-                              {typeof value === 'number' ? 
-                                (value < 0.01 ? value.toExponential(2) : value.toFixed(4)) : 
-                                String(value)
-                              }
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Current Model's Hyperparameters (if available) */}
-          {selectedModel.hyperparameters && (
-            <div className="mb-4">
-              <h4 className="text-md font-semibold text-gray-900 mb-3">Current Model Hyperparameters</h4>
-              <div className="grid grid-cols-1 gap-2">
-                {Object.entries(selectedModel.hyperparameters).map(([key, value]) => (
-                  <div key={key} className="bg-blue-50 p-3 rounded-lg border border-blue-200">
-                    <div className="flex justify-between items-center">
-                      <span className="font-medium text-blue-800">{key}</span>
-                      <span className="text-blue-900 font-mono">
-                        {typeof value === 'number' ? 
-                          (value < 0.01 ? value.toExponential(3) : value.toFixed(4)) : 
-                          String(value)
-                        }
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  };
-
   const renderExperimentsTab = () => {
     // Traitement des données pour le format du tableau avec métriques structurées
     const processedExperiments = experiments.map((exp, index) => {
@@ -349,7 +184,6 @@ const ModelTrainingPage = () => {
 
     return (
       <div className="space-y-6">
-        
         {/* Header avec statistiques enrichies */}
         <div className="bg-white rounded-lg border p-6">
           <div className="flex justify-between items-center mb-4">
@@ -470,12 +304,7 @@ const ModelTrainingPage = () => {
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                   {processedExperiments.map((exp, index) => (
-                    <tr 
-                      key={exp.id} 
-                      className={`cursor-pointer transition-colors ${exp.rank === 1 ? 'bg-green-50 hover:bg-green-100' : 'hover:bg-blue-50'}`}
-                      onClick={() => handleModelClick(exp)}
-                      title="Click to view hyperparameters - Panel stays open for multiple selections"
-                    >
+                    <tr key={exp.id} className={exp.rank === 1 ? 'bg-green-50' : 'hover:bg-gray-50'}>
                       <td className={`px-4 py-3 text-sm ${exp.rank === 1 ? 'bg-green-600 text-white font-bold' : 'text-gray-900'}`}>
                         {exp.rank}
                       </td>
@@ -514,10 +343,8 @@ const ModelTrainingPage = () => {
                       <td className={`px-4 py-3 text-sm ${getR2GapColor(exp.r2_gap)}`}>
                         {exp.r2_gap}
                       </td>
-                      <td className="px-4 py-3 text-sm">
-                        <span className={getDiagnosticColor(exp.r2_gap_diagnostic)}>
-                          {exp.r2_gap_diagnostic}
-                        </span>
+                      <td className={`px-4 py-3 text-sm ${getDiagnosticColor(exp.r2_gap_diagnostic)}`}>
+                        {exp.r2_gap_diagnostic}
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-900">
                         {exp.n_features}
@@ -564,6 +391,7 @@ const ModelTrainingPage = () => {
     switch (activeTab) {
       case 'pipeline': return renderPipelineTab();
       case 'experiments': return renderExperimentsTab();
+      case 'optimization': return <div className="text-center py-8">Optimization tools coming soon...</div>;
       case 'deployment': return <div className="text-center py-8">Deployment options coming soon...</div>;
       default: return renderExperimentsTab();
     }
@@ -571,13 +399,7 @@ const ModelTrainingPage = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      
-      {/* Hyperparameters Panel - SANS overlay sombre */}
-      {renderHyperparametersPanel()}
-      
-      <div className={`max-w-7xl mx-auto px-4 py-8 transition-all duration-300 ${
-        showHyperparametersPanel ? 'ml-[500px]' : ''
-      }`}>
+      <div className="max-w-7xl mx-auto px-4 py-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Model Training</h1>
           <p className="text-gray-600">Train and evaluate machine learning models</p>

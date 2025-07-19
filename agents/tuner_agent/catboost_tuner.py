@@ -448,17 +448,14 @@ class CatBoostTuner:
             
             def analyze_generalization(r2_train, r2_test):
                 gap = r2_train - r2_test
-                # Logique alignée avec train_test_metrics_logger.py
-                if gap < 0:
-                    return "Possible underfitting"
-                elif gap < 0.05:
-                    return "Excellent generalization"
-                elif gap < 0.08:
-                    return "Good generalization"
-                elif gap < 0.12:
-                    return "Moderate overfitting"
+                if gap <= 0.02 and r2_test > 0.85:
+                    return "Excellent"
+                elif gap <= 0.05 and r2_test > 0.75:
+                    return "Good"
+                elif gap <= 0.10:
+                    return "Fair"
                 else:
-                    return "Strong overfitting"
+                    return "Poor"
             
             generalization_status = analyze_generalization(
                 global_metrics_train["r2"], 

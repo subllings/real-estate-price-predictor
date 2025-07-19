@@ -451,36 +451,9 @@ async def get_experiments():
             # Fallback vers l'ancienne méthode
             experiments = cosmos_logger.get_trials_for_model("catboost", limit=100)
             
-            # Fonction pour calculer le diagnostic de généralisation
-            def calculate_generalization_status(r2_train, r2_test):
-                if not r2_train or not r2_test:
-                    return "Unknown"
-                
-                r2_gap = r2_train - r2_test
-                
-                # Logique alignée avec train_test_metrics_logger.py et CatBoost tuner
-                if r2_gap < 0:
-                    return "Possible underfitting"
-                elif r2_gap < 0.05:
-                    return "Excellent generalization"
-                elif r2_gap < 0.08:
-                    return "Good generalization"
-                elif r2_gap < 0.12:
-                    return "Moderate overfitting"
-                else:
-                    return "Strong overfitting"
-            
             for exp in experiments:
                 # Support des métriques structurées ou format legacy
                 structured_metrics = exp.get("structured_metrics", {})
-                
-                # Extraire les valeurs R²
-                r2_train = structured_metrics.get("r2_train") or exp.get("r2_score", 0)
-                r2_test = structured_metrics.get("r2_test") or exp.get("r2_test", 0)
-                
-                # Calculer R² gap et diagnostic
-                r2_gap = (r2_train - r2_test) if (r2_train and r2_test) else 0
-                generalization_status = calculate_generalization_status(r2_train, r2_test)
                 
                 formatted_exp = {
                     "id": exp.get("id", ""),
@@ -491,16 +464,16 @@ async def get_experiments():
                     "timestamp": exp.get("timestamp", ""),
                     
                     # Métriques avec support structured_metrics ou format legacy
-                    "r2_train": r2_train,
-                    "r2_test": r2_test,
+                    "r2_train": structured_metrics.get("r2_train") or exp.get("r2_score", 0),
+                    "r2_test": structured_metrics.get("r2_test") or exp.get("r2_test", 0),
                     "mae_train": structured_metrics.get("mae_train") or exp.get("mae", 0),
                     "mae_test": structured_metrics.get("mae_test") or exp.get("mae_test", 0),
                     "rmse_train": structured_metrics.get("rmse_train") or exp.get("rmse", 0),
                     "rmse_test": structured_metrics.get("rmse_test") or exp.get("rmse_test", 0),
                     
-                    # Diagnostics calculés dynamiquement
-                    "r2_gap": r2_gap,
-                    "generalization_status": generalization_status,
+                    # Nouvelles métriques calculées
+                    "r2_gap": structured_metrics.get("r2_gap") or 0,
+                    "generalization_status": structured_metrics.get("generalization_status") or "Unknown",
                     "feature_count": structured_metrics.get("feature_count") or 2885,
                     
                     # Données supplémentaires
