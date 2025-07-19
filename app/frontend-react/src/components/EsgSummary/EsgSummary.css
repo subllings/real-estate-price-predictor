@@ -895,25 +895,7 @@
   transform: translateY(-2px);
 }
 
-.esg-score-item:nth-child(1) {
-  background: linear-gradient(135deg, #27ae60 0%, #229954 100%);
-  box-shadow: 0 4px 12px rgba(39, 174, 96, 0.4);
-}
-
-.esg-score-item:nth-child(2) {
-  background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
-  box-shadow: 0 4px 12px rgba(52, 152, 219, 0.4);
-}
-
-.esg-score-item:nth-child(3) {
-  background: linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%);
-  box-shadow: 0 4px 12px rgba(155, 89, 182, 0.4);
-}
-
-.esg-score-item.overall {
-  background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
-  box-shadow: 0 4px 12px rgba(231, 76, 60, 0.4);
-}
+/* Static color styles removed - now using dynamic colors based on score values */
 
 .score-value {
   font-size: 1.5rem;
@@ -1052,5 +1034,84 @@
   
   .score-value {
     font-size: 1.2rem;
+  }
+}
+
+/* ESG Methodology Styles */
+.esg-methodology {
+  margin-top: 1.5rem;
+  padding: 1.5rem;
+  background: #f8fafc;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+}
+
+.esg-methodology h4 {
+  margin: 0 0 1rem 0;
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.esg-methodology p {
+  margin: 0 0 1rem 0;
+  font-size: 0.95rem;
+  color: #475569;
+  line-height: 1.5;
+}
+
+.esg-methodology ul {
+  margin: 0 0 1.5rem 0;
+  padding-left: 1.2rem;
+}
+
+.esg-methodology li {
+  margin-bottom: 0.5rem;
+  font-size: 0.9rem;
+  color: #475569;
+  line-height: 1.4;
+}
+
+.esg-methodology li strong {
+  color: #1e293b;
+  font-weight: 600;
+}
+
+.score-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  color: #475569;
+  font-weight: 500;
+}
+
+.legend-color {
+  width: 16px;
+  height: 16px;
+  border-radius: 3px;
+  border: 1px solid rgba(0,0,0,0.1);
+}
+
+@media (max-width: 640px) {
+  .esg-methodology {
+    padding: 1rem;
+    margin-top: 1rem;
+  }
+  
+  .score-legend {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  
+  .legend-item {
+    font-size: 0.8rem;
   }
 }
