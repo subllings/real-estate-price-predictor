@@ -115,7 +115,7 @@
 .submit-button {
   background-color: #3b82f6;
   color: white;
-  padding: 0.75rem 2rem;
+  padding: 0.75rem 1.5rem;
   font-size: 0.875rem;
   font-weight: 600;
   border: none;
@@ -123,12 +123,16 @@
   cursor: pointer;
   transition: all 0.2s ease;
   order: 4;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .submit-button:hover:not(:disabled) {
   background-color: #2563eb;
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+  box-shadow: 0 3px 8px rgba(59, 130, 246, 0.2);
 }
 
 .submit-button:disabled {
@@ -140,18 +144,23 @@
 .clear-history-button {
   background-color: #6b7280;
   color: white;
-  padding: 0.5rem 1rem;
-  font-size: 0.75rem;
-  font-weight: 500;
+  padding: 0.75rem 1.5rem;
+  font-size: 0.875rem;
+  font-weight: 600;
   border: none;
-  border-radius: 4px;
+  border-radius: 6px;
   cursor: pointer;
   transition: all 0.2s ease;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .reset-button:hover:not(:disabled),
 .clear-history-button:hover:not(:disabled) {
   background-color: #4b5563;
+  transform: translateY(-1px);
 }
 
 .admin-button {
@@ -339,45 +348,20 @@
   transition: background-color 0.2s ease-in-out;
 }
 
-.reset-button:hover {
-  background-color: #0056b3; /* gris un peu plus foncé au survol */
-}
-/* Submit Button déjà défini dans ton CSS, juste fixer la largeur */
-.submit-button {
-  width: 100px; /* même largeur que reset-button */
-  text-align: center;
-}
-
-.admin-button {
-  background: linear-gradient(135deg, #e74c3c, #c0392b);
-  color: white;
-  border: none;
-  padding: 10px 15px;
-  border-radius: 5px;
-  cursor: pointer;
-  font-size: 14px;
-  transition: all 0.3s ease;
+/* Buttons container */
+.form-buttons-container {
   display: flex;
+  justify-content: space-between;
   align-items: center;
-  gap: 5px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  margin-bottom: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e5e7eb;
 }
 
-.admin-button:hover {
-  background: linear-gradient(135deg, #c0392b, #a93226);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
-}
-
-.admin-button:active {
-  transform: translateY(0);
-}
-
-.admin-button:disabled {
-  background: #cccccc;
-  cursor: not-allowed;
-  transform: none;
-  box-shadow: none;
+.form-buttons-group {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
 }
 
 /* Result field in grid */
