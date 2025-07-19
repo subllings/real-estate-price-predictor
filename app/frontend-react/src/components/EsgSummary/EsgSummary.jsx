@@ -101,7 +101,7 @@ const StrategicAnalysisConclusion = ({ formData, detailedEsgData, esgAnalysisAva
     let scoreFactors = [];
     
     // Factor 1: Property data completeness (0-15 points)
-    const hasEpc = formData.propertyEnergyClass && formData.propertyEnergyClass !== 'Unknown';
+    const hasEpc = formData.epcScore && formData.epcScore !== 'Unknown' && formData.epcScore !== '';
     const hasYear = formData.buildingConstructionYear && formData.buildingConstructionYear > 1900;
     const hasLocation = formData.locality && formData.locality.trim() !== '';
     const hasType = formData.propertyType && formData.propertyType !== 'Unknown';
@@ -112,32 +112,36 @@ const StrategicAnalysisConclusion = ({ formData, detailedEsgData, esgAnalysisAva
     scoreFactors.push({
       factor: 'Data Completeness',
       score: Math.round(dataScore * 100),
-      description: `${dataCompleteness}/4 key property data points available - ${dataCompleteness < 4 ? 'Complete missing data for higher accuracy' : 'Comprehensive dataset enables precise analysis'}`
+      description: `${dataCompleteness}/4 key property data points available`,
+      explanation: `We have ${dataCompleteness} out of 4 essential property details: ${hasEpc ? '✓ EPC score' : '✗ EPC score'}, ${hasYear ? '✓ construction year' : '✗ construction year'}, ${hasLocation ? '✓ location' : '✗ location'}, ${hasType ? '✓ property type' : '✗ property type'}. Complete data enables more accurate analysis.`
     });
     
     // Factor 2: EPC reliability (0-10 points)  
-    const epcScore = formData.propertyEnergyClass || 'D';
+    const epcScore = formData.epcScore || 'D';
     let epcReliability = 0;
     if (['A_plus', 'A', 'B'].includes(epcScore)) {
       epcReliability = 0.10; // High confidence in good ratings
       scoreFactors.push({
         factor: 'EPC Reliability',
         score: 10,
-        description: 'Excellent energy class provides reliable foundation for accurate ESG assessment and market valuation'
+        description: 'High-quality energy class provides reliable foundation',
+        explanation: `Your property has an excellent EPC rating (${epcScore.replace('_plus', '+').replace('_', '+')}). High-efficiency properties have well-documented energy performance, making our predictions more reliable and accurate.`
       });
     } else if (['C', 'D'].includes(epcScore)) {
       epcReliability = 0.08; // Moderate confidence
       scoreFactors.push({
         factor: 'EPC Reliability', 
         score: 8,
-        description: 'Average energy class provides good reliability - Consider energy audit for optimization insights'
+        description: 'Average energy class with good assessment reliability',
+        explanation: `Your property has a moderate EPC rating (${epcScore.replace('_plus', '+').replace('_', '+')}). This energy class represents the market average with reliable assessment standards and good data availability.`
       });
     } else {
       epcReliability = 0.06; // Lower confidence for poor ratings
       scoreFactors.push({
         factor: 'EPC Reliability',
         score: 6,
-        description: 'Lower energy class indicates improvement opportunities - Professional energy assessment recommended'
+        description: 'Low energy class may indicate data limitations',
+        explanation: `Your property has a lower EPC rating (${epcScore.replace('_plus', '+').replace('_', '+')}). While these ratings are still reliable, properties with lower energy efficiency may have more variable conditions affecting accuracy.`
       });
     }
     baseScore += epcReliability;
@@ -152,45 +156,61 @@ const StrategicAnalysisConclusion = ({ formData, detailedEsgData, esgAnalysisAva
       scoreFactors.push({
         factor: 'Building Age Factor',
         score: 5,
-        description: 'Recent construction with modern standards - Excellent data reliability and regulatory compliance'
+        description: 'Modern construction standards well documented',
+        explanation: `Your property was built in ${buildingYear} (modern era). Recent construction follows standardized building codes with well-documented materials and methods, enabling highly accurate assessments.`
       });
     } else if (buildingYear > 1980) {
       ageAccuracy = 0.03; // Moderate accuracy
       scoreFactors.push({
         factor: 'Building Age Factor',
         score: 3,
-        description: 'Established construction period with good references - Minor updates may enhance value'
+        description: 'Established construction period with good references',
+        explanation: `Your property was built in ${buildingYear} (established era). This construction period has well-documented building practices and reliable market data, providing good assessment accuracy.`
       });
     } else {
       ageAccuracy = 0.02; // Lower accuracy for older buildings
       scoreFactors.push({
         factor: 'Building Age Factor',
         score: 2,
-        description: 'Historic construction requires careful assessment - Professional inspection recommended for accuracy'
+        description: 'Older construction may have variable conditions',
+        explanation: `Your property was built in ${buildingYear} (historic era). Older buildings may have undergone various modifications and have less standardized construction methods, requiring careful assessment.`
       });
     }
     baseScore += ageAccuracy;
     
     const finalScore = Math.min(0.95, Math.max(0.65, baseScore)); // Cap between 65% and 95%
     
-    // Generate improvement suggestions
+    // Generate improvement suggestions based on current weaknesses
     const improvementSuggestions = [];
-    if (dataCompleteness < 4) {
-      const missingData = [];
-      if (!hasEpc) missingData.push('Energy Performance Certificate');
-      if (!hasYear) missingData.push('Construction Year');
-      if (!hasLocation) missingData.push('Precise Location');
-      if (!hasType) missingData.push('Property Type Details');
-      improvementSuggestions.push(`Complete missing data: ${missingData.join(', ')}`);
+    
+    // Specific suggestions based on missing data points
+    if (!hasEpc) {
+      improvementSuggestions.push("Add EPC score - Obtain an Energy Performance Certificate to improve assessment accuracy");
     }
-    if (!['A_plus', 'A', 'B'].includes(epcScore)) {
-      improvementSuggestions.push('Obtain professional energy audit for detailed efficiency assessment');
+    if (!hasYear) {
+      improvementSuggestions.push("Provide construction year - Add building construction date for better age-based analysis");
     }
+    if (!hasLocation) {
+      improvementSuggestions.push("Complete location details - Add precise locality information for enhanced market analysis");
+    }
+    if (!hasType) {
+      improvementSuggestions.push("Specify property type - Clarify property category for targeted assessment");
+    }
+    
+    if (epcScore && ['E', 'F', 'G'].includes(epcScore)) {
+      improvementSuggestions.push("Improve energy efficiency - Invest in insulation, modern heating systems, or solar panels to enhance EPC rating and property value");
+    }
+    
     if (buildingYear < 1980) {
-      improvementSuggestions.push('Schedule building inspection to verify current condition');
+      improvementSuggestions.push("Update building documentation - Obtain recent construction reports, renovation certificates, or professional property assessments");
     }
+    
+    if (finalScore < 0.80) {
+      improvementSuggestions.push("Professional property valuation - Commission a detailed property assessment to validate our automated analysis");
+    }
+    
     if (improvementSuggestions.length === 0) {
-      improvementSuggestions.push('Analysis confidence is already high - consider periodic data updates');
+      improvementSuggestions.push("Excellent data quality - Your property information is comprehensive and reliable for accurate analysis");
     }
     
     return {
@@ -252,7 +272,12 @@ const StrategicAnalysisConclusion = ({ formData, detailedEsgData, esgAnalysisAva
 
   // Function to render formatted text with bold and italic support
   const renderFormattedText = (text) => {
-    if (!text) return text;
+    if (!text) return null;
+    
+    // Split text by **bold** and *italic* patterns
+    const parts = [];
+    let currentIndex = 0;
+    let partIndex = 0;
     
     // Replace **bold** with <strong> tags
     let workingText = text.replace(/\*\*(.*?)\*\*/g, (match, content) => {
@@ -264,7 +289,7 @@ const StrategicAnalysisConclusion = ({ formData, detailedEsgData, esgAnalysisAva
       return `<em>${content}</em>`;
     });
     
-    return workingText;
+    return <span dangerouslySetInnerHTML={{ __html: workingText }} />;
   };
 
   // Fetch strategic analysis summary from API
@@ -911,7 +936,7 @@ const StrategicAnalysisConclusion = ({ formData, detailedEsgData, esgAnalysisAva
                 <span className="priority-badge">P{index + 1}</span>
               </div>
               <div className="recommendation-content">
-                <p dangerouslySetInnerHTML={{ __html: renderFormattedText(insight) }} />
+                <p>{renderFormattedText(insight)}</p>
               </div>
               <div className="recommendation-actions">
                 <button 
@@ -1051,6 +1076,9 @@ const StrategicAnalysisConclusion = ({ formData, detailedEsgData, esgAnalysisAva
                       <span className="factor-score">+{factor.score}%</span>
                     </div>
                     <div className="factor-description">{factor.description}</div>
+                    {factor.explanation && (
+                      <div className="factor-explanation">{factor.explanation}</div>
+                    )}
                   </div>
                 ))}
               </div>
@@ -1058,17 +1086,17 @@ const StrategicAnalysisConclusion = ({ formData, detailedEsgData, esgAnalysisAva
                 <strong>Methodology:</strong> {confidenceExplanation.methodology}
               </div>
               
-              {/* Improvement Suggestions */}
-              {confidenceExplanation.improvements && confidenceExplanation.improvements.length > 0 && (
-                <div className="confidence-improvements">
-                  <h5>How to Improve Analysis Confidence:</h5>
-                  <ul className="improvement-list">
-                    {confidenceExplanation.improvements.map((improvement, index) => (
-                      <li key={index} className="improvement-item">{improvement}</li>
-                    ))}
-                  </ul>
-                </div>
-              )}
+              {/* How to Improve Analysis Confidence Section */}
+              <div className="confidence-improvements">
+                <h5>How to Improve Analysis Confidence:</h5>
+                <ul className="improvement-list">
+                  {(confidenceExplanation.improvements || []).map((improvement, index) => (
+                    <li key={index} className="improvement-item">
+                      {improvement}
+                    </li>
+                  ))}
+                </ul>
+              </div>
             </div>
           </div>
           
@@ -1558,7 +1586,7 @@ const StrategicAnalysisConclusion = ({ formData, detailedEsgData, esgAnalysisAva
               </div>
               <div className="executive-summary-content">
                 <div className="summary-main-text">
-                  <p dangerouslySetInnerHTML={{ __html: renderFormattedText(strategicSummary.summary) }} />
+                  <p>{renderFormattedText(strategicSummary.summary)}</p>
                 </div>
                 
                 {strategicSummary.key_insights && strategicSummary.key_insights.length > 0 && (
@@ -1566,7 +1594,7 @@ const StrategicAnalysisConclusion = ({ formData, detailedEsgData, esgAnalysisAva
                     <h4>Key Strategic Insights</h4>
                     <ul>
                       {strategicSummary.key_insights.slice(0, 3).map((insight, index) => (
-                        <li key={index} dangerouslySetInnerHTML={{ __html: renderFormattedText(insight) }} />
+                        <li key={index}>{renderFormattedText(insight)}</li>
                       ))}
                     </ul>
                   </div>

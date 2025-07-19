@@ -937,12 +937,21 @@
 }
 
 .factor-description {
-  font-size: 0.95rem;
-  color: #2d3748;
-  line-height: 1.6;
-  font-style: normal;
+  font-size: 0.9rem;
+  color: #1e293b;
+  line-height: 1.5;
   font-weight: 500;
+  margin-top: 0.3rem;
+}
+
+.factor-explanation {
+  font-size: 0.85rem;
+  color: #475569;
+  line-height: 1.4;
   margin-top: 0.5rem;
+  padding: 0.6rem;
+  background: rgba(248, 250, 252, 0.8);
+  border-radius: 6px;
 }
 
 .confidence-methodology {
@@ -989,23 +998,23 @@
 
 .improvement-item {
   margin-bottom: 0.6rem;
+  padding: 0.6rem 0.6rem 0.6rem 2rem;
+  background: transparent;
+  border-radius: 6px;
   font-size: 0.9rem;
-  color: #2d3748;
   line-height: 1.5;
-  font-weight: 500;
+  color: #1a202c;
   position: relative;
 }
 
 .improvement-item:before {
-  content: '✓';
+  content: "✓";
   position: absolute;
-  left: -1.2rem;
+  left: 0.6rem;
+  top: 0.6rem;
   color: #38b2ac;
-  font-weight: 700;
-}
-
-.improvement-item:last-child {
-  margin-bottom: 0;
+  font-weight: bold;
+  font-size: 1rem;
 }
 
 /* Timeline Section */

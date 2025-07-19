@@ -1251,11 +1251,19 @@ Request: Generate comprehensive strategic positioning and recommendations includ
         </p>
       </div>
 
-      <div className="form-buttons-container">
-        <div className="form-buttons-group">
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+        <div style={{ display: 'flex', gap: '10px' }}>
         <button
           type="button"
           className="reset-button"
+          style={{ 
+            height: '35px', 
+            padding: '8px 16px', 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'center',
+            fontSize: '14px'
+          }}
           onClick={() => {
             setFormData(initialFormData);
             setResults({ all: null, top: null });
@@ -1268,6 +1276,20 @@ Request: Generate comprehensive strategic positioning and recommendations includ
         <button 
           type="submit" 
           className="submit-button" 
+          style={{ 
+            height: '35px', 
+            padding: '8px 16px', 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'center',
+            fontSize: '14px',
+            backgroundColor: '#3b82f6',
+            color: 'white',
+            border: 'none',
+            borderRadius: '5px',
+            cursor: 'pointer',
+            minWidth: '180px'
+          }}
           disabled={loading || esgLoading}
           onClick={(e) => {
             console.log('🖱️ BUTTON CLICKED! Event:', e);
@@ -1301,7 +1323,7 @@ Request: Generate comprehensive strategic positioning and recommendations includ
         
         {/* Affichage du prix prédit aligné avec les boutons */}
         {results.all && (
-          <div style={{ marginTop: '1rem', marginLeft: '10px' }}>
+          <div style={{ marginTop: '0px' }}>
             <ResultCard title="" value={results.all} />
           </div>
         )}
