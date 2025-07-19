@@ -1,7 +1,13 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import './ESGAnalysisReport.css';
 
 const ESGPanel = ({ isOpen, onClose, onToggle, esgAnalysis, propertyData, esgLoading }) => {
+  // États pour le redimensionnement
+  const [panelWidth, setPanelWidth] = React.useState(520);
+  const [isResizing, setIsResizing] = React.useState(false);
+  const [startX, setStartX] = React.useState(0);
+  const [startWidth, setStartWidth] = React.useState(0);
+
   // Color logic helpers
   const getEpcColor = (epcScore) => {
     if (!epcScore) return '#6c757d';
@@ -323,6 +329,54 @@ const ESGPanel = ({ isOpen, onClose, onToggle, esgAnalysis, propertyData, esgLoa
     );
   };
 
+  // Gestion du redimensionnement
+  const handleMouseDown = (e) => {
+    setIsResizing(true);
+    setStartX(e.clientX);
+    setStartWidth(panelWidth);
+    e.preventDefault();
+  };
+
+  const handleMouseMove = (e) => {
+    if (!isResizing) return;
+    
+    const deltaX = startX - e.clientX; // Inversion pour redimensionnement depuis la gauche
+    const newWidth = startWidth + deltaX;
+    const minWidth = 10; // Largeur minimale très petite
+    
+    // Permettre le redimensionnement de 10px jusqu'à toute la largeur
+    if (newWidth >= minWidth) {
+      setPanelWidth(newWidth);
+    }
+  };
+
+  const handleMouseUp = () => {
+    setIsResizing(false);
+  };
+
+  // Effet pour gérer les événements de souris globaux pendant le redimensionnement
+  useEffect(() => {
+    if (isResizing) {
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+      document.body.style.cursor = 'ew-resize';
+      document.body.style.userSelect = 'none';
+    } else {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    }
+
+    // Cleanup function pour s'assurer que les event listeners sont supprimés
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    };
+  }, [isResizing, startX, startWidth]);
+
   return (
     <>
       {/* Tab for reopening the panel */}
@@ -330,12 +384,30 @@ const ESGPanel = ({ isOpen, onClose, onToggle, esgAnalysis, propertyData, esgLoa
         className={`esg-analysis-report-tab ${isOpen ? 'hidden' : ''}`}
         onClick={onToggle}
         title="Open ESG Analysis"
+        style={{ 
+          right: isOpen ? `${panelWidth}px` : '0px',
+          display: isOpen ? 'none' : 'flex'
+        }}
       >
         <span className="esg-analysis-report-tab-text">ESG</span>
       </div>
       
-      <div className={`esg-analysis-report-panel ${isOpen ? 'open' : ''}`}>
-        <div className="esg-analysis-report-header">
+      <div 
+        className={`esg-analysis-report-panel ${isOpen ? 'open' : ''}`}
+        style={{ 
+          width: `${panelWidth}px`,
+          right: isOpen ? 0 : `-${panelWidth}px`
+        }}
+      >
+        {isOpen && (
+          <>
+            {/* Handle de redimensionnement */}
+            <div 
+              className="esg-analysis-report-resize-handle"
+              onMouseDown={handleMouseDown}
+            />
+            
+            <div className="esg-analysis-report-header">
           <div className="esg-analysis-report-title">
             <h3>ESG Analysis Report</h3>
             {propertyData && (
@@ -445,6 +517,8 @@ const ESGPanel = ({ isOpen, onClose, onToggle, esgAnalysis, propertyData, esgLoa
             </div>
           )}
         </div>
+        </>
+        )}
       </div>
     </>
   );
