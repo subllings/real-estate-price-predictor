@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import ResultCard from "../ResultCard";
 import StrategicAnalysisConclusion from "../EsgSummary/EsgSummary";
@@ -37,6 +37,9 @@ const PropertyForm = ({ onPredictionComment, onToggleSidePanel, onOpenSidePanel,
   const [esgAnalysisAvailable, setEsgAnalysisAvailable] = useState(false);
   const [detailedEsgData, setDetailedEsgData] = useState(null);
   
+  // Ref to track if component has mounted to prevent auto-calculation on first render
+  const hasMounted = useRef(false);
+  
   // ESG Score Variables - Store calculated values from EsgSummary
   const [esgScores, setEsgScores] = useState({
     environmental: 0,
@@ -44,23 +47,13 @@ const PropertyForm = ({ onPredictionComment, onToggleSidePanel, onOpenSidePanel,
     governance: 0,
     overall: 0
   });
-  
-  // Console log for ESG scores in PropertyForm
-  console.log('PropertyForm ESG Scores:', esgScores);
-  
-  // Detailed ESG Score Summary Log for PropertyForm
-  console.log('=== PropertyForm ESG SCORE SUMMARY ===', {
-    Environmental: `${esgScores.environmental}/10`,
-    Social: `${esgScores.social}/10`,
-    Governance: `${esgScores.governance}/10`,
-    Overall: `${esgScores.overall}/10`,
-    rawScores: esgScores,
-    formData: formData,
-    timestamp: new Date().toLocaleTimeString()
-  });
 
-  // Calculate ESG scores on component mount and when formData changes
+  // Calculate ESG scores only after user interaction, not on initial mount
   useEffect(() => {
+    if (!hasMounted.current) {
+      hasMounted.current = true;
+      return;
+    }
     calculateEsgScores(formData);
   }, [formData]);
 
@@ -211,35 +204,11 @@ const PropertyForm = ({ onPredictionComment, onToggleSidePanel, onOpenSidePanel,
 
     setEsgScores(calculatedScores);
     
-    // Console log for tracking ESG score changes
-    console.log('ESG Scores calculated in PropertyForm:', calculatedScores);
-    
-    // Detailed log when ESG scores are calculated
-    console.log('=== PropertyForm ESG CALCULATION COMPLETE ===', {
-      Environmental: `${calculatedScores.environmental}/10`,
-      Social: `${calculatedScores.social}/10`,
-      Governance: `${calculatedScores.governance}/10`,
-      Overall: `${calculatedScores.overall}/10`,
-      calculationInputs: {
-        epcScore: currentFormData.epcScore,
-        heatingType: currentFormData.heatingType,
-        floodZoneType: currentFormData.floodZoneType,
-        locality: currentFormData.locality,
-        bedroomCount: currentFormData.bedroomCount,
-        buildingConstructionYear: currentFormData.buildingConstructionYear,
-        buildingCondition: currentFormData.buildingCondition,
-        kitchenType: currentFormData.kitchenType
-      },
-      timestamp: new Date().toLocaleTimeString()
-    });
-    
     return calculatedScores;
   };
 
   // New function for ESG Analysis button
   const handleESGAnalysis = async () => {
-    console.log('🎯 handleESGAnalysis called - Starting ESG analysis process...');
-    
     setEsgLoading(true);
     setError(null);
     
@@ -279,7 +248,6 @@ const PropertyForm = ({ onPredictionComment, onToggleSidePanel, onOpenSidePanel,
         analysis_depth: "detailed"
       };
 
-      console.log("🚨 URGENT: About to call ESG API with data:", requestData);
       
       // Send prompt to AdminPanel
       window.dispatchEvent(new CustomEvent('llmPromptSent', {
@@ -371,18 +339,7 @@ const PropertyForm = ({ onPredictionComment, onToggleSidePanel, onOpenSidePanel,
       const esgScoresText = `ESG Scores - Environmental: ${esgScores.environmental}/10, Social: ${esgScores.social}/10, Governance: ${esgScores.governance}/10, Overall: ${esgScores.overall}/10`;
       const esgComment = `${esgScoresText} | ${formData.propertyType} in ${formData.locality}, ${formData.province} (${timestamp})`;
       
-      // Log the complete prompt in console
-      console.log('=== ESG ANALYSIS PROMPT WITH SCORES ===', {
-        esgScoresIncluded: esgScoresText,
-        fullPrompt: esgComment,
-        timestamp: timestamp,
-        calculatedScores: esgScores
-      });
-
       // Dispatch event for AdminPanel to capture the prompt
-      console.log('📤 PropertyForm: Preparing to send event to AdminPanel...');
-      console.log('📤 PropertyForm: AdminPanel ready?', window.adminPanelReady);
-      
       const eventDetail = {
         type: 'ESG_ANALYSIS',
         prompt: esgComment,
@@ -395,15 +352,12 @@ const PropertyForm = ({ onPredictionComment, onToggleSidePanel, onOpenSidePanel,
         }
       };
       
-      console.log('📤 PropertyForm: Event detail to send:', eventDetail);
       
       const customEvent = new CustomEvent('llmPromptSent', {
         detail: eventDetail
       });
       
-      console.log('📤 PropertyForm: Dispatching event...');
       window.dispatchEvent(customEvent);
-      console.log('✅ PropertyForm: Event dispatched successfully!');
       
       // Format the detailed ESG analysis for chat
       const formattedAnalysis = [
@@ -448,7 +402,6 @@ const PropertyForm = ({ onPredictionComment, onToggleSidePanel, onOpenSidePanel,
       }
 
     } catch (error) {
-      console.error("ESG Analysis error:", error);
       setError("ESG Analysis failed. Please try again.");
       
       // Even if analysis fails, show fallback ESG data using calculated scores
@@ -510,15 +463,6 @@ Analysis completed using fallback data due to API unavailability.`
       const esgScoresText = `ESG Scores - Environmental: ${esgScores.environmental}/10, Social: ${esgScores.social}/10, Governance: ${esgScores.governance}/10, Overall: ${esgScores.overall}/10`;
       const fallbackEsgComment = `${esgScoresText} | ${formData.propertyType} in ${formData.locality}, ${formData.province} (${timestamp}) [FALLBACK]`;
       
-      // Log the fallback prompt in console
-      console.log('=== ESG ANALYSIS FALLBACK PROMPT WITH SCORES ===', {
-        esgScoresIncluded: esgScoresText,
-        fullPrompt: fallbackEsgComment,
-        timestamp: timestamp,
-        calculatedScores: esgScores,
-        fallbackReason: error.message
-      });
-
       // Dispatch event for AdminPanel to capture the fallback prompt
       window.dispatchEvent(new CustomEvent('llmPromptSent', {
         detail: {
@@ -572,21 +516,11 @@ Analysis completed using fallback data due to API unavailability.`
 
   // CHECK BUTTON STATE FOR DEBUGGING
   useEffect(() => {
-    console.log('🔍 BUTTON STATE CHECK:');
-    console.log('   loading:', loading);
-    console.log('   esgLoading:', esgLoading);
-    console.log('   button disabled:', loading || esgLoading);
-    console.log('   formData:', formData);
+    // Debug logging removed
   }, [loading, esgLoading, formData]);
 
   // New unified function that combines price prediction and ESG analysis
   const handleUnifiedAnalysis = async (e) => {
-    console.log('🚨🚨🚨 === LOG PROMPT Analyze Price & ESG BUTTON CLICKED === 🚨🚨🚨');
-    console.log('🚨 handleUnifiedAnalysis called at:', new Date().toISOString());
-    console.log('🚨 Form data:', formData);
-    console.log('🚨 AdminPanel ready?', window.adminPanelReady);
-    console.log('🚨🚨🚨 === STARTING UNIFIED ANALYSIS === 🚨🚨🚨');
-    
     e.preventDefault();
     setLoading(true);
     setEsgLoading(true);
@@ -707,12 +641,7 @@ Analysis completed using fallback data due to API unavailability.`
         analysis_depth: "detailed"
       };
 
-      console.log("🚨 URGENT: About to call ESG API with data:", esgRequestData);
-      
       // Send prompt to AdminPanel
-      console.log("🚨 URGENT: Dispatching event to AdminPanel...");
-      console.log("🚨 AdminPanel ready?", window.adminPanelReady);
-      
       const promptEvent = new CustomEvent('llmPromptSent', {
         detail: {
           prompt: `ESG Analysis Request: ${JSON.stringify(esgRequestData)}`,
@@ -721,9 +650,7 @@ Analysis completed using fallback data due to API unavailability.`
         }
       });
       
-      console.log("🚨 URGENT: Event detail:", promptEvent.detail);
       window.dispatchEvent(promptEvent);
-      console.log("🚨 URGENT: Event dispatched successfully!");
 
       const esgResponse = await axios.post(ESG_API_URL, esgRequestData);
       const esgData = esgResponse.data;
@@ -846,7 +773,6 @@ Analysis completed using fallback data due to API unavailability.`
       await triggerStrategicAnalysis(esgData);
 
     } catch (error) {
-      console.error("Unified Analysis error:", error);
       setError("Analysis failed. Please try again.");
       
       // If ESG fails but price prediction succeeded, provide fallback ESG data
@@ -910,9 +836,6 @@ Analysis completed using fallback data due to API unavailability.`
           const strategicComment = `Strategic Analysis - ${timestamp}`;
           
           // Send Strategic Analysis prompt to AdminPanel
-          console.log("🚨 URGENT: Dispatching Strategic Analysis prompt to AdminPanel...");
-          console.log("🚨 AdminPanel ready?", window.adminPanelReady);
-          
           const strategicPrompt = `ESG Strategic Analysis Request:
 Property: ${formData.propertyType} in ${formData.locality}, ${formData.province}
 ESG Scores: Environmental: ${esgScores.environmental}/10, Social: ${esgScores.social}/10, Governance: ${esgScores.governance}/10, Overall: ${esgScores.overall}/10
@@ -926,9 +849,7 @@ Request: Generate comprehensive strategic positioning and recommendations includ
             }
           });
           
-          console.log("🚨 URGENT: Strategic Analysis Event detail:", strategicEvent.detail);
           window.dispatchEvent(strategicEvent);
-          console.log("🚨 URGENT: Strategic Analysis Event dispatched successfully!");
           
           // Add strategic analysis indicator to chat
           if (onPredictionComment) {
@@ -953,12 +874,10 @@ Request: Generate comprehensive strategic positioning and recommendations includ
         }, 1500);
       });
     } catch (error) {
-      console.error("Strategic Analysis trigger error:", error);
     }
   };
 
   const handleViewDetailedESGReport = async () => {
-    console.log('🚀 handleViewDetailedESGReport called - Starting ESG analysis...');
     
     try {
       // First clear ESG panel and show loading state
@@ -1011,7 +930,6 @@ Request: Generate comprehensive strategic positioning and recommendations includ
       };
 
       // Call the ESG Analysis API
-      console.log("🚨 URGENT: About to call ESG API with data:", esgRequestData);
       
       // Send prompt to AdminPanel
       window.dispatchEvent(new CustomEvent('llmPromptSent', {
@@ -1083,7 +1001,6 @@ Request: Generate comprehensive strategic positioning and recommendations includ
         }
       }
     } catch (error) {
-      console.error("ESG Analysis error:", error);
       
       // Fallback to detailed analysis similar to the original static version
       const epcScore = formData.epcScore;
@@ -1213,7 +1130,6 @@ Request: Generate comprehensive strategic positioning and recommendations includ
             comments.push(...commentResponse.data.comments);
           }
         } catch (commentError) {
-          console.warn("Failed to get LLM comments:", commentError);
           // Continuer sans les commentaires LLM si l'API échoue
         }
 
@@ -1221,7 +1137,6 @@ Request: Generate comprehensive strategic positioning and recommendations includ
       }
 
     } catch (err) {
-      console.error("Error:", err);
       setError("Prediction failed. Please try again.");
     } finally {
       setLoading(false);
@@ -1274,7 +1189,7 @@ Request: Generate comprehensive strategic positioning and recommendations includ
           Reset
         </button>
         <button 
-          type="submit" 
+          type="button" 
           className="submit-button" 
           style={{ 
             height: '35px', 
@@ -1292,10 +1207,6 @@ Request: Generate comprehensive strategic positioning and recommendations includ
           }}
           disabled={loading || esgLoading}
           onClick={(e) => {
-            console.log('🖱️ BUTTON CLICKED! Event:', e);
-            console.log('🖱️ loading:', loading, 'esgLoading:', esgLoading);
-            console.log('🖱️ button disabled:', loading || esgLoading);
-            console.log('🖱️ About to call handleUnifiedAnalysis...');
             handleUnifiedAnalysis(e);
           }}
         >

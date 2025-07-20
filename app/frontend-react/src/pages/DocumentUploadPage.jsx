@@ -1,65 +1,65 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import './DocumentUploadPage.css';
 
 const DocumentUploadPage = () => {
+  const [activeTab, setActiveTab] = useState('upload');
   const [selectedFiles, setSelectedFiles] = useState([]);
-  const [uploadProgress, setUploadProgress] = useState({});
-  const [uploadStatus, setUploadStatus] = useState('');
+  const [vectorStore, setVectorStore] = useState('faiss');
+  const [ragEnabled, setRagEnabled] = useState(true);
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadStatus, setUploadStatus] = useState('');
   const [documents, setDocuments] = useState([]);
-  const [indexStats, setIndexStats] = useState({
-    total_documents: 0,
-    total_chunks: 0,
-    total_size_bytes: 0,
-    index_size_mb: 0,
-    last_updated: 'Never'
+  const [stats, setStats] = useState({
+    fileCount: 0,
+    totalChunks: 0,
+    embeddingSize: 0,
+    vectorIndexSize: 0
   });
-  const [dragOver, setDragOver] = useState(false);
 
-  // API Base URL
-  const API_BASE_URL = process.env.NODE_ENV === 'production' 
-    ? 'https://realestate-llm-api-agent.azurewebsites.net'
-    : 'http://localhost:8001';
+  // API Base URL for LLM backend
+  const API_BASE_URL = 'http://127.0.0.1:8010';
 
   // Load documents and stats on component mount
   useEffect(() => {
     loadDocuments();
-    loadIndexStats();
+    loadStats();
   }, []);
 
+  // Load documents from backend
   const loadDocuments = async () => {
     try {
       const response = await fetch(`${API_BASE_URL}/documents`);
       if (response.ok) {
         const data = await response.json();
         setDocuments(data.documents || []);
-      } else {
-        console.error('Failed to load documents');
       }
     } catch (error) {
       console.error('Error loading documents:', error);
     }
   };
 
-  const loadIndexStats = async () => {
+  // Load statistics from backend
+  const loadStats = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/index_stats`);
+      const response = await fetch(`${API_BASE_URL}/stats`);
       if (response.ok) {
         const data = await response.json();
-        setIndexStats(data);
-      } else {
-        console.error('Failed to load index stats');
+        setStats(data);
       }
     } catch (error) {
-      console.error('Error loading index stats:', error);
+      console.error('Error loading stats:', error);
     }
   };
 
+  // Handle file selection
   const handleFileSelection = (files) => {
     const fileArray = Array.from(files);
     const validFiles = fileArray.filter(file => {
       const validTypes = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'text/plain'];
-      return validTypes.includes(file.type) || file.name.toLowerCase().endsWith('.pdf') || file.name.toLowerCase().endsWith('.docx') || file.name.toLowerCase().endsWith('.txt');
+      return validTypes.includes(file.type) || 
+             file.name.toLowerCase().endsWith('.pdf') || 
+             file.name.toLowerCase().endsWith('.docx') || 
+             file.name.toLowerCase().endsWith('.txt');
     });
 
     if (validFiles.length !== fileArray.length) {
@@ -69,97 +69,61 @@ const DocumentUploadPage = () => {
     setSelectedFiles(prev => [...prev, ...validFiles.map(file => ({
       id: Math.random().toString(36).substr(2, 9),
       file,
-      progress: 0
+      status: 'pending'
     }))]);
   };
 
-  const handleFileInputChange = (event) => {
-    handleFileSelection(event.target.files);
-  };
-
-  const handleDragOver = useCallback((event) => {
-    event.preventDefault();
-    setDragOver(true);
-  }, []);
-
-  const handleDragLeave = useCallback((event) => {
-    event.preventDefault();
-    setDragOver(false);
-  }, []);
-
-  const handleDrop = useCallback((event) => {
-    event.preventDefault();
-    setDragOver(false);
-    handleFileSelection(event.dataTransfer.files);
-  }, []);
-
-  const removeFile = (fileId) => {
-    setSelectedFiles(prev => prev.filter(f => f.id !== fileId));
-    setUploadProgress(prev => {
-      const newProgress = { ...prev };
-      delete newProgress[fileId];
-      return newProgress;
-    });
-  };
-
-  const formatFileSize = (bytes) => {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-  };
-
-  const getFileType = (fileName) => {
-    const extension = fileName.toLowerCase().split('.').pop();
-    switch (extension) {
-      case 'pdf':
-        return 'PDF';
-      case 'docx':
-        return 'DOCX';
-      case 'txt':
-        return 'TXT';
-      default:
-        return 'FILE';
-    }
-  };
-
-  const uploadFiles = async () => {
+  // Handle file upload
+  const handleUpload = async () => {
     if (selectedFiles.length === 0) return;
 
     setIsUploading(true);
     setUploadStatus('Processing documents...');
 
+    console.log('Upload Configuration:', {
+      vector_store: vectorStore,
+      with_rag: ragEnabled,
+      files: selectedFiles.length
+    });
+
     try {
       for (const fileItem of selectedFiles) {
         const formData = new FormData();
         formData.append('file', fileItem.file);
-        formData.append('document_type', 'esg_document');
+        formData.append('vector_store', vectorStore);
+        formData.append('with_rag', ragEnabled.toString());
 
-        setUploadProgress(prev => ({ ...prev, [fileItem.id]: 0 }));
-
-        const response = await fetch(`${API_BASE_URL}/upload_document`, {
+        const response = await fetch(`${API_BASE_URL}/upload`, {
           method: 'POST',
           body: formData,
         });
 
         if (response.ok) {
-          setUploadProgress(prev => ({ ...prev, [fileItem.id]: 100 }));
           const result = await response.json();
           console.log('Upload successful:', result);
+          setSelectedFiles(prev => 
+            prev.map(f => f.id === fileItem.id ? {...f, status: 'completed'} : f)
+          );
         } else {
           const error = await response.json();
+          setSelectedFiles(prev => 
+            prev.map(f => f.id === fileItem.id ? {...f, status: 'error'} : f)
+          );
           throw new Error(error.detail || 'Upload failed');
         }
       }
 
       setUploadStatus(`Successfully processed ${selectedFiles.length} document(s)!`);
-      setSelectedFiles([]);
-      setUploadProgress({});
       
       // Reload documents and stats
       await loadDocuments();
-      await loadIndexStats();
+      await loadStats();
+      
+      // Clear selection after successful upload
+      setTimeout(() => {
+        setSelectedFiles([]);
+        setUploadStatus('');
+      }, 3000);
 
     } catch (error) {
       console.error('Upload error:', error);
@@ -169,23 +133,18 @@ const DocumentUploadPage = () => {
     }
   };
 
-  const deleteDocument = async (documentId) => {
-    try {
-      const response = await fetch(`${API_BASE_URL}/documents/${documentId}`, {
-        method: 'DELETE'
-      });
+  // Remove file from selection
+  const removeFile = (fileId) => {
+    setSelectedFiles(prev => prev.filter(f => f.id !== fileId));
+  };
 
-      if (response.ok) {
-        await loadDocuments();
-        await loadIndexStats();
-        setUploadStatus('Document deleted successfully');
-      } else {
-        throw new Error('Failed to delete document');
-      }
-    } catch (error) {
-      console.error('Delete error:', error);
-      setUploadStatus('Error during deletion');
-    }
+  // Format file size
+  const formatFileSize = (bytes) => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
   return (
@@ -198,195 +157,248 @@ const DocumentUploadPage = () => {
         </p>
       </div>
 
-      {/* RAG Explanation */}
-      <div className="rag-explanation">
-        <h3>How our RAG (Retrieval-Augmented Generation) system works</h3>
-        <div className="rag-steps">
-          <div className="rag-step">
+      {/* Tab Navigation */}
+      <div className="tab-container">
+        <div className="tab-header">
+          <button 
+            className={`tab-button ${activeTab === 'upload' ? 'active' : ''}`}
+            onClick={() => setActiveTab('upload')}
+          >
+            Upload & Vectorization
+          </button>
+          <button 
+            className={`tab-button ${activeTab === 'library' ? 'active' : ''}`}
+            onClick={() => setActiveTab('library')}
+          >
+            Document Library
+          </button>
+        </div>
+
+        {/* Tab Content */}
+        <div className="tab-content">
+          {activeTab === 'upload' && (
+            <div className="upload-tab">
+              {/* Configuration Section */}
+              <div className="config-section">
+                <h3>Configuration</h3>
+                
+                {/* Vector Store Selection */}
+                <div className="config-group">
+                  <label className="config-label">Vector Store</label>
+                  <select 
+                    value={vectorStore} 
+                    onChange={(e) => setVectorStore(e.target.value)}
+                    className="config-select"
+                  >
+                    <option value="faiss">FAISS (Local)</option>
+                    <option value="azure">Azure Cognitive Search (Cloud)</option>
+                  </select>
+                  <p className="config-description">
+                    {vectorStore === 'faiss' 
+                      ? 'High-performance local vector store (ideal for dev/testing). Ultra-fast similarity search. No cloud dependency. Local storage only. Should run inside a container in production.'
+                      : 'Fully managed search index on Azure. Built-in scaling and security. Ideal for production use. Works with Azure OpenAI embeddings.'
+                    }
+                  </p>
+                </div>
+
+                {/* RAG Toggle */}
+                <div className="config-group">
+                  <label className="config-label">RAG Mode</label>
+                  <div className="rag-checkbox-container">
+                    <label className="checkbox-label">
+                      <input
+                        type="checkbox"
+                        checked={ragEnabled}
+                        onChange={(e) => setRagEnabled(e.target.checked)}
+                        className="rag-checkbox"
+                      />
+                      <span className="checkmark"></span>
+                      Enable RAG (Retrieval-Augmented Generation)
+                    </label>
+                  </div>
+                  <p className="config-description">
+                    {ragEnabled 
+                      ? 'Documents will be embedded using Azure OpenAI and indexed into the selected vector store.'
+                      : 'Files are stored only, no vectorization or indexing performed.'
+                    }
+                  </p>
+                </div>
+              </div>
+
+              {/* File Upload Section */}
+              <div className="upload-section">
+                <h3>Upload Documents</h3>
+                
+                <div className="file-input-area">
+                  <input
+                    type="file"
+                    multiple
+                    accept=".pdf,.docx,.txt"
+                    onChange={(e) => handleFileSelection(e.target.files)}
+                    className="file-input"
+                    id="file-input"
+                  />
+                  <label htmlFor="file-input" className="file-input-label">
+                    Choose Files
+                  </label>
+                  <p className="supported-formats">
+                    Supported formats: PDF, DOCX, TXT
+                  </p>
+                </div>
+
+                {/* Selected Files */}
+                {selectedFiles.length > 0 && (
+                  <div className="selected-files">
+                    <h4>Selected Files ({selectedFiles.length})</h4>
+                    {selectedFiles.map((fileItem) => (
+                      <div key={fileItem.id} className="file-item">
+                        <div className="file-info">
+                          <span className="file-name">{fileItem.file.name}</span>
+                          <span className="file-size">{formatFileSize(fileItem.file.size)}</span>
+                          <span className={`file-status ${fileItem.status}`}>
+                            {fileItem.status === 'pending' ? 'Ready' : 
+                             fileItem.status === 'completed' ? 'Processed' : 'Error'}
+                          </span>
+                        </div>
+                        <button 
+                          className="remove-file-btn"
+                          onClick={() => removeFile(fileItem.id)}
+                          disabled={isUploading}
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    ))}
+                    
+                    <button 
+                      className="upload-btn"
+                      onClick={handleUpload}
+                      disabled={isUploading || selectedFiles.length === 0}
+                    >
+                      {isUploading ? 'Processing...' : `Upload ${selectedFiles.length} File(s)`}
+                    </button>
+                  </div>
+                )}
+
+                {/* Upload Status */}
+                {uploadStatus && (
+                  <div className={`upload-status ${uploadStatus.includes('Error') ? 'error' : 'success'}`}>
+                    {uploadStatus}
+                  </div>
+                )}
+              </div>
+
+              {/* Statistics Display */}
+              <div className="stats-section">
+                <h3>Processing Statistics</h3>
+                <div className="stats-grid">
+                  <div className="stat-item">
+                    <span className="stat-value">{stats.fileCount}</span>
+                    <span className="stat-label">Files Uploaded</span>
+                  </div>
+                  <div className="stat-item">
+                    <span className="stat-value">{stats.totalChunks}</span>
+                    <span className="stat-label">Document Chunks</span>
+                  </div>
+                  <div className="stat-item">
+                    <span className="stat-value">{stats.embeddingSize} MB</span>
+                    <span className="stat-label">Embedding Size</span>
+                  </div>
+                  <div className="stat-item">
+                    <span className="stat-value">{stats.vectorIndexSize} MB</span>
+                    <span className="stat-label">Vector Index Size</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'library' && (
+            <div className="library-tab">
+              {/* Document List */}
+              <div className="documents-section">
+                <h3>Uploaded Documents ({documents.length})</h3>
+                {documents.length === 0 ? (
+                  <div className="empty-state">
+                    <p>No documents uploaded yet. Start by uploading your first documents in the Upload tab.</p>
+                  </div>
+                ) : (
+                  <div className="documents-list">
+                    {documents.map((doc) => (
+                      <div key={doc.id} className="document-card">
+                        <div className="document-info">
+                          <h4 className="document-name">{doc.filename}</h4>
+                          <p className="document-meta">
+                            {formatFileSize(doc.size)} • {new Date(doc.upload_date).toLocaleDateString()}
+                          </p>
+                          <span className={`vectorization-status ${doc.vectorized ? 'vectorized' : 'not-vectorized'}`}>
+                            {doc.vectorized ? 'Vectorized' : 'Not Vectorized'}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Feature Descriptions */}
+              <div className="features-section">
+                <h3>Available Features</h3>
+                <div className="feature-grid">
+                  <div className="feature-card">
+                    <h4>Semantic Search</h4>
+                    <p>Find relevant information across all your documents using natural language queries powered by vector similarity.</p>
+                  </div>
+                  <div className="feature-card">
+                    <h4>ESG Report Extraction</h4>
+                    <p>Automatic extraction and analysis of Environmental, Social, and Governance metrics from uploaded documents.</p>
+                  </div>
+                  <div className="feature-card">
+                    <h4>Real-Time LLM QA</h4>
+                    <p>Ask questions about your documents and get contextualized answers using GPT-4 and retrieved content.</p>
+                  </div>
+                  <div className="feature-card">
+                    <h4>Data Security</h4>
+                    <p>Your documents are processed securely with enterprise-grade encryption and compliance standards.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Process Explanation */}
+      <div className="process-explanation">
+        <h3>How the RAG System Works</h3>
+        <div className="process-steps">
+          <div className="process-step">
             <div className="step-number">1</div>
             <div className="step-content">
-              <strong>Content Extraction</strong>
-              <p>The system automatically extracts text from your PDF, DOCX and TXT documents with maximum precision.</p>
+              <h4>Choose Vector Store</h4>
+              <p>Select between FAISS (local) or Azure Cognitive Search (cloud) for document indexing.</p>
             </div>
           </div>
-          <div className="rag-step">
+          <div className="process-step">
             <div className="step-number">2</div>
             <div className="step-content">
-              <strong>Intelligent Segmentation</strong>
-              <p>Content is split into logical segments optimized for analysis and semantic search.</p>
+              <h4>Enable or Disable RAG</h4>
+              <p>If enabled, documents are embedded and indexed. Otherwise, they are stored only.</p>
             </div>
           </div>
-          <div className="rag-step">
+          <div className="process-step">
             <div className="step-number">3</div>
             <div className="step-content">
-              <strong>FAISS Indexing</strong>
-              <p>Each segment is transformed into vector embeddings and indexed in a high-performance FAISS database.</p>
+              <h4>Smart Processing</h4>
+              <p>Uses Azure OpenAI for vectorization and indexes into the selected store.</p>
             </div>
           </div>
-          <div className="rag-step">
+          <div className="process-step">
             <div className="step-number">4</div>
             <div className="step-content">
-              <strong>Azure OpenAI Analysis</strong>
-              <p>Queries use GPT-4 and text-embedding-ada-002 for contextualized and accurate responses.</p>
+              <h4>Ask Questions</h4>
+              <p>Uses Prompt Flow + GPT-4 to answer your queries based on stored content.</p>
             </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Upload Section */}
-      <div className="upload-section">
-        <div 
-          className={`upload-area ${dragOver ? 'drag-over' : ''}`}
-          onDragOver={handleDragOver}
-          onDragLeave={handleDragLeave}
-          onDrop={handleDrop}
-        >
-          <input
-            type="file"
-            multiple
-            accept=".pdf,.docx,.txt"
-            onChange={handleFileInputChange}
-            className="file-input-hidden"
-            id="file-input"
-          />
-          <label htmlFor="file-input" className="upload-button">
-            Choose Files
-          </label>
-          <p>or drag and drop your documents here</p>
-          <div className="supported-formats">
-            <strong>Supported formats:</strong> PDF, DOCX, TXT
-          </div>
-        </div>
-
-        {/* Selected Files */}
-        {selectedFiles.length > 0 && (
-          <div className="selected-files">
-            <h4>Selected Files ({selectedFiles.length})</h4>
-            {selectedFiles.map((fileItem) => (
-              <div key={fileItem.id} className="file-item">
-                <span className="file-type">{getFileType(fileItem.file.name)}</span>
-                <div className="file-details">
-                  <div className="file-name">{fileItem.file.name}</div>
-                  <div className="file-size">{formatFileSize(fileItem.file.size)}</div>
-                </div>
-                <div className="progress-container">
-                  <div className="progress-bar">
-                    <div 
-                      className="progress-fill" 
-                      style={{ width: `${uploadProgress[fileItem.id] || 0}%` }}
-                    ></div>
-                  </div>
-                  <span className="progress-text">{uploadProgress[fileItem.id] || 0}%</span>
-                </div>
-                <button 
-                  className="remove-file-btn"
-                  onClick={() => removeFile(fileItem.id)}
-                  disabled={isUploading}
-                >
-                  Remove
-                </button>
-              </div>
-            ))}
-            
-            <button 
-              className="upload-submit-btn"
-              onClick={uploadFiles}
-              disabled={isUploading || selectedFiles.length === 0}
-            >
-              {isUploading ? 'Processing...' : `Process ${selectedFiles.length} document(s)`}
-            </button>
-          </div>
-        )}
-
-        {/* Status Message */}
-        {uploadStatus && (
-          <div className={`status-message ${uploadStatus.includes('Successfully') ? 'success' : 'error'}`}>
-            {uploadStatus}
-          </div>
-        )}
-      </div>
-
-      {/* Index Statistics */}
-      <div className="index-stats">
-        <h3>FAISS Index Statistics</h3>
-        <div className="stats-grid">
-          <div className="stat-item">
-            <span className="stat-value">{indexStats.total_documents}</span>
-            <span className="stat-label">Documents</span>
-          </div>
-          <div className="stat-item">
-            <span className="stat-value">{indexStats.total_chunks}</span>
-            <span className="stat-label">Segments</span>
-          </div>
-          <div className="stat-item">
-            <span className="stat-value">{formatFileSize(indexStats.total_size_bytes)}</span>
-            <span className="stat-label">Total Size</span>
-          </div>
-          <div className="stat-item">
-            <span className="stat-value">{indexStats.index_size_mb} MB</span>
-            <span className="stat-label">FAISS Index</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Documents List */}
-      <div className="documents-list">
-        <h3>Indexed Documents ({documents.length})</h3>
-        {documents.length === 0 ? (
-          <div className="empty-state">
-            <p>No documents indexed. Start by uploading your first documents!</p>
-          </div>
-        ) : (
-          <div className="documents-grid">
-            {documents.map((doc) => (
-              <div key={doc.id} className="document-card">
-                <div className="document-header">
-                  <span className="doc-type">{getFileType(doc.filename)}</span>
-                  <div className="doc-info">
-                    <h4 className="doc-name">{doc.filename}</h4>
-                    <p className="doc-meta">
-                      {formatFileSize(doc.size_bytes)} • {doc.chunks_count} segments • {new Date(doc.upload_time).toLocaleDateString('en-US')}
-                    </p>
-                  </div>
-                  <button 
-                    className="delete-doc-btn"
-                    onClick={() => deleteDocument(doc.id)}
-                    title="Delete document"
-                  >
-                    Delete
-                  </button>
-                </div>
-                
-                <div className="document-preview">
-                  <p>{doc.content_preview}</p>
-                </div>
-                
-                <div className="document-tags">
-                  {doc.tags.map((tag, index) => (
-                    <span key={index} className="tag">{tag}</span>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* Technical Stack */}
-      <div className="tech-stack">
-        <h3>Technical Architecture</h3>
-        <div className="stack-items">
-          <div className="stack-item">
-            <strong>FAISS Vector Database:</strong> High-performance vector indexing for semantic search
-          </div>
-          <div className="stack-item">
-            <strong>LangChain Framework:</strong> RAG workflow orchestration and embeddings management
-          </div>
-          <div className="stack-item">
-            <strong>Azure OpenAI:</strong> GPT-4 for generation and text-embedding-ada-002 for vectorization
-          </div>
-          <div className="stack-item">
-            <strong>PyMuPDF + python-docx:</strong> Multi-format text extraction with structure preservation
           </div>
         </div>
       </div>
