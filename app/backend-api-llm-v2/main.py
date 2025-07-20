@@ -21,8 +21,8 @@ from fastapi.responses import JSONResponse
 import hashlib
 import numpy as np
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain_openai import AzureOpenAIEmbeddings
-from langchain_community.vectorstores import FAISS
+from langchain.embeddings import AzureOpenAIEmbeddings
+from langchain.vectorstores import FAISS
 from langchain.schema import Document
 
 logger = logging.getLogger("uvicorn.error")
@@ -75,8 +75,7 @@ embeddings = AzureOpenAIEmbeddings(
     azure_endpoint=AZURE_OPENAI_ENDPOINT,
     azure_deployment="text-embedding-ada-002",
     api_key=AZURE_OPENAI_API_KEY,
-    api_version=AZURE_OPENAI_API_VERSION,
-    chunk_size=1000  # Add chunk_size parameter to fix the error
+    api_version=AZURE_OPENAI_API_VERSION
 )
 
 # Text splitter for document chunking
@@ -665,47 +664,41 @@ async def generate_esg_analysis(request: ESGAnalysisRequest):
     
     # Build comprehensive ESG analysis prompt matching the original static analysis quality
     prompt = f"""
-    You are a Belgian real estate energy efficiency and ESG expert. Generate a detailed analysis that matches the depth and specificity of professional Belgian property assessments.
+    You are a certified ESG and energy performance expert specializing in the Belgian real estate market. Based on the following property characteristics, generate a detailed, structured ESG analysis:
 
     Property Details:
     - Location: {locality}, {province} ({property_data.postCode})
-    - Type: {property_data.propertyType} - {property_data.subtype}
+    - Type: {property_data.propertyType} – {property_data.subtype}
     - Surface: {surface}m²
     - Construction Year: {year}
     - EPC Score: {format_epc_score(epc_score)}
-    - Heating: {heating_type}
+    - Heating System: {heating_type}
     - Condition: {property_data.buildingCondition}
     - Estimated Price: {request.estimatedPrice:,.0f} €
 
-    Generate exactly 6 detailed paragraphs following this structure:
+    Your analysis should include **6 well-developed paragraphs**, covering:
 
-    **Paragraph 1 - EPC Rating Analysis:**
-    Start with "**EPC Rating Analysis:** With an EPC score of {format_epc_score(epc_score)} ({'among the best in Belgium' if is_energy_efficient else 'below current standards' if needs_renovation else 'good performance'}), this house is {'highly energy efficient and already exceeds current and near-future regulatory standards' if is_energy_efficient else 'flagged for potential renovation needs to meet upcoming 2030 energy standards' if needs_renovation else 'performing well but could benefit from targeted improvements'}."
+    1. **EPC Rating & Energy Performance**  
+    Begin with an evaluation of the EPC score and how it compares to national and regional standards. Mention whether the property meets future performance thresholds (e.g. 2030 targets).
 
-    **Paragraph 2 - Energy Consumption Estimates:**
-    Start with "**Energy Consumption Estimates:** For a {surface}m² house with an {format_epc_score(epc_score)} EPC, annual primary energy use typically ranges from {('180-300' if needs_renovation else '50-80' if is_energy_efficient else '100-150')} kWh/m²..." Include specific cost estimates based on the calculated yearly_energy_cost ({yearly_energy_cost}).
+    2. **Estimated Energy Consumption & Costs**  
+    Estimate primary energy consumption (in kWh/m²/year) based on the EPC score and building size. Provide realistic yearly cost estimates and explain assumptions used.
 
-    **Paragraph 3 - Heating System Efficiency:**
-    Start with "**Heating System Efficiency:** The {heating_type.lower().replace('_', ' ')} heating system is..." Provide detailed analysis of this specific heating type's efficiency, costs, and future viability in Belgium.
+    3. **Heating System Assessment**  
+    Analyze the heating type (“{heating_type}”) in terms of energy efficiency, regulatory compatibility, transition risks, and possible improvements.
 
-    **Paragraph 4 - Belgian Energy Performance Requirements:**
-    Start with "**Belgian Energy Performance Requirements:** Flanders is tightening energy standards: by 2030, all homes must meet at least EPC label D for rentals..." Discuss how this property's {format_epc_score(epc_score)} rating relates to upcoming regulations.
+    4. **Compliance with Belgian & Regional Regulations**  
+    Assess whether the property aligns with current and upcoming rules (e.g. rental bans, renovation mandates in Flanders, Wallonia, Brussels). Focus on relevant provincial context.
 
-    **Paragraph 5 - Rental Restrictions for Low-Performing Properties:**
-    Start with "**Rental Restrictions for Low-Performing Properties:** Properties with EPC E or F {'will face rental bans and mandatory renovation requirements' if needs_renovation else 'are not an immediate concern for this property'}..." Discuss rental implications.
+    5. **ESG Risks & Opportunities**  
+    Identify key ESG risks or weaknesses for this property, and opportunities for improvement (e.g. energy upgrades, accessibility, digital metering, insulation).
 
-    **Paragraph 6 - Investment Recommendations:**
-    Start with "**Investment Recommendations:** {'This property represents an excellent long-term investment with minimal energy upgrade risks. Focus on maintaining systems and consider smart home technologies for further optimization.' if is_energy_efficient else f'Priority renovations should target insulation, windows, and heating system upgrades. Estimated investment: €{renovation_cost:,.0f}, with annual savings of €{potential_savings:,.0f}.' if needs_renovation else 'Consider targeted efficiency improvements like smart thermostats, improved insulation, or renewable energy integration to enhance both comfort and future-proofing.'}"
+    6. **Investment Outlook & Recommendations**  
+    Provide actionable suggestions: renovation priorities, estimated investment range (e.g. €{renovation_cost:,.0f}), expected ROI or property value impact (e.g. potential savings of €{potential_savings:,.0f} annually).
 
-    Each paragraph should be substantial (4-6 sentences) and include:
-    - Specific Belgian regulations and standards
-    - Concrete numbers and cost estimates
-    - Regional context for {province}
-    - Future regulatory changes and their impact
-    - Actionable investment advice
+    Each paragraph should be 4–6 sentences long, grounded in Belgian legislation and market practices. Use a clear, formal tone suitable for investors or institutional actors. Do not assume any predefined ESG score – derive it from the property characteristics.
+"""
 
-    Make each paragraph detailed and informative, matching the depth of professional property assessments in Belgium.
-    """
 
     # Call Azure OpenAI for ESG analysis
     response_text = call_azure_openai_chat(
@@ -784,201 +777,122 @@ async def generate_esg_analysis(request: ESGAnalysisRequest):
 @app.post("/esg_quick_analysis")
 async def generate_quick_esg_analysis(request: ESGAnalysisRequest):
     """
-    Generate quick ESG assessment using the same AI model as detailed analysis
-    but with condensed output for consistency.
+    Generate quick ESG assessment using Azure OpenAI with consistent scoring
+    and brief insights per category.
     """
-    
+
     # Extract property features
     property_data = request.propertyFeatures
     epc_score = property_data.epcScore
     surface = property_data.habitableSurface
     year = property_data.buildingConstructionYear
     heating_type = property_data.heatingType
-    
-    # Quick analysis prompt - focused on scoring consistency
-    prompt = f"""
-    You are a Belgian real estate ESG expert. Provide a quick ESG assessment that matches detailed analysis standards.
 
-    Property: {property_data.propertyType} in {property_data.locality}, {property_data.province}
-    EPC: {format_epc_score(epc_score)} | Year: {year} | Surface: {surface}m² | Heating: {heating_type}
-
-    Generate consistent ESG scores on a 0-10 scale:
-
-    ENVIRONMENT (consider EPC rating, construction year, heating system):
-    Score: X.X/10
-    Brief: One line assessment focusing on energy efficiency
-
-    SOCIAL (consider accessibility, location, community impact):
-    Score: X.X/10  
-    Brief: One line assessment focusing on social benefits
-
-    GOVERNANCE (consider building compliance, safety standards):
-    Score: X.X/10
-    Brief: One line assessment focusing on governance aspects
-
-    OVERALL ESG RATING: 
-    Score: X.X/10
-    Grade: A+/A/B+/B/C/D (based on 8.5+=A+, 7.5-8.4=A, 6.5-7.4=B+, 5.5-6.4=B, 4.5-5.4=C, <4.5=D)
-
-    Keep responses concise but substantive. Use same scoring criteria as detailed ESG analysis.
-    """
-
-    # Call Azure OpenAI with same parameters as detailed analysis
-    response_text = call_azure_openai_chat(
-        messages=[
-            {"role": "system", "content": "You are a Belgian real estate ESG assessment expert. Provide consistent, reliable ESG scoring."},
-            {"role": "user", "content": prompt}
-        ],
-        temperature=0.3,  # Same low temperature for consistency
-        max_tokens=800
-    )
-
-    # Parse scores from the response
-    environmental_score = 7.0
-    social_score = 7.0  
-    governance_score = 7.0
-    overall_score = 7.0
-    overall_grade = "B+"
-    
-    # Extract numerical scores using regex
-    env_match = re.search(r'ENVIRONMENT.*?Score:\s*(\d+\.?\d*)/10', response_text, re.DOTALL | re.IGNORECASE)
-    if env_match:
-        environmental_score = float(env_match.group(1))
-    
-    social_match = re.search(r'SOCIAL.*?Score:\s*(\d+\.?\d*)/10', response_text, re.DOTALL | re.IGNORECASE)
-    if social_match:
-        social_score = float(social_match.group(1))
-    
-    gov_match = re.search(r'GOVERNANCE.*?Score:\s*(\d+\.?\d*)/10', response_text, re.DOTALL | re.IGNORECASE)
-    if gov_match:
-        governance_score = float(gov_match.group(1))
-    
-    overall_match = re.search(r'OVERALL.*?Score:\s*(\d+\.?\d*)/10', response_text, re.DOTALL | re.IGNORECASE)
-    if overall_match:
-        overall_score = float(overall_match.group(1))
-    
-    grade_match = re.search(r'Grade:\s*([A-D][+]?)', response_text, re.IGNORECASE)
-    if grade_match:
-        overall_grade = grade_match.group(1)
-    
-    # Calculate overall score if not found
-    if overall_score == 7.0 and (environmental_score != 7.0 or social_score != 7.0 or governance_score != 7.0):
-        overall_score = round((environmental_score + social_score + governance_score) / 3, 1)
-    
-    # Generate grade based on score
-    if overall_score >= 8.5:
-        overall_grade = "A+"
-    elif overall_score >= 7.5:
-        overall_grade = "A"
-    elif overall_score >= 6.5:
-        overall_grade = "B+"
-    elif overall_score >= 5.5:
-        overall_grade = "B"
-    elif overall_score >= 4.5:
-        overall_grade = "C"
-    else:
-        overall_grade = "D"
-
-    # Return structured response
-    esg_scores = {
-        "environmental": environmental_score,
-        "social": social_score,
-        "governance": governance_score,
-        "overall": overall_score
-    }
-    
-    return {
-        "esg_scores": esg_scores,
-        "overall_grade": overall_grade,
-        "analysis_summary": response_text,
-        "confidence_level": "high"
-    }
+    # Prompt for the LLM
     prompt = f"""
     As a Belgian real estate ESG expert, provide a QUICK assessment for this property:
-    
+
     Property: {property_data.propertyType} in {property_data.locality}, {property_data.province}
     Surface: {surface}m², Year: {year}, EPC: {format_epc_score(epc_score)}, Heating: {heating_type}
-    
+
     Provide ONLY:
     1. Environmental score (0-10): Based on EPC rating and energy efficiency
     2. Social score (0-10): Based on location and family-friendliness  
     3. Governance score (0-10): Based on building age and condition
     4. Overall ESG score (0-10): Average of the three scores
     5. Three short insights (one per category)
-    
+
     Format your response EXACTLY like this:
     Environmental Score: X.X/10
     Social Score: X.X/10  
     Governance Score: X.X/10
     Overall ESG Score: X.X/10
-    
+
     Environmental Insight: [brief insight]
     Social Insight: [brief insight]
     Governance Insight: [brief insight]
     """
-    
+
     try:
-        # Call Azure OpenAI for quick analysis
+        # Call Azure OpenAI
         response_text = call_azure_openai_chat(
             messages=[
                 {"role": "system", "content": "You are a Belgian real estate ESG expert. Provide consistent, professional assessments."},
                 {"role": "user", "content": prompt}
             ],
-            temperature=0.3,  # Lower temperature for consistency
+            temperature=0.3,
             max_tokens=500
         )
-        
-        # Parse the response to extract scores and insights
-        lines = response_text.strip().split('\n')
+
+        # Default scores and insights
         esg_scores = {"environmental": 7.0, "social": 7.0, "governance": 7.0, "overall": 7.0}
-        insights = {"environment": [], "social": [], "governance": []}
-        
+        insights = {"environment": "", "social": "", "governance": ""}
+
+        # Parse response
+        lines = response_text.strip().split('\n')
         for line in lines:
             line = line.strip()
             if "Environmental Score:" in line:
                 try:
-                    score = float(line.split('/')[0].split(':')[-1].strip())
-                    esg_scores["environmental"] = score
+                    esg_scores["environmental"] = float(line.split(':')[1].split('/')[0].strip())
                 except:
                     pass
             elif "Social Score:" in line:
                 try:
-                    score = float(line.split('/')[0].split(':')[-1].strip())
-                    esg_scores["social"] = score
+                    esg_scores["social"] = float(line.split(':')[1].split('/')[0].strip())
                 except:
                     pass
             elif "Governance Score:" in line:
                 try:
-                    score = float(line.split('/')[0].split(':')[-1].strip())
-                    esg_scores["governance"] = score
+                    esg_scores["governance"] = float(line.split(':')[1].split('/')[0].strip())
                 except:
                     pass
             elif "Overall ESG Score:" in line:
                 try:
-                    score = float(line.split('/')[0].split(':')[-1].strip())
-                    esg_scores["overall"] = score
+                    esg_scores["overall"] = float(line.split(':')[1].split('/')[0].strip())
                 except:
                     pass
             elif "Environmental Insight:" in line:
-                insights["environment"].append(line.replace("Environmental Insight:", "").strip())
+                insights["environment"] = line.split(":", 1)[1].strip()
             elif "Social Insight:" in line:
-                insights["social"].append(line.replace("Social Insight:", "").strip())
+                insights["social"] = line.split(":", 1)[1].strip()
             elif "Governance Insight:" in line:
-                insights["governance"].append(line.replace("Governance Insight:", "").strip())
-        
-        # Ensure overall score is calculated if not provided
+                insights["governance"] = line.split(":", 1)[1].strip()
+
+        # Recalculate overall score if needed
         if esg_scores["overall"] == 7.0:
-            esg_scores["overall"] = round((esg_scores["environmental"] + esg_scores["social"] + esg_scores["governance"]) / 3, 1)
-        
+            esg_scores["overall"] = round(
+                (esg_scores["environmental"] + esg_scores["social"] + esg_scores["governance"]) / 3, 1
+            )
+
+        # Derive ESG grade
+        score = esg_scores["overall"]
+        if score >= 8.5:
+            grade = "A+"
+        elif score >= 7.5:
+            grade = "A"
+        elif score >= 6.5:
+            grade = "B+"
+        elif score >= 5.5:
+            grade = "B"
+        elif score >= 4.5:
+            grade = "C"
+        else:
+            grade = "D"
+
         return {
             "esg_scores": esg_scores,
+            "overall_grade": grade,
             "insights": insights,
-            "analysis_type": "quick"
+            "analysis_summary": response_text,
+            "analysis_type": "quick",
+            "confidence_level": "high"
         }
-        
+
     except Exception as e:
-        print(f"Error in quick ESG analysis: {e}")
+        print(f"[✘] Error in quick ESG analysis: {e}")
         raise HTTPException(status_code=500, detail="Failed to generate quick ESG analysis")
+
 
 
 # Strategic summary endpoint

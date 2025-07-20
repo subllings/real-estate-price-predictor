@@ -11,6 +11,7 @@ PORT=${PORT:-8010}
 BACKEND_DIR="app/backend-api-llm-v2"
 ENTRYPOINT="main:app"
 
+
 # === Activate venv (Windows Git Bash)
 if [ -f ".venv/Scripts/activate" ]; then
     source .venv/Scripts/activate
