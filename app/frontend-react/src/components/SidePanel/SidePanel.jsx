@@ -61,10 +61,10 @@ const SidePanel = ({ user, isExpanded, onToggle, onClose, comments, clearComment
         content: msg.text
       }));
 
-      // Ajouter le message actuel
+      // Add the current message
       conversationHistory.push({ role: "user", content: message });
 
-      // Ajouter un message système avec contexte pour l'IA
+      // Add system message with context for AI
       const messagesWithContext = [
         {
           role: "system",
@@ -77,13 +77,13 @@ const SidePanel = ({ user, isExpanded, onToggle, onClose, comments, clearComment
         messages: messagesWithContext
       });
 
-      // La réponse attendue dans response.data.response
+      // The expected response in response.data.response
       setMessages(prev => [
         ...prev,
         { from: "agent", text: response.data.response || "No response from assistant.", timestamp: new Date().toISOString() }
       ]);
       
-      // Déclencher le scroll automatique après la réponse
+      // Trigger automatic scroll after response
       setTimeout(() => {
         scrollToBottomSmooth();
       }, 100);
@@ -94,13 +94,13 @@ const SidePanel = ({ user, isExpanded, onToggle, onClose, comments, clearComment
         { from: "agent", text: "Sorry, I couldn't reach the assistant.", timestamp: new Date().toISOString() }
       ]);
       
-      // Déclencher le scroll automatique même en cas d'erreur
+      // Trigger automatic scroll even in case of error
       setTimeout(() => {
         scrollToBottomSmooth();
       }, 100);
     }
     
-    // Vider l'input après l'envoi
+    // Clear input after sending
     setChatInput("");
   };
 
@@ -202,9 +202,9 @@ const SidePanel = ({ user, isExpanded, onToggle, onClose, comments, clearComment
             (comment.includes(' in ') && comment.includes('('))) {
           subtype = "prediction-title";
         } else if (comment.startsWith('Predicted price:')) {
-          subtype = "prediction-title"; // Traiter le prix comme un titre aussi
+          subtype = "prediction-title"; // Treat price as a title too
         } else if (comment.startsWith('Model:')) {
-          subtype = "model-info"; // Nouveau type pour les informations de modèle
+          subtype = "model-info"; // New type for model information
         } else if (comment.includes('ESG ANALYSIS') ||
                    comment.includes('ESG analysis') ||
                    comment.includes('available in right panel') ||
@@ -409,7 +409,7 @@ Property details: Surface ${analysisData.surface}m², ${analysisData.bedrooms} b
         ]
       });
 
-      // Traiter la réponse et la diviser en sections
+      // Process response and divide into sections
       const analysisText = response.data.response || "Strategic analysis completed.";
       
       // Nettoyer complètement tout message de chargement et de statut
@@ -597,7 +597,7 @@ Property details: Surface ${analysisData.surface}m², ${analysisData.bedrooms} b
     } catch (err) {
       console.error("Strategic analysis error:", err.response?.data || err.message || err);
       
-      // Désactiver le spinner en cas d'erreur
+      // Disable spinner in case of error
       setIsStrategicAnalysisLoading(false);
       
       setMessages(prev => [
@@ -647,10 +647,10 @@ Property details: Surface ${analysisData.surface}m², ${analysisData.bedrooms} b
         content: msg.text
       }));
 
-      // Ajouter le message actuel
+      // Add current message
       conversationHistory.push(userMessage);
 
-      // Ajouter un message système avec contexte pour l'IA
+      // Add system message with context for AI
       const messagesWithContext = [
         {
           role: "system",
@@ -680,14 +680,14 @@ Property details: Surface ${analysisData.surface}m², ${analysisData.bedrooms} b
         { from: "agent", text: "Sorry, I couldn't reach the assistant.", timestamp: new Date().toISOString() }
       ]);
       
-      // Déclencher le scroll automatique même en cas d'erreur
+      // Trigger automatic scroll even in case of error
       setTimeout(() => {
         scrollToBottomSmooth();
       }, 100);
     }
   };
 
-  // Fonction pour formater les messages utilisateur (sans couleurs, texte blanc)
+  // Function to format user messages (no colors, white text)
   const formatUserMessage = (text) => {
     if (!text) return { __html: '' };
     
@@ -710,7 +710,7 @@ Property details: Surface ${analysisData.surface}m², ${analysisData.bedrooms} b
     // Convertir **texte** en texte gras blanc
     formattedText = formattedText.replace(/\*\*(.*?)\*\*/g, '<strong style="color: white;">$1</strong>');
     
-    // Traiter les bullet points avec alignement correct (en blanc)
+    // Process bullet points with correct alignment (in white)
     formattedText = formattedText.replace(/^[•\+\-]\s*(.*?)$/gm, '<div style="margin: 4px 0; padding-left: 16px; color: white; line-height: 1.4; position: relative;"><span style="position: absolute; left: 0; color: white; font-weight: bold;">•</span>$1</div>');
     
     // Convertir les sauts de ligne en <br/>
@@ -797,11 +797,11 @@ Property details: Surface ${analysisData.surface}m², ${analysisData.bedrooms} b
     // 6. Convertir **texte** en <strong>texte</strong> APRÈS les titres et tags spécialisés pour éviter les conflits
     formattedText = formattedText.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
     
-    // 7. Traiter les puces différemment selon leur contexte
-    // D'abord traiter les puces qui suivent "How:" ou "Why:"
+    // 7. Process bullets differently based on their context
+    // First process bullets that follow "How:" or "Why:"
     formattedText = formattedText.replace(/(Why:|How:)\s*\n?\s*-\s*(.+)/gi, '$1<br/><div style="margin: 4px 0 4px 16px; padding: 0; line-height: 1.4;"><span style="color: #6a1b9a; font-weight: bold;">•</span> $2</div>');
     
-    // Ensuite traiter les puces normales en début de ligne
+    // Then process normal bullets at line start
     formattedText = formattedText.replace(/^[•\+\-]\s*(.*?)$/gm, '<div style="margin: 2px 0 2px 16px; padding: 0; line-height: 1.4; position: relative;"><span style="position: absolute; left: -12px; color: #6a1b9a; font-weight: bold;">•</span>$1</div>');
     
     // 8. Nettoyer les sauts de ligne excessifs

@@ -288,14 +288,13 @@ const ESGPanel = ({ isOpen, onClose, onToggle, esgAnalysis, propertyData, esgLoa
   const formatContentWithBullets = (content) => {
     if (!content) return null;
     
-    // Remove blockquote formatting to avoid blue vertical bars
     let cleanContent = content.toString();
     
-    // Remove blockquote markers (>) and clean up
+    // Remove blockquote markers
     cleanContent = cleanContent.replace(/^>\s*/gm, '');
     cleanContent = cleanContent.replace(/^\s*>\s*/gm, '');
     
-    // SUPPRIMER TOUTES LES BARRES HORIZONTALES POTENTIELLES
+    // Remove horizontal rules (---, ***, ___)
     cleanContent = cleanContent.replace(/^-{3,}.*$/gm, '');
     cleanContent = cleanContent.replace(/^={3,}.*$/gm, '');
     cleanContent = cleanContent.replace(/^_{3,}.*$/gm, '');
@@ -304,16 +303,222 @@ const ESGPanel = ({ isOpen, onClose, onToggle, esgAnalysis, propertyData, esgLoa
     cleanContent = cleanContent.replace(/^\s*={3,}\s*$/gm, '');
     cleanContent = cleanContent.replace(/^\s*_{3,}\s*$/gm, '');
     cleanContent = cleanContent.replace(/^\s*\*{3,}\s*$/gm, '');
+    
+    // Clean up multiple newlines
     cleanContent = cleanContent.replace(/\n\s*\n/g, '\n');
     
-    // Split content into sentences and paragraphs
-    const sentences = cleanContent.split(/(?<=[.!?])\s+/)
+    // Split into lines for processing
+    const lines = cleanContent.split('\n').filter(line => line.trim());
+    const elements = [];
+    let i = 0;
+
+    while (i < lines.length) {
+      const line = lines[i].trim();
+      
+      // Handle tables (lines starting with |)
+      if (line.startsWith('|')) {
+        const tableRows = [];
+        while (i < lines.length && lines[i].trim().startsWith('|')) {
+          const row = lines[i].trim();
+          if (!row.includes('---')) { // Skip separator rows
+            const cells = row.split('|').slice(1, -1).map(cell => cell.trim());
+            tableRows.push(cells);
+          }
+          i++;
+        }
+        
+        if (tableRows.length > 0) {
+          elements.push(
+            <table key={elements.length} style={{ 
+              width: '100%', 
+              borderCollapse: 'collapse', 
+              margin: '1em 0',
+              border: '1px solid #ddd'
+            }}>
+              <thead>
+                <tr style={{ backgroundColor: '#f5f5f5' }}>
+                  {tableRows[0].map((cell, idx) => (
+                    <th key={idx} style={{ 
+                      padding: '8px 12px', 
+                      border: '1px solid #ddd',
+                      fontWeight: 'bold',
+                      textAlign: 'left'
+                    }}>
+                      {formatInlineMarkdown(cell)}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {tableRows.slice(1).map((row, rowIdx) => (
+                  <tr key={rowIdx}>
+                    {row.map((cell, cellIdx) => (
+                      <td key={cellIdx} style={{ 
+                        padding: '8px 12px', 
+                        border: '1px solid #ddd' 
+                      }}>
+                        {formatInlineMarkdown(cell)}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          );
+        }
+        continue;
+      }
+      
+      // Handle headers (###, ##, #)
+      if (line.startsWith('###')) {
+        elements.push(
+          <h4 key={elements.length} style={{ 
+            fontSize: '1.1em', 
+            fontWeight: 'bold', 
+            color: '#2c5aa0',
+            margin: '1em 0 0.5em 0'
+          }}>
+            {formatInlineMarkdown(line.replace(/^#{1,6}\s*/, ''))}
+          </h4>
+        );
+      } else if (line.startsWith('##')) {
+        elements.push(
+          <h3 key={elements.length} style={{ 
+            fontSize: '1.2em', 
+            fontWeight: 'bold', 
+            color: '#2c5aa0',
+            margin: '1em 0 0.5em 0'
+          }}>
+            {formatInlineMarkdown(line.replace(/^#{1,6}\s*/, ''))}
+          </h3>
+        );
+      } else if (line.startsWith('#')) {
+        elements.push(
+          <h2 key={elements.length} style={{ 
+            fontSize: '1.3em', 
+            fontWeight: 'bold', 
+            color: '#2c5aa0',
+            margin: '1em 0 0.5em 0'
+          }}>
+            {formatInlineMarkdown(line.replace(/^#{1,6}\s*/, ''))}
+          </h2>
+        );
+      }
+      // Handle bullet points
+      else if (line.startsWith('- ') || line.startsWith('* ')) {
+        const bulletItems = [];
+        while (i < lines.length && (lines[i].trim().startsWith('- ') || lines[i].trim().startsWith('* '))) {
+          const bulletText = lines[i].trim().replace(/^[-*]\s*/, '');
+          bulletItems.push(bulletText);
+          i++;
+        }
+        
+        elements.push(
+          <ul key={elements.length} style={{ 
+            margin: '0.5em 0', 
+            paddingLeft: '1.5em' 
+          }}>
+            {bulletItems.map((item, idx) => (
+              <li key={idx} style={{ marginBottom: '0.3em' }}>
+                {formatInlineMarkdown(item)}
+              </li>
+            ))}
+          </ul>
+        );
+        continue;
+      }
+      // Handle numbered lists
+      else if (/^\d+\.\s/.test(line)) {
+        const listItems = [];
+        while (i < lines.length && /^\d+\.\s/.test(lines[i].trim())) {
+          const listText = lines[i].trim().replace(/^\d+\.\s*/, '');
+          listItems.push(listText);
+          i++;
+        }
+        
+        elements.push(
+          <ol key={elements.length} style={{ 
+            margin: '0.5em 0', 
+            paddingLeft: '1.5em' 
+          }}>
+            {listItems.map((item, idx) => (
+              <li key={idx} style={{ marginBottom: '0.3em' }}>
+                {formatInlineMarkdown(item)}
+              </li>
+            ))}
+          </ol>
+        );
+        continue;
+      }
+      // Handle regular paragraphs
+      else {
+        elements.push(
+          <p key={elements.length} style={{ 
+            margin: '0.5em 0', 
+            lineHeight: '1.4' 
+          }}>
+            {formatInlineMarkdown(line)}
+          </p>
+        );
+      }
+      
+      i++;
+    }
+
+    return <div>{elements}</div>;
+  };
+
+  // Helper function to format inline markdown (**, *, etc.)
+  const formatInlineMarkdown = (text) => {
+    if (!text) return text;
+    
+    // Process the text to handle **bold**, *italic*, etc.
+    const parts = [];
+    let currentText = text;
+    let key = 0;
+    
+    // Handle **bold**
+    const boldRegex = /\*\*(.*?)\*\*/g;
+    let lastIndex = 0;
+    let match;
+    
+    while ((match = boldRegex.exec(text)) !== null) {
+      // Add text before the match
+      if (match.index > lastIndex) {
+        parts.push(text.substring(lastIndex, match.index));
+      }
+      
+      // Add the bold text
+      parts.push(
+        <strong key={key++} style={{ fontWeight: 'bold', color: '#2c5aa0' }}>
+          {match[1]}
+        </strong>
+      );
+      
+      lastIndex = boldRegex.lastIndex;
+    }
+    
+    // Add remaining text
+    if (lastIndex < text.length) {
+      parts.push(text.substring(lastIndex));
+    }
+    
+    // If no bold formatting found, return original text
+    if (parts.length === 0) {
+      return text;
+    }
+    
+    return parts;
+  };
+
+  // Simplified version for short content
+  const formatShortContent = (content) => {
+    const sentences = content.split(/(?<=[.!?])\s+/)
       .map(sentence => sentence.trim())
       .filter(sentence => sentence.length > 0);
     
     if (sentences.length <= 2) {
-      // For short content, display as paragraph without any borders
-      return <p style={{borderLeft: 'none', paddingLeft: '0'}}>{cleanContent}</p>;
+      return <p style={{borderLeft: 'none', paddingLeft: '0'}}>{formatInlineMarkdown(content)}</p>;
     }
     
     // For longer content, create bullet points

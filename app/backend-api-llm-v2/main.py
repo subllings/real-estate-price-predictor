@@ -8,6 +8,22 @@ from dotenv import load_dotenv
 import requests
 import json
 import logging
+import os
+import uuid
+import shutil
+from pathlib import Path
+from datetime import datetime
+import fitz  # PyMuPDF for PDF extraction
+import docx  # python-docx for DOCX files
+from typing import Optional, Dict, Any
+from fastapi import UploadFile, File, Form
+from fastapi.responses import JSONResponse
+import hashlib
+import numpy as np
+from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain_openai import AzureOpenAIEmbeddings
+from langchain_community.vectorstores import FAISS
+from langchain.schema import Document
 
 logger = logging.getLogger("uvicorn.error")
 
@@ -47,6 +63,31 @@ AZURE_OPENAI_ENDPOINT = os.getenv("AZURE_OPENAI_ENDPOINT", "").rstrip("/")
 AZURE_OPENAI_DEPLOYMENT = os.getenv("AZURE_OPENAI_DEPLOYMENT_NAME")
 AZURE_OPENAI_API_VERSION = os.getenv("AZURE_OPENAI_API_VERSION")
 AZURE_OPENAI_API_KEY = os.getenv("AZURE_OPENAI_API_KEY")
+
+# Document processing configuration
+UPLOAD_DIR = Path("uploaded_documents")
+FAISS_INDEX_DIR = Path("faiss_indexes")
+UPLOAD_DIR.mkdir(exist_ok=True)
+FAISS_INDEX_DIR.mkdir(exist_ok=True)
+
+# Initialize vector store components
+embeddings = AzureOpenAIEmbeddings(
+    azure_endpoint=AZURE_OPENAI_ENDPOINT,
+    azure_deployment="text-embedding-ada-002",
+    api_key=AZURE_OPENAI_API_KEY,
+    api_version=AZURE_OPENAI_API_VERSION,
+    chunk_size=1000  # Add chunk_size parameter to fix the error
+)
+
+# Text splitter for document chunking
+text_splitter = RecursiveCharacterTextSplitter(
+    chunk_size=1000,
+    chunk_overlap=200,
+    length_function=len
+)
+
+# In-memory storage for document metadata
+document_store: Dict[str, Dict[str, Any]] = {}
 
 # === Schemas ===
 
@@ -157,7 +198,51 @@ class StrategicAnalysisSummaryResponse(BaseModel):
     confidence_score: float
     timestamp: str
 
-# === Utility Function ===
+# RAG Document Upload Models
+class DocumentUploadResponse(BaseModel):
+    document_id: str
+    filename: str
+    file_type: str
+    size_bytes: int
+    chunks_created: int
+    status: str
+    upload_time: str
+
+class DocumentInfo(BaseModel):
+    id: str
+    filename: str
+    file_type: str
+    size_bytes: int
+    upload_time: str
+    chunks_count: int
+    content_preview: str
+    tags: List[str]
+
+class DocumentListResponse(BaseModel):
+    documents: List[DocumentInfo]
+    total_count: int
+    total_size_bytes: int
+
+class DocumentQueryRequest(BaseModel):
+    query: str
+    document_ids: Optional[List[str]] = None
+    max_results: int = 5
+
+class DocumentQueryResponse(BaseModel):
+    query: str
+    results: List[Dict[str, Any]]
+    context_used: str
+    answer: str
+    sources: List[str]
+
+class IndexStatsResponse(BaseModel):
+    total_documents: int
+    total_chunks: int
+    total_size_bytes: int
+    index_size_mb: float
+    last_updated: str
+
+# === Utility Functions ===
 
 def call_azure_openai_chat(messages: List[dict], temperature: float = 0.7, max_tokens: int = 1500):
     url = f"{AZURE_OPENAI_ENDPOINT}/openai/deployments/{AZURE_OPENAI_DEPLOYMENT}/chat/completions?api-version={AZURE_OPENAI_API_VERSION}"
@@ -182,6 +267,123 @@ def call_azure_openai_chat(messages: List[dict], temperature: float = 0.7, max_t
     except Exception as e:
         print(f"Azure OpenAI API error: {e}")
         raise HTTPException(status_code=500, detail="Failed to get response from Azure OpenAI.")
+
+# === Document Processing Functions ===
+
+def extract_text_from_pdf(file_path: Path) -> str:
+    """Extract text from PDF using PyMuPDF"""
+    try:
+        doc = fitz.open(file_path)
+        text = ""
+        for page in doc:
+            text += page.get_text()
+        doc.close()
+        return text
+    except Exception as e:
+        logger.error(f"Error extracting text from PDF {file_path}: {e}")
+        return ""
+
+def extract_text_from_docx(file_path: Path) -> str:
+    """Extract text from DOCX file"""
+    try:
+        doc = docx.Document(file_path)
+        text = ""
+        for paragraph in doc.paragraphs:
+            text += paragraph.text + "\n"
+        return text
+    except Exception as e:
+        logger.error(f"Error extracting text from DOCX {file_path}: {e}")
+        return ""
+
+def extract_text_from_txt(file_path: Path) -> str:
+    """Extract text from TXT file"""
+    try:
+        with open(file_path, 'r', encoding='utf-8') as f:
+            return f.read()
+    except UnicodeDecodeError:
+        # Try with different encoding if UTF-8 fails
+        try:
+            with open(file_path, 'r', encoding='latin-1') as f:
+                return f.read()
+        except Exception as e:
+            logger.error(f"Error reading TXT file {file_path}: {e}")
+            return ""
+    except Exception as e:
+        logger.error(f"Error extracting text from TXT {file_path}: {e}")
+        return ""
+
+def extract_text_from_file(file_path: Path, file_type: str) -> str:
+    """Extract text from various file types"""
+    if file_type.lower() == "pdf":
+        return extract_text_from_pdf(file_path)
+    elif file_type.lower() == "docx":
+        return extract_text_from_docx(file_path)
+    elif file_type.lower() == "txt":
+        return extract_text_from_txt(file_path)
+    else:
+        raise ValueError(f"Unsupported file type: {file_type}")
+
+def generate_document_tags(text: str, filename: str) -> List[str]:
+    """Generate tags for a document based on content analysis"""
+    tags = []
+    
+    # File type tag
+    if filename.lower().endswith('.pdf'):
+        tags.append("PDF")
+    elif filename.lower().endswith('.docx'):
+        tags.append("Word Document")
+    elif filename.lower().endswith('.txt'):
+        tags.append("Text File")
+    
+    # Content-based tags
+    text_lower = text.lower()
+    
+    # ESG and sustainability tags
+    if any(keyword in text_lower for keyword in ['esg', 'environment', 'sustainability', 'carbon', 'energy']):
+        tags.append("ESG")
+    if any(keyword in text_lower for keyword in ['regulation', 'compliance', 'law', 'legal']):
+        tags.append("Legal")
+    if any(keyword in text_lower for keyword in ['real estate', 'property', 'building', 'construction']):
+        tags.append("Real Estate")
+    if any(keyword in text_lower for keyword in ['finance', 'investment', 'roi', 'budget']):
+        tags.append("Finance")
+    if any(keyword in text_lower for keyword in ['report', 'analysis', 'assessment']):
+        tags.append("Report")
+    
+    return tags[:5]  # Limit to 5 tags
+
+def get_faiss_index_path() -> Path:
+    """Get the path to the FAISS index"""
+    return FAISS_INDEX_DIR / "document_index"
+
+def load_or_create_faiss_index():
+    """Load existing FAISS index or create a new one"""
+    index_path = get_faiss_index_path()
+    
+    if index_path.exists():
+        try:
+            return FAISS.load_local(str(index_path), embeddings)
+        except Exception as e:
+            logger.warning(f"Could not load existing FAISS index: {e}")
+    
+    # Create new empty index
+    sample_text = ["Initial document for index creation"]
+    sample_docs = [Document(page_content=sample_text[0], metadata={"temp": True})]
+    vector_store = FAISS.from_documents(sample_docs, embeddings)
+    
+    # Save the new index
+    vector_store.save_local(str(index_path))
+    return vector_store
+
+def update_faiss_index(documents: List[Document]):
+    """Update FAISS index with new documents"""
+    vector_store = load_or_create_faiss_index()
+    
+    if documents:
+        vector_store.add_documents(documents)
+        vector_store.save_local(str(get_faiss_index_path()))
+    
+    return vector_store
 
 # === Routes ===
 
@@ -1071,5 +1273,266 @@ async def create_strategic_analysis_summary(request: StrategicSummaryRequest):
         key_insights=key_insights,
         confidence_score=min(confidence, 1.0),
         timestamp=timestamp
+    )
+
+# === RAG Document Processing Endpoints ===
+
+@app.post("/upload_document", response_model=DocumentUploadResponse, tags=["Documents"])
+async def upload_document(
+    file: UploadFile = File(...),
+    document_type: str = Form("general")
+):
+    """
+    Upload and process documents for RAG system.
+    Supports PDF, DOCX, and TXT files.
+    """
+    
+    # Validate file type
+    allowed_types = ["pdf", "docx", "txt"]
+    file_extension = file.filename.lower().split('.')[-1] if '.' in file.filename else ""
+    
+    if file_extension not in allowed_types:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unsupported file type. Allowed types: {', '.join(allowed_types)}"
+        )
+    
+    # Generate unique document ID
+    document_id = str(uuid.uuid4())
+    timestamp = datetime.now().isoformat()
+    
+    # Save uploaded file
+    file_path = UPLOAD_DIR / f"{document_id}_{file.filename}"
+    
+    try:
+        with open(file_path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+        
+        # Extract text from document
+        extracted_text = extract_text_from_file(file_path, file_extension)
+        
+        if not extracted_text.strip():
+            raise HTTPException(status_code=400, detail="No text could be extracted from the document")
+        
+        # Create text chunks
+        text_chunks = text_splitter.split_text(extracted_text)
+        
+        # Create documents for vector store
+        documents = []
+        for i, chunk in enumerate(text_chunks):
+            doc = Document(
+                page_content=chunk,
+                metadata={
+                    "document_id": document_id,
+                    "filename": file.filename,
+                    "file_type": file_extension,
+                    "chunk_index": i,
+                    "document_type": document_type,
+                    "upload_time": timestamp,
+                    "source": f"{file.filename} (chunk {i+1}/{len(text_chunks)})"
+                }
+            )
+            documents.append(doc)
+        
+        # Update FAISS index
+        update_faiss_index(documents)
+        
+        # Generate tags
+        tags = generate_document_tags(extracted_text, file.filename)
+        
+        # Store document metadata
+        document_store[document_id] = {
+            "id": document_id,
+            "filename": file.filename,
+            "file_type": file_extension,
+            "size_bytes": file_path.stat().st_size,
+            "upload_time": timestamp,
+            "chunks_count": len(text_chunks),
+            "content_preview": extracted_text[:500] + "..." if len(extracted_text) > 500 else extracted_text,
+            "tags": tags,
+            "document_type": document_type,
+            "file_path": str(file_path)
+        }
+        
+        logger.info(f"Document uploaded successfully: {file.filename} (ID: {document_id})")
+        
+        return DocumentUploadResponse(
+            document_id=document_id,
+            filename=file.filename,
+            file_type=file_extension,
+            size_bytes=file_path.stat().st_size,
+            chunks_created=len(text_chunks),
+            status="success",
+            upload_time=timestamp
+        )
+        
+    except Exception as e:
+        # Clean up file if processing failed
+        if file_path.exists():
+            file_path.unlink()
+        
+        logger.error(f"Error processing document {file.filename}: {e}")
+        raise HTTPException(status_code=500, detail=f"Error processing document: {str(e)}")
+
+@app.get("/documents", response_model=DocumentListResponse, tags=["Documents"])
+async def list_documents():
+    """Get list of all uploaded documents with metadata"""
+    
+    documents = []
+    total_size = 0
+    
+    for doc_id, doc_info in document_store.items():
+        documents.append(DocumentInfo(**doc_info))
+        total_size += doc_info["size_bytes"]
+    
+    return DocumentListResponse(
+        documents=documents,
+        total_count=len(documents),
+        total_size_bytes=total_size
+    )
+
+@app.delete("/documents/{document_id}", tags=["Documents"])
+async def delete_document(document_id: str):
+    """Delete a document and remove it from the index"""
+    
+    if document_id not in document_store:
+        raise HTTPException(status_code=404, detail="Document not found")
+    
+    try:
+        # Remove file
+        doc_info = document_store[document_id]
+        file_path = Path(doc_info["file_path"])
+        if file_path.exists():
+            file_path.unlink()
+        
+        # Remove from document store
+        del document_store[document_id]
+        
+        # Note: For production, you would want to rebuild the FAISS index
+        # without the deleted document's chunks. For now, we keep the vectors
+        # in the index but remove the metadata.
+        
+        logger.info(f"Document deleted: {document_id}")
+        
+        return {"status": "success", "message": f"Document {document_id} deleted successfully"}
+        
+    except Exception as e:
+        logger.error(f"Error deleting document {document_id}: {e}")
+        raise HTTPException(status_code=500, detail=f"Error deleting document: {str(e)}")
+
+@app.post("/query_documents", response_model=DocumentQueryResponse, tags=["Documents"])
+async def query_documents(request: DocumentQueryRequest):
+    """
+    Query documents using RAG (Retrieval-Augmented Generation).
+    Retrieve relevant document chunks and generate an answer using Azure OpenAI.
+    """
+    
+    try:
+        # Load FAISS index
+        vector_store = load_or_create_faiss_index()
+        
+        # Search for relevant documents
+        search_results = vector_store.similarity_search_with_score(
+            request.query,
+            k=request.max_results
+        )
+        
+        # Filter by document IDs if specified
+        if request.document_ids:
+            search_results = [
+                (doc, score) for doc, score in search_results
+                if doc.metadata.get("document_id") in request.document_ids
+            ]
+        
+        # Prepare context from retrieved documents
+        context_chunks = []
+        sources = []
+        results = []
+        
+        for doc, score in search_results:
+            context_chunks.append(doc.page_content)
+            source = doc.metadata.get("source", "Unknown source")
+            if source not in sources:
+                sources.append(source)
+            
+            results.append({
+                "content": doc.page_content[:200] + "..." if len(doc.page_content) > 200 else doc.page_content,
+                "score": float(score),
+                "source": source,
+                "metadata": doc.metadata
+            })
+        
+        # Combine context
+        context_text = "\n\n".join(context_chunks)
+        
+        # Generate answer using Azure OpenAI
+        if context_chunks:
+            prompt = f"""
+            Based on the following document excerpts, please answer the user's question comprehensively and accurately.
+
+            Context from documents:
+            {context_text}
+
+            User Question: {request.query}
+
+            Please provide a detailed answer based on the information in the documents. If the documents don't contain enough information to fully answer the question, please say so and provide what information is available.
+
+            Answer:
+            """
+            
+            answer = call_azure_openai_chat(
+                messages=[
+                    {"role": "system", "content": "You are a helpful assistant that answers questions based on provided document context. Always cite the source documents when possible."},
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=0.3,  # Lower temperature for factual responses
+                max_tokens=1000
+            )
+        else:
+            answer = "No relevant documents found for your query. Please try a different search term or upload relevant documents."
+        
+        return DocumentQueryResponse(
+            query=request.query,
+            results=results,
+            context_used=context_text[:1000] + "..." if len(context_text) > 1000 else context_text,
+            answer=answer,
+            sources=sources
+        )
+        
+    except Exception as e:
+        logger.error(f"Error querying documents: {e}")
+        raise HTTPException(status_code=500, detail=f"Error querying documents: {str(e)}")
+
+@app.get("/index_stats", response_model=IndexStatsResponse, tags=["Documents"])
+async def get_index_stats():
+    """Get statistics about the document index"""
+    
+    total_documents = len(document_store)
+    total_chunks = sum(doc["chunks_count"] for doc in document_store.values())
+    total_size_bytes = sum(doc["size_bytes"] for doc in document_store.values())
+    
+    # Calculate index size (approximate)
+    index_path = get_faiss_index_path()
+    index_size_mb = 0.0
+    if index_path.exists():
+        try:
+            index_files = list(index_path.glob("*"))
+            index_size_bytes = sum(f.stat().st_size for f in index_files if f.is_file())
+            index_size_mb = index_size_bytes / (1024 * 1024)
+        except Exception as e:
+            logger.warning(f"Could not calculate index size: {e}")
+    
+    # Get last update time
+    last_updated = "Never"
+    if document_store:
+        latest_upload = max(doc["upload_time"] for doc in document_store.values())
+        last_updated = latest_upload
+    
+    return IndexStatsResponse(
+        total_documents=total_documents,
+        total_chunks=total_chunks,
+        total_size_bytes=total_size_bytes,
+        index_size_mb=round(index_size_mb, 2),
+        last_updated=last_updated
     )
 app.include_router(router)

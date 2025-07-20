@@ -36,6 +36,12 @@ const GlobalMegaMenu = ({ onAdminToggle }) => {
       description: 'Sustainability & compliance advisor'
     },
     {
+      id: 'documents',
+      label: 'Documents RAG',
+      path: '/documents',
+      description: 'Intelligent document processing & analysis'
+    },
+    {
       id: 'training',
       label: 'Model Training',
       path: '/training',

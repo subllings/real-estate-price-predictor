@@ -8,6 +8,7 @@ import ESGAgentPage from './pages/ESGAgentPage';
 import ESGAgentPageNew from './pages/ESGAgentPageNew';
 import ModelTrainingPage from './pages/ModelTrainingPage';
 import AdminPage from './pages/AdminPage';
+import DocumentUploadPage from './pages/DocumentUploadPage';
 import LoginPage from './components/Auth/LoginPage';
 import AdminPanel from './components/AdminPanel/AdminPanel';
 import SimpleAdminPanelTest from './components/SimpleAdminPanelTest';
@@ -72,6 +73,7 @@ function App() {
                       <Route path="/esg-agent-old" element={<ESGAgentPage />} />
                       <Route path="/training" element={<ModelTrainingPage />} />
                       <Route path="/admin" element={<AdminPage />} />
+                      <Route path="/documents" element={<DocumentUploadPage />} />
                       <Route path="/test-admin" element={<TestAdminPanel />} />
                       
                       {/* Remaining relevant agent routes */}
