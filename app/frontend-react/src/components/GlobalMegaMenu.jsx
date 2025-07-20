@@ -4,11 +4,14 @@
  */
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import { useUser } from '../contexts/UserContext';
+import { LogOut, User } from 'lucide-react';
 
 const GlobalMegaMenu = ({ onAdminToggle }) => {
   const [activeDropdown, setActiveDropdown] = useState(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const location = useLocation();
+  const { user, logout } = useUser();
 
   // Debug console pour forcer recompilation
   console.log('GlobalMegaMenu renderé avec props:', { onAdminToggle });
@@ -100,41 +103,27 @@ const GlobalMegaMenu = ({ onAdminToggle }) => {
                   )}
                 </div>
               ))}
-
-              {/* RE Agents Dropdown */}
-              <div className="relative group">
-                <button
-                  className="px-4 py-2 rounded-lg transition-all duration-200 hover:bg-white hover:bg-opacity-20 flex items-center gap-2"
-                  onMouseEnter={() => setActiveDropdown('agents')}
-                  onMouseLeave={() => setActiveDropdown(null)}
-                >
-                  RE Agents
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
-                </button>
-
-                {/* Dropdown */}
-                {activeDropdown === 'agents' && (
-                  <div
-                    className="absolute top-full left-0 mt-2 w-64 bg-white text-gray-800 rounded-lg shadow-xl z-50"
-                    onMouseEnter={() => setActiveDropdown('agents')}
-                    onMouseLeave={() => setActiveDropdown(null)}
-                  >
-                    <div className="p-2">
-                      {relevantAgents.map(agent => (
-                        <Link
-                          key={agent.id}
-                          to={agent.path}
-                          className="block px-4 py-3 rounded-lg hover:bg-gray-100 transition-colors duration-200"
-                        >
-                          <div className="font-medium text-gray-900">{agent.name}</div>
-                        </Link>
-                      ))}
-                    </div>
+              
+              {/* User Menu */}
+              {user && (
+                <div className="flex items-center space-x-3 ml-6 pl-6 border-l border-white border-opacity-30">
+                  <div className="flex items-center space-x-2">
+                    <User size={16} />
+                    <span className="text-sm font-medium">{user.name}</span>
+                    <span className="text-xs bg-white bg-opacity-20 px-2 py-1 rounded">
+                      {user.role}
+                    </span>
                   </div>
-                )}
-              </div>
+                  <button
+                    onClick={logout}
+                    className="px-3 py-1 rounded-lg transition-all duration-200 hover:bg-white hover:bg-opacity-20 flex items-center space-x-1"
+                    title="Logout"
+                  >
+                    <LogOut size={14} />
+                    <span className="text-sm">Logout</span>
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* Mobile menu button */}
@@ -178,20 +167,6 @@ const GlobalMegaMenu = ({ onAdminToggle }) => {
                   )}
                 </div>
               ))}
-
-              <div className="border-t border-green-500 pt-3 mt-3">
-                <div className="text-sm font-medium text-green-200 mb-2">Real Estate Agents</div>
-                {relevantAgents.map(agent => (
-                  <Link
-                    key={agent.id}
-                    to={agent.path}
-                    className="block px-3 py-2 rounded-lg text-white hover:bg-green-600 transition-colors duration-200"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                  >
-                    {agent.name}
-                  </Link>
-                ))}
-              </div>
             </div>
           </div>
         )}

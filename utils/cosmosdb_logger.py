@@ -1,11 +1,12 @@
 import os
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from azure.cosmos import CosmosClient, PartitionKey, exceptions
 from dotenv import load_dotenv
 from utils.constants import ML_READY_DATA_FILE, TEST_MODE
 import numpy as np
-from datetime import datetime
+import uuid
+import socket
 
 # Configuration des logs Azure (doit être fait avant les imports Azure)
 from utils.configure_logging import configure_azure_logging
@@ -493,3 +494,343 @@ class CosmosDbLogger:
                 "average_r2_score": 0,
                 "latest_experiment": None
             }
+
+    # ==============================
+    # TRAINING JOBS MANAGEMENT
+    # ==============================
+    
+    def create_training_jobs_container(self, container_name: str = "TrainingJobs"):
+        """
+        Créer automatiquement le container TrainingJobs pour suivre les entraînements en cours
+        """
+        try:
+            if COSMOS_SERVERLESS:
+                # Serverless account - no throughput parameter
+                training_jobs_container = self.database.create_container_if_not_exists(
+                    id=container_name,
+                    partition_key=PartitionKey(path="/machine_name")
+                )
+            else:
+                # Provisioned throughput account
+                training_jobs_container = self.database.create_container_if_not_exists(
+                    id=container_name,
+                    partition_key=PartitionKey(path="/machine_name"),
+                    offer_throughput=400
+                )
+            
+            print(f"[✔] Container '{container_name}' créé/vérifié avec succès.")
+            return training_jobs_container
+            
+        except exceptions.CosmosHttpResponseError as e:
+            print(f"[CosmosDB] Erreur lors de la création du container {container_name}: {e}")
+            raise
+
+    def get_machine_name(self):
+        """Récupère le nom de la machine actuelle"""
+        try:
+            return socket.gethostname()
+        except:
+            return "unknown-machine"
+
+    def create_training_job(self, job_config: dict, container_name: str = "TrainingJobs"):
+        """
+        Créer un nouveau training job dans Cosmos DB
+        
+        Args:
+            job_config: Configuration du job (model_type, target_r2, max_trials, etc.)
+            container_name: Nom du container (par défaut "TrainingJobs")
+            
+        Returns:
+            dict: Le job créé avec son ID unique
+        """
+        try:
+            # Créer/obtenir le container TrainingJobs
+            training_jobs_container = self.create_training_jobs_container(container_name)
+            
+            # Générer un ID unique
+            job_id = f"{job_config.get('model_type', 'catboost')}-{uuid.uuid4().hex[:8]}"
+            machine_name = self.get_machine_name()
+            now = datetime.now(timezone.utc).isoformat()
+            
+            # Structure du training job
+            job_data = {
+                "id": job_id,
+                "name": job_config.get("name") or f"{job_config.get('model_type', 'catboost').upper()} Training Session",
+                "status": "queued",
+                "progress": 0.0,
+                "eta_minutes": 20.0,
+                "current_trial": 0,
+                "total_trials": job_config.get("max_trials", 50),
+                "best_r2": 0.0,
+                "target_r2": job_config.get("target_r2", 0.85),
+                "current_gap": 0.0,
+                "compute_target": job_config.get("compute_target", "local"),
+                "machine_name": machine_name,
+                "model_type": job_config.get("model_type", "catboost"),
+                "started_at": now,
+                "hyperparameters": job_config.get("hyperparameters", {}),
+                "created_at": now,
+                "updated_at": now
+            }
+            
+            # Conversion JSON-compatible et sauvegarde
+            clean_job_data = self._convert_np_types(job_data)
+            created_job = training_jobs_container.create_item(clean_job_data)
+            
+            print(f"[✔] Training job créé: {job_id}")
+            return created_job
+            
+        except Exception as e:
+            print(f"[✘] Erreur lors de la création du training job: {e}")
+            raise
+
+    def get_training_jobs(self, status_filter: str = None, container_name: str = "TrainingJobs"):
+        """
+        Récupérer les training jobs avec filtre optionnel par statut
+        
+        Args:
+            status_filter: Filtrer par statut ('running', 'completed', 'failed', etc.)
+            container_name: Nom du container
+            
+        Returns:
+            list: Liste des training jobs
+        """
+        try:
+            # Obtenir le container TrainingJobs
+            training_jobs_container = self.database.get_container_client(container_name)
+            
+            if status_filter:
+                query = """
+                    SELECT * FROM c 
+                    WHERE c.status = @status 
+                    ORDER BY c.created_at DESC
+                """
+                parameters = [{"name": "@status", "value": status_filter}]
+            else:
+                query = "SELECT * FROM c ORDER BY c.created_at DESC"
+                parameters = []
+            
+            items = list(training_jobs_container.query_items(
+                query=query,
+                parameters=parameters,
+                enable_cross_partition_query=True
+            ))
+            
+            print(f"[✔] Récupéré {len(items)} training jobs" + (f" avec statut '{status_filter}'" if status_filter else ""))
+            return items
+            
+        except Exception as e:
+            print(f"[✘] Erreur lors de la récupération des training jobs: {e}")
+            return []
+
+    def get_training_job_by_id(self, job_id: str, container_name: str = "TrainingJobs"):
+        """
+        Récupérer un training job spécifique par son ID
+        
+        Args:
+            job_id: ID du job à récupérer
+            container_name: Nom du container
+            
+        Returns:
+            dict: Le training job ou None si non trouvé
+        """
+        try:
+            # Obtenir le container TrainingJobs
+            training_jobs_container = self.database.get_container_client(container_name)
+            
+            query = "SELECT * FROM c WHERE c.id = @job_id"
+            parameters = [{"name": "@job_id", "value": job_id}]
+            
+            items = list(training_jobs_container.query_items(
+                query=query,
+                parameters=parameters,
+                enable_cross_partition_query=True
+            ))
+            
+            if items:
+                print(f"[✔] Training job trouvé: {job_id}")
+                return items[0]
+            else:
+                print(f"[⚠] Training job non trouvé: {job_id}")
+                return None
+                
+        except Exception as e:
+            print(f"[✘] Erreur lors de la récupération du training job {job_id}: {e}")
+            return None
+
+    def update_training_job(self, job_id: str, updates: dict, container_name: str = "TrainingJobs"):
+        """
+        Mettre à jour un training job existant
+        
+        Args:
+            job_id: ID du job à mettre à jour
+            updates: Dictionnaire des champs à mettre à jour
+            container_name: Nom du container
+            
+        Returns:
+            dict: Le job mis à jour ou None si erreur
+        """
+        try:
+            # Récupérer le job existant
+            job = self.get_training_job_by_id(job_id, container_name)
+            if not job:
+                return None
+            
+            # Appliquer les mises à jour
+            for key, value in updates.items():
+                job[key] = value
+            
+            job['updated_at'] = datetime.now(timezone.utc).isoformat()
+            
+            # Marquer comme terminé si progression = 100%
+            if job.get('progress', 0) >= 100 and job.get('status') == 'running':
+                job['status'] = 'completed'
+                job['completed_at'] = datetime.now(timezone.utc).isoformat()
+                if 'current_gap' in job:
+                    job['final_gap'] = job['current_gap']
+            
+            # Obtenir le container et sauvegarder
+            training_jobs_container = self.database.get_container_client(container_name)
+            clean_job = self._convert_np_types(job)
+            updated_job = training_jobs_container.replace_item(item=job['id'], body=clean_job)
+            
+            print(f"[✔] Training job mis à jour: {job_id}")
+            return updated_job
+            
+        except Exception as e:
+            print(f"[✘] Erreur lors de la mise à jour du training job {job_id}: {e}")
+            return None
+
+    def stop_training_job(self, job_id: str, container_name: str = "TrainingJobs"):
+        """
+        Arrêter un training job en cours
+        
+        Args:
+            job_id: ID du job à arrêter
+            container_name: Nom du container
+            
+        Returns:
+            bool: True si succès, False sinon
+        """
+        try:
+            # Récupérer le job
+            job = self.get_training_job_by_id(job_id, container_name)
+            if not job:
+                print(f"[⚠] Training job non trouvé: {job_id}")
+                return False
+            
+            # Vérifier si le job peut être arrêté
+            if job.get('status') not in ['running', 'queued']:
+                print(f"[⚠] Impossible d'arrêter un job avec le statut: {job.get('status')}")
+                return False
+            
+            # Marquer comme arrêté
+            updates = {
+                'status': 'stopped',
+                'completed_at': datetime.now(timezone.utc).isoformat()
+            }
+            
+            result = self.update_training_job(job_id, updates, container_name)
+            if result:
+                print(f"[✔] Training job arrêté: {job_id}")
+                return True
+            else:
+                return False
+                
+        except Exception as e:
+            print(f"[✘] Erreur lors de l'arrêt du training job {job_id}: {e}")
+            return False
+
+    def get_training_jobs_statistics(self, container_name: str = "TrainingJobs"):
+        """
+        Récupérer les statistiques des training jobs
+        
+        Args:
+            container_name: Nom du container
+            
+        Returns:
+            dict: Statistiques (total, actifs, terminés, etc.)
+        """
+        try:
+            all_jobs = self.get_training_jobs(container_name=container_name)
+            
+            stats = {
+                "total_jobs": len(all_jobs),
+                "active_jobs": len([j for j in all_jobs if j.get('status') in ['running', 'queued']]),
+                "completed_jobs": len([j for j in all_jobs if j.get('status') == 'completed']),
+                "failed_jobs": len([j for j in all_jobs if j.get('status') == 'failed']),
+                "stopped_jobs": len([j for j in all_jobs if j.get('status') == 'stopped']),
+                "machines": list(set([j.get('machine_name', 'unknown') for j in all_jobs])),
+                "model_types": list(set([j.get('model_type', 'unknown') for j in all_jobs])),
+                "compute_targets": list(set([j.get('compute_target', 'unknown') for j in all_jobs]))
+            }
+            
+            print(f"[✔] Statistiques des training jobs générées: {stats['total_jobs']} jobs total")
+            return stats
+            
+        except Exception as e:
+            print(f"[✘] Erreur lors du calcul des statistiques: {e}")
+            return {
+                "total_jobs": 0,
+                "active_jobs": 0,
+                "completed_jobs": 0,
+                "failed_jobs": 0,
+                "stopped_jobs": 0,
+                "machines": [],
+                "model_types": [],
+                "compute_targets": []
+            }
+
+    def cleanup_old_training_jobs(self, days_old: int = 7, container_name: str = "TrainingJobs"):
+        """
+        Nettoyer les anciens training jobs terminés (plus de X jours)
+        
+        Args:
+            days_old: Nombre de jours après lesquels supprimer les jobs terminés
+            container_name: Nom du container
+            
+        Returns:
+            int: Nombre de jobs supprimés
+        """
+        try:
+            from datetime import timedelta
+            
+            # Date limite
+            cutoff_date = datetime.now(timezone.utc) - timedelta(days=days_old)
+            cutoff_iso = cutoff_date.isoformat()
+            
+            # Obtenir le container
+            training_jobs_container = self.database.get_container_client(container_name)
+            
+            # Trouver les anciens jobs terminés
+            query = """
+                SELECT * FROM c 
+                WHERE c.status IN ('completed', 'failed', 'stopped') 
+                AND c.completed_at < @cutoff_date
+            """
+            parameters = [{"name": "@cutoff_date", "value": cutoff_iso}]
+            
+            old_jobs = list(training_jobs_container.query_items(
+                query=query,
+                parameters=parameters,
+                enable_cross_partition_query=True
+            ))
+            
+            # Supprimer les anciens jobs
+            deleted_count = 0
+            for job in old_jobs:
+                try:
+                    training_jobs_container.delete_item(
+                        item=job['id'], 
+                        partition_key=job['machine_name']
+                    )
+                    deleted_count += 1
+                except Exception as e:
+                    print(f"[⚠] Erreur lors de la suppression du job {job['id']}: {e}")
+            
+            print(f"[✔] Nettoyage terminé: {deleted_count} anciens training jobs supprimés")
+            return deleted_count
+            
+        except Exception as e:
+            print(f"[✘] Erreur lors du nettoyage des training jobs: {e}")
+            return 0

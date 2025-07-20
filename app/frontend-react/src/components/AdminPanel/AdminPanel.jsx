@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import "./AdminPanel.css";
+import UserProfilesAdmin from './UserProfilesAdmin';
 import { 
   X, 
   Settings, 
@@ -12,7 +13,8 @@ import {
   RotateCcw,
   Copy,
   Download,
-  Trash2
+  Trash2,
+  Users
 } from 'lucide-react';
 
 const AdminPanel = ({ isExpanded, onToggle, onClose }) => {
@@ -40,6 +42,7 @@ const AdminPanel = ({ isExpanded, onToggle, onClose }) => {
     { id: 'models', label: 'Models', icon: BarChart },
     { id: 'training', label: 'Training', icon: Activity },
     { id: 'documents', label: 'Documents', icon: FileText },
+    { id: 'users', label: 'User Profiles', icon: Users },
     { id: 'monitoring', label: 'Monitor', icon: Settings }
   ];
 
@@ -378,6 +381,8 @@ const AdminPanel = ({ isExpanded, onToggle, onClose }) => {
         return <div className="tab-content">Documents Panel</div>;
       case 'monitoring':
         return <div className="tab-content">Real-time Monitoring Panel</div>;
+      case 'users':
+        return <UserProfilesAdmin />;
       default:
         return <div className="tab-content">Select a tab</div>;
     }

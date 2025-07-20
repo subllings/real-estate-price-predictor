@@ -1,9 +1,12 @@
 #!/bin/bash
 
 # This script assumes it was already made executable with: chmod +x scripts/run_loop_tuner_agent.sh
-# Run with: ./scripts/run_loop_tuner_agent.sh <model_name> [--no-time-limit | --stop-hour <H> --stop-minute <M>]
+# Run with: ./scripts/run_loop_tuner_agent.sh <model_name> [--no-time-limit | --stop-hour <H> --stop-minute <M> | --duration-hours <H> | --end-time <HH:MM>]
 # Run with: ./scripts/run_loop_tuner_agent.sh catboost --no-time-limit
-# Run with: ./scripts/run_loop_tuner_agent.sh xgboost --no-time-limit
+# Run with: ./scripts/run_loop_tuner_agent.sh xgboost --duration-hours 2.5
+# Run with: ./scripts/run_loop_tuner_agent.sh lightgbm --end-time 07:00
+# Run with: ./scripts/run_loop_tuner_agent.sh random_forest --max-trials 100
+# Run with: ./scripts/run_loop_tuner_agent.sh stack_ensemble --stop-hour 6 --stop-minute 30
 
 clear
 set -e

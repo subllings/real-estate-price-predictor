@@ -1,11 +1,17 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, BackgroundTasks
 from pydantic import BaseModel
 import joblib
 import pandas as pd
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 import logging
+import asyncio
+import uuid
+import os
+import time
+import socket
+from datetime import datetime, timezone
 
 from services.model_manager import model_registry
 
@@ -639,3 +645,257 @@ async def get_experiment_detail(experiment_id: str):
     except Exception as e:
         logger.exception(f"Failed to fetch experiment {experiment_id}")
         raise HTTPException(status_code=500, detail=f"Failed to fetch experiment: {str(e)}")
+
+
+# ==============================
+# TRAINING JOBS ENDPOINTS
+# ==============================
+
+# Modèles Pydantic pour les training jobs
+class TrainingJobCreate(BaseModel):
+    name: Optional[str] = None
+    model_type: str = "catboost"
+    target_r2: float = 0.85
+    max_trials: int = 50
+    compute_target: str = "local"
+    hyperparameters: Optional[Dict[str, Any]] = None
+
+class TrainingJobUpdate(BaseModel):
+    status: Optional[str] = None
+    progress: Optional[float] = None
+    eta_minutes: Optional[float] = None
+    current_trial: Optional[int] = None
+    best_r2: Optional[float] = None
+    current_gap: Optional[float] = None
+
+@app.get("/training-jobs")
+async def get_training_jobs_endpoint():
+    """Récupère tous les training jobs"""
+    try:
+        from utils.cosmosdb_logger import CosmosDbLogger
+        cosmos_logger = CosmosDbLogger()
+        
+        # Récupérer tous les jobs et les statistiques
+        jobs = cosmos_logger.get_training_jobs()
+        stats = cosmos_logger.get_training_jobs_statistics()
+        
+        return {
+            "training_jobs": jobs,
+            "count": len(jobs),
+            "active_count": stats["active_jobs"],
+            "completed_count": stats["completed_jobs"],
+            "statistics": stats
+        }
+        
+    except Exception as e:
+        logger.error(f"Erreur lors de la récupération des training jobs: {e}")
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Erreur lors de la récupération: {str(e)}"
+        )
+
+@app.get("/training-jobs/{job_id}")
+async def get_training_job_endpoint(job_id: str):
+    """Récupère un training job spécifique"""
+    try:
+        from utils.cosmosdb_logger import CosmosDbLogger
+        cosmos_logger = CosmosDbLogger()
+        
+        job = cosmos_logger.get_training_job_by_id(job_id)
+        
+        if not job:
+            raise HTTPException(status_code=404, detail="Training job non trouvé")
+        
+        return job
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Erreur lors de la récupération du job {job_id}: {e}")
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Erreur lors de la récupération: {str(e)}"
+        )
+
+@app.post("/training-jobs/start")
+async def start_training_job_endpoint(job_request: TrainingJobCreate, background_tasks: BackgroundTasks):
+    """Démarre un nouveau training job"""
+    try:
+        from utils.cosmosdb_logger import CosmosDbLogger
+        cosmos_logger = CosmosDbLogger()
+        
+        # Convertir la requête en configuration
+        job_config = {
+            "name": job_request.name,
+            "model_type": job_request.model_type,
+            "target_r2": job_request.target_r2,
+            "max_trials": job_request.max_trials,
+            "compute_target": job_request.compute_target,
+            "hyperparameters": job_request.hyperparameters or {}
+        }
+        
+        # Créer le job dans Cosmos DB
+        created_job = cosmos_logger.create_training_job(job_config)
+        
+        # Démarrer la simulation en arrière-plan
+        background_tasks.add_task(simulate_training_progress, created_job['id'])
+        
+        return {
+            "success": True,
+            "job": created_job,
+            "message": f"Training job {created_job['id']} démarré avec succès"
+        }
+        
+    except Exception as e:
+        logger.error(f"Erreur lors du démarrage du training job: {e}")
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Erreur lors du démarrage: {str(e)}"
+        )
+
+@app.post("/training-jobs/{job_id}/stop")
+async def stop_training_job_endpoint(job_id: str):
+    """Arrête un training job"""
+    try:
+        from utils.cosmosdb_logger import CosmosDbLogger
+        cosmos_logger = CosmosDbLogger()
+        
+        success = cosmos_logger.stop_training_job(job_id)
+        
+        if success:
+            return {
+                "success": True,
+                "message": f"Training job {job_id} arrêté avec succès"
+            }
+        else:
+            raise HTTPException(
+                status_code=400, 
+                detail="Impossible d'arrêter le training job"
+            )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Erreur lors de l'arrêt du job {job_id}: {e}")
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Erreur lors de l'arrêt: {str(e)}"
+        )
+
+@app.put("/training-jobs/{job_id}")
+async def update_training_job_endpoint(job_id: str, update_data: TrainingJobUpdate):
+    """Met à jour un training job"""
+    try:
+        from utils.cosmosdb_logger import CosmosDbLogger
+        cosmos_logger = CosmosDbLogger()
+        
+        # Convertir les mises à jour en dictionnaire
+        updates = update_data.dict(exclude_none=True)
+        
+        updated_job = cosmos_logger.update_training_job(job_id, updates)
+        
+        if updated_job:
+            return {
+                "success": True,
+                "job": updated_job,
+                "message": f"Training job {job_id} mis à jour avec succès"
+            }
+        else:
+            raise HTTPException(status_code=404, detail="Training job non trouvé")
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Erreur lors de la mise à jour du job {job_id}: {e}")
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Erreur lors de la mise à jour: {str(e)}"
+        )
+
+@app.get("/training-jobs/health")
+async def training_jobs_health_endpoint():
+    """Vérifie la santé des training jobs"""
+    try:
+        from utils.cosmosdb_logger import CosmosDbLogger
+        cosmos_logger = CosmosDbLogger()
+        
+        # Test de connexion en récupérant les statistiques
+        stats = cosmos_logger.get_training_jobs_statistics()
+        
+        return {
+            "status": "healthy",
+            "message": "Training Jobs API opérationnelle",
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "statistics": stats
+        }
+    except Exception as e:
+        logger.error(f"Erreur health check training jobs: {e}")
+        raise HTTPException(
+            status_code=503,
+            detail=f"Service indisponible: {str(e)}"
+        )
+
+# Fonction de simulation pour la demo
+async def simulate_training_progress(job_id: str):
+    """Simule la progression d'un training job pour la demo"""
+    import random
+    
+    try:
+        from utils.cosmosdb_logger import CosmosDbLogger
+        cosmos_logger = CosmosDbLogger()
+        
+        # Attendre un peu puis commencer
+        await asyncio.sleep(2)
+        
+        # Récupérer le job
+        job = cosmos_logger.get_training_job_by_id(job_id)
+        if not job:
+            return
+        
+        # Démarrer l'entraînement
+        cosmos_logger.update_training_job(job_id, {"status": "running"})
+        
+        # Simuler la progression
+        for trial in range(1, job['total_trials'] + 1):
+            # Vérifier si le job n'a pas été arrêté
+            current_job = cosmos_logger.get_training_job_by_id(job_id)
+            if not current_job or current_job.get('status') != 'running':
+                break
+                
+            # Progression aléatoire
+            progress = (trial / job['total_trials']) * 100
+            eta = max(0, (job['total_trials'] - trial) * 0.5)  # 30 sec par trial
+            r2_improvement = random.uniform(0.001, 0.01)
+            gap_change = random.uniform(-0.002, 0.005)
+            
+            # Préparer les mises à jour
+            updates = {
+                'progress': progress,
+                'current_trial': trial,
+                'eta_minutes': eta,
+                'best_r2': min(0.9, current_job.get('best_r2', 0.8) + r2_improvement),
+                'current_gap': max(0.01, min(0.08, current_job.get('current_gap', 0.05) + gap_change))
+            }
+            
+            # Mettre à jour le job
+            cosmos_logger.update_training_job(job_id, updates)
+            
+            # Attendre avant la prochaine itération
+            await asyncio.sleep(3)  # 3 secondes par trial pour la demo
+        
+        logger.info(f"Simulation de training terminée pour {job_id}")
+        
+    except Exception as e:
+        logger.error(f"Erreur dans la simulation du training {job_id}: {e}")
+
+if __name__ == "__main__":
+    import uvicorn
+    
+    # Debug mode pour le développement
+    uvicorn.run(
+        "main:app", 
+        host="0.0.0.0", 
+        port=8002,
+        reload=True,
+        log_level="debug"
+    )

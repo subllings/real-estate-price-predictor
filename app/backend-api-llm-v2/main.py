@@ -200,6 +200,40 @@ def chat(request: ChatRequest):
     )
     return {"response": response_text}
 
+@app.post("/esg_agent", response_model=ChatResponse, tags=["ESG"])
+def esg_agent_chat(request: ChatRequest):
+    """
+    ESG-focused chat endpoint for the ESG Real Estate Advisor interface.
+    Provides specialized responses for ESG compliance, energy performance, and sustainability.
+    """
+    if not request.messages:
+        raise HTTPException(status_code=400, detail="Missing messages field")
+
+    # Add ESG-specific system context to the conversation
+    messages = [msg.dict() for msg in request.messages]
+    
+    # If there's no system message, add one for ESG context
+    if not messages or messages[0]["role"] != "system":
+        esg_system_message = {
+            "role": "system",
+            "content": """You are an ESG Real Estate Advisor specializing in sustainable Belgian real estate. 
+            You provide expert guidance on:
+            - Energy Performance Certificates (EPC) and regulations
+            - Belgian grants and subsidies for renovations
+            - 2030-2035 compliance planning and execution
+            - Sustainable investment strategies
+            - Property value enhancement through ESG improvements
+            - Regional grant availability in specific Belgian regions
+            
+            Always provide practical, actionable advice with specific focus on Belgian regulations, 
+            EPC improvements, and financial incentives. Use European formatting for amounts (space as thousand separator, € after amount).
+            Be concise but comprehensive in your responses."""
+        }
+        messages.insert(0, esg_system_message)
+    
+    response_text = call_azure_openai_chat(messages=messages)
+    return {"response": response_text}
+
 @app.post("/comment")
 def generate_comments(request: CommentRequest):
     form = request.formData

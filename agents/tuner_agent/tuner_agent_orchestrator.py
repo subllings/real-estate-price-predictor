@@ -20,12 +20,20 @@ from utils.model_saver import ModelSaver
 import optuna
 
 class TunerAgentOrchestrator:
-    def __init__(self, model_name: str):
+    def __init__(self, model_name: str, n_trials: int = None):
         self.model_name = model_name.lower()
         self.logger = CosmosDbLogger()
 
+        # Handle new model naming (remove "+ Optuna" suffix if present)
+        if " + optuna" in self.model_name:
+            self.model_name = self.model_name.replace(" + optuna", "")
+        
+        # Map stack_ensemble to actual implementation
+        if self.model_name == "stack_ensemble":
+            self.model_name = "catboost"  # Default to catboost for now, could be extended
+
         # Default settings – override if needed
-        self.n_trials = 1 if TEST_MODE else 50
+        self.n_trials = n_trials if n_trials is not None else (1 if TEST_MODE else 50)
         self.n_splits = 5  # 5-fold cross-validation sur les données d'entraînement
         self.early_stopping_rounds = 20
         self.use_gpu = True
@@ -50,6 +58,7 @@ class TunerAgentOrchestrator:
         print("[✔] Parameter space loaded.")
 
         # Step 3 – Initialize the tuner based on the model type
+        print(f"[STEP] Initializing tuner for {self.model_name}...")
         if self.model_name == "catboost":
             tuner = CatBoostTuner(
                 X=X, 
@@ -73,8 +82,48 @@ class TunerAgentOrchestrator:
                 random_state=self.random_state,
                 feature_selection_method="all_features"  # Peut être configuré dynamiquement
             )
+        elif self.model_name == "lightgbm":
+            # For now, use XGBoost tuner as a fallback (similar gradient boosting)
+            print("[INFO] LightGBM tuner not implemented yet, using XGBoost tuner as fallback")
+            tuner = XGBoostTuner(
+                X=X, 
+                y=y, 
+                n_trials=self.n_trials, 
+                n_splits=self.n_splits, 
+                early_stopping_rounds=self.early_stopping_rounds,
+                use_gpu=self.use_gpu,
+                optuna_params=search_space, 
+                random_state=self.random_state,
+                feature_selection_method="all_features"
+            )
+        elif self.model_name == "random_forest":
+            # For now, use CatBoost tuner as a fallback 
+            print("[INFO] Random Forest tuner not implemented yet, using CatBoost tuner as fallback")
+            tuner = CatBoostTuner(
+                X=X, 
+                y=y, 
+                n_trials=self.n_trials, 
+                n_splits=self.n_splits, 
+                early_stopping_rounds=self.early_stopping_rounds,
+                optuna_params=search_space, 
+                random_state=self.random_state,
+                use_gpu=self.use_gpu
+            )
+        elif self.model_name == "stack_ensemble":
+            # Use CatBoost as the base for stacked ensemble
+            print("[INFO] Using CatBoost as base for stacked ensemble")
+            tuner = CatBoostTuner(
+                X=X, 
+                y=y, 
+                n_trials=self.n_trials, 
+                n_splits=self.n_splits, 
+                early_stopping_rounds=self.early_stopping_rounds,
+                optuna_params=search_space, 
+                random_state=self.random_state,
+                use_gpu=self.use_gpu
+            )
         else:
-            raise ValueError(f"Unsupported model: {self.model_name}")
+            raise ValueError(f"Unsupported model: {self.model_name}. Supported models: catboost, xgboost, lightgbm, random_forest, stack_ensemble")
 
         # Step 4 – Run optimization
         print("[STEP] Starting optimization...")
