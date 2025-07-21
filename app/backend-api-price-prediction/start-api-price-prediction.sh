@@ -4,27 +4,27 @@
 # chmod +x start-api-price-prediction.sh
 # ./start-api-price-prediction.sh
 
-ENV_NAME="real-estate-price-api"
+echo "🤖 Starting Price Prediction API (using base environment)..."
 
-echo "🤖 Starting Price Prediction API..."
-
-# Initialize conda for bash
-eval "$(conda shell.bash hook)"
-
-# Check if environment exists
-if ! conda env list | grep -q "${ENV_NAME}"; then
-    echo "❌ Conda environment '${ENV_NAME}' not found. Run ./setup-conda-env-api-price-prediction.sh first"
+echo "🔍 Testing dependencies..."
+python -c "import fastapi, uvicorn; print('✅ FastAPI OK')" || {
+    echo "❌ FastAPI not installed. Run ./setup-conda-env-api-price-prediction.sh first"
     exit 1
-fi
-
-# Activate environment
-conda activate "${ENV_NAME}"
+}
 
 echo "🔍 Testing ML dependencies..."
-python -c "import pandas, numpy, sklearn; print('✅ Basic ML OK')" || {
-    echo "❌ Basic ML dependencies missing"
-    echo "💡 Please run ./setup-conda-env-api-price-prediction.sh again"
+python -c "import pandas, sklearn, catboost; print('✅ ML OK')" || {
+    echo "❌ ML dependencies missing. Run ./setup-conda-env-api-price-prediction.sh first"
     exit 1
+}
+
+echo "🌟 Starting server at http://127.0.0.1:8000"
+echo "📖 Documentation: http://127.0.0.1:8000/docs"
+echo "❤️  Health check: http://127.0.0.1:8000/health"
+echo ""
+echo "Press Ctrl+C to stop..."
+
+python -m uvicorn main:app --host 127.0.0.1 --port 8000 --reload
 }
 
 echo "🔍 Testing boosting libraries..."
