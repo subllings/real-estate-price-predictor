@@ -34,7 +34,11 @@ wheels/
 
 # === Environment files (optional) ===
 .env
-*.env
+.env.local
+.env.backup
+*.env.backup
+app/*/.env
+app/backend-api-*/.env
 
 # === IDE specific files ===
 .vscode/
@@ -95,10 +99,9 @@ catboost_info/
 logs/
 *.log
 
-// App frontend
+# App frontend
 app/frontend-react/node_modules/
 
-.env.backup
-*.backup
-.env.backup
-*.backup
+# Azure secrets
+*.key
+azure.json
