@@ -1,6 +1,6 @@
-# === Conda environments ===
-conda-env/
-**/conda-env/
+# === NO MORE LOCAL CONDA ENVIRONMENTS ===
+# conda-env/ (removed - we use global conda envs now)
+# **/conda-env/ (removed)
 
 # === Old virtual environments (to be removed) ===
 .venv/

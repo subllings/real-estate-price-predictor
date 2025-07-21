@@ -1,0 +1,31 @@
+{
+  "build": "hf9c7e24_0",
+  "build_number": 0,
+  "channel": "https://conda.anaconda.org/conda-forge/win-64",
+  "constrains": [],
+  "depends": [
+    "faiss 1.9.0 *_cpu"
+  ],
+  "extracted_package_dir": "C:\\Users\\Neo\\.conda\\pkgs\\faiss-cpu-1.9.0-hf9c7e24_0",
+  "files": [],
+  "fn": "faiss-cpu-1.9.0-hf9c7e24_0.conda",
+  "license": "MIT",
+  "link": {
+    "source": "C:\\Users\\Neo\\.conda\\pkgs\\faiss-cpu-1.9.0-hf9c7e24_0",
+    "type": 1
+  },
+  "md5": "c856f7e75ea4629e65dd9549855305e1",
+  "name": "faiss-cpu",
+  "package_tarball_full_path": "C:\\Users\\Neo\\.conda\\pkgs\\faiss-cpu-1.9.0-hf9c7e24_0.conda",
+  "paths_data": {
+    "paths": [],
+    "paths_version": 1
+  },
+  "requested_spec": "faiss-cpu",
+  "sha256": "37413a18b73848fb498e4cb712ecf8037c933e4090135ffbafff7e0904ae0928",
+  "size": 18702,
+  "subdir": "win-64",
+  "timestamp": 1734666949000,
+  "url": "https://conda.anaconda.org/conda-forge/win-64/faiss-cpu-1.9.0-hf9c7e24_0.conda",
+  "version": "1.9.0"
+}
