@@ -32,13 +32,16 @@ wheels/
 .ipynb_checkpoints/
 *.ipynb_checkpoints
 
-# === Environment files (optional) ===
+# === Environment files (STRICT PROTECTION) ===
 .env
-.env.local
-.env.backup
+.env.*
+!.env.template
+!.env.example
 *.env.backup
 app/*/.env
+app/*/.env.*
 app/backend-api-*/.env
+app/backend-api-*/.env.*
 
 # === IDE specific files ===
 .vscode/
@@ -105,3 +108,7 @@ app/frontend-react/node_modules/
 # Azure secrets
 *.key
 azure.json
+**/secrets/
+**/*secret*
+**/*credential*
+AZURE_*
