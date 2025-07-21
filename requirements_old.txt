@@ -38,7 +38,7 @@ shap==0.45.1
 # -------------------------------
 # API backend
 # -------------------------------
-fastapi==0.110.0
+fastapi==0.110.0          # Compatible with Pydantic v2
 pydantic==2.7.1
 uvicorn[standard]==0.29.0
 
@@ -72,6 +72,8 @@ pytest-cov==5.0.0
 # Azure SDK
 # -------------------------------
 azureml-core==1.55.0
+# azureml-mlflow==1.55.0
+# azure-ai-ml==1.17.0
 azure-identity==1.16.0
 azure-storage-blob>=12.19.0
 azure-cosmos==4.6.0
@@ -79,17 +81,17 @@ azure-cosmos==4.6.0
 # -------------------------------
 # Database & tracking
 # -------------------------------
-psycopg2-binary>=2.9.7
-pymongo>=4.6,<5.0
+psycopg2-binary>=2.9.7        # PostgreSQL for Optuna backend
+pymongo>=4.6,<5.0             # Cosmos DB
 motor>=3.4
 python-dotenv>=1.0.0
 
 # -------------------------------
 # Document processing
 # -------------------------------
-PyMuPDF==1.24.1
-python-docx==1.1.0
-python-multipart==0.0.9
+PyMuPDF==1.24.1               # PDF support
+python-docx==1.1.0            # DOCX support
+python-multipart==0.0.9       # Upload support
 
 # -------------------------------
 # LangChain Modular (post-0.1.x)
