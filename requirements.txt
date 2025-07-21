@@ -84,3 +84,6 @@ python-multipart==0.0.9
 langchain==0.1.14
 langchain-community==0.0.21
 langchain-openai==0.0.7
+
+tiktoken>=0.6.0,<0.7.0
+

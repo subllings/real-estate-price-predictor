@@ -16,38 +16,115 @@ const DocumentUploadPage = () => {
     vectorIndexSize: 0
   });
 
-  // API Base URL for LLM backend
-  const API_BASE_URL = 'http://127.0.0.1:8010';
+  // API Base URL for LLM backend - try multiple endpoints
+  const API_ENDPOINTS = [
+    'http://127.0.0.1:8010',
+    'http://localhost:8010'
+  ];
+  
+  const [currentApiUrl, setCurrentApiUrl] = useState(API_ENDPOINTS[0]);
+
+  const [apiStatus, setApiStatus] = useState('checking'); // 'checking', 'online', 'offline'
 
   // Load documents and stats on component mount
   useEffect(() => {
-    loadDocuments();
-    loadStats();
+    const initializeApi = async () => {
+      setApiStatus('checking');
+      const workingEndpoint = await testApiConnectivity();
+      if (workingEndpoint) {
+        setApiStatus('online');
+        loadDocuments();
+        loadStats();
+      } else {
+        setApiStatus('offline');
+      }
+    };
+    
+    initializeApi();
   }, []);
+
+  // Test API connectivity and find working endpoint
+  const testApiConnectivity = async () => {
+    for (const endpoint of API_ENDPOINTS) {
+      try {
+        const response = await fetch(`${endpoint}/health`, { 
+          method: 'GET',
+          timeout: 3000 
+        });
+        if (response.ok) {
+          setCurrentApiUrl(endpoint);
+          return endpoint;
+        }
+      } catch (error) {
+        continue;
+      }
+    }
+    return null;
+  };
 
   // Load documents from backend
   const loadDocuments = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/documents`);
+      const workingEndpoint = await testApiConnectivity();
+      if (!workingEndpoint) {
+        setUploadStatus('Backend API is not available. Please start the LLM backend service.');
+        return;
+      }
+      
+      const response = await fetch(`${workingEndpoint}/documents`);
       if (response.ok) {
         const data = await response.json();
         setDocuments(data.documents || []);
       }
     } catch (error) {
       console.error('Error loading documents:', error);
+      setUploadStatus('Error connecting to backend service.');
     }
   };
 
   // Load statistics from backend
   const loadStats = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/stats`);
+      if (!currentApiUrl) return;
+      
+      const response = await fetch(`${currentApiUrl}/stats`);
       if (response.ok) {
         const data = await response.json();
         setStats(data);
       }
     } catch (error) {
       console.error('Error loading stats:', error);
+    }
+  };
+
+  // Handle drag and drop
+  const [isDragging, setIsDragging] = useState(false);
+
+  const handleDragEnter = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  };
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+    
+    const files = e.dataTransfer.files;
+    if (files && files.length > 0) {
+      handleFileSelection(files);
     }
   };
 
@@ -78,12 +155,23 @@ const DocumentUploadPage = () => {
     if (selectedFiles.length === 0) return;
 
     setIsUploading(true);
+    setUploadStatus('Testing API connectivity...');
+
+    // Test API connectivity first
+    const workingEndpoint = await testApiConnectivity();
+    if (!workingEndpoint) {
+      setUploadStatus('Error: Backend API is not available. Please start the LLM backend service on port 8010 or 8000.');
+      setIsUploading(false);
+      return;
+    }
+
     setUploadStatus('Processing documents...');
 
     console.log('Upload Configuration:', {
       vector_store: vectorStore,
       with_rag: ragEnabled,
-      files: selectedFiles.length
+      files: selectedFiles.length,
+      endpoint: workingEndpoint
     });
 
     try {
@@ -93,7 +181,7 @@ const DocumentUploadPage = () => {
         formData.append('vector_store', vectorStore);
         formData.append('with_rag', ragEnabled.toString());
 
-        const response = await fetch(`${API_BASE_URL}/upload`, {
+        const response = await fetch(`${workingEndpoint}/upload_document`, {
           method: 'POST',
           body: formData,
         });
@@ -105,11 +193,20 @@ const DocumentUploadPage = () => {
             prev.map(f => f.id === fileItem.id ? {...f, status: 'completed'} : f)
           );
         } else {
-          const error = await response.json();
+          const errorText = await response.text();
+          let errorMessage = 'Upload failed';
+          
+          try {
+            const errorJson = JSON.parse(errorText);
+            errorMessage = errorJson.detail || errorJson.message || errorMessage;
+          } catch {
+            errorMessage = errorText || errorMessage;
+          }
+          
           setSelectedFiles(prev => 
             prev.map(f => f.id === fileItem.id ? {...f, status: 'error'} : f)
           );
-          throw new Error(error.detail || 'Upload failed');
+          throw new Error(`${response.status}: ${errorMessage}`);
         }
       }
 
@@ -155,6 +252,14 @@ const DocumentUploadPage = () => {
         <p className="page-subtitle">
           Upload your ESG, legal and energy documents for intelligent analysis
         </p>
+        
+        {/* API Status Indicator */}
+        <div className={`api-status ${apiStatus}`}>
+          <span className="status-dot"></span>
+          {apiStatus === 'checking' && 'Checking API connection...'}
+          {apiStatus === 'online' && `Backend API connected (${currentApiUrl})`}
+          {apiStatus === 'offline' && 'Backend API unavailable - Please start the LLM service'}
+        </div>
       </div>
 
       {/* Tab Navigation */}
@@ -229,7 +334,13 @@ const DocumentUploadPage = () => {
               <div className="upload-section">
                 <h3>Upload Documents</h3>
                 
-                <div className="file-input-area">
+                <div 
+                  className={`file-input-area ${isDragging ? 'dragging' : ''}`}
+                  onDragEnter={handleDragEnter}
+                  onDragLeave={handleDragLeave}
+                  onDragOver={handleDragOver}
+                  onDrop={handleDrop}
+                >
                   <input
                     type="file"
                     multiple
@@ -239,7 +350,7 @@ const DocumentUploadPage = () => {
                     id="file-input"
                   />
                   <label htmlFor="file-input" className="file-input-label">
-                    Choose Files
+                    {isDragging ? 'Drop files here' : 'Choose Files or Drag & Drop'}
                   </label>
                   <p className="supported-formats">
                     Supported formats: PDF, DOCX, TXT

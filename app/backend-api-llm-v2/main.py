@@ -391,6 +391,26 @@ def update_faiss_index(documents: List[Document]):
 def root():
     return {"message": "API LLM V2 is running..."}
 
+@app.get("/health", tags=["Health"])
+def health_check():
+    """
+    Health check endpoint for API connectivity verification.
+    Used by frontend to test if the LLM backend service is available.
+    """
+    return {
+        "status": "healthy",
+        "service": "LLM Backend API v2",
+        "timestamp": datetime.now().isoformat(),
+        "port": 8010,
+        "endpoints": {
+            "chat": "/chat",
+            "esg_agent": "/esg_agent", 
+            "esg_analysis": "/esg_analysis",
+            "documents": "/documents",
+            "upload_document": "/upload_document"
+        }
+    }
+
 @app.post("/chat", response_model=ChatResponse, tags=["Chat"])
 def chat(request: ChatRequest):
     if not request.messages:
@@ -494,7 +514,7 @@ def suggest_param_space(request: SuggestionRequest):
         prompt = f"""
         You are an expert in hyperparameter tuning using Optuna for CatBoost regression models.
 
-        You are optimizing a CatBoostRegressor for real estate price prediction. The model uses CPU processing for stability and we want to reduce overfitting while maintaining good performance.
+        You are optimizing a CatBoostRegressor for real estate price prediction. The model uses CPU processing for stability and we want to maximize the Smart Model Ranking Score, by reducing overfitting, improving generalization, and achieving production-readiness (R² Test ≥ 0.85).
 
         Here are previous trials for the model '{model_name}':
 
@@ -521,12 +541,32 @@ def suggest_param_space(request: SuggestionRequest):
         - od_wait (suggest_int: 10-50)
         - task_type (fixed_value: "CPU")
 
+        SMART RANKING SYSTEM OVERVIEW:
+        The model score is computed as follows:
+        Ranking Score = R² Test - (R² Gap × 2) + (Generalization Index / 100 × 0.2) - Overfitting Penalty + Production Bonus
+
+        Where:
+        - R² Gap = R² Train - R² Test
+        - Generalization Index = 100 - (R² Gap × 1000)
+        - Overfitting Penalty: from 0.0 to 0.07 depending on overfitting risk
+        - Production Bonus: up to +0.18 based on:
+            - R² Test ≥ 0.85 → +0.1
+            - Gen Index ≥ 90 → +0.05
+            - Low/Moderate Risk → +0.03
+
+        Optimize hyperparameters to reduce R² Gap and RMSE/MAE discrepancy between train and test. Penalize any configuration with strong overfitting (R² Gap > 0.12).
+
+
+        
         IMPORTANT RULES:
         1. Use "method" field to specify suggest_loguniform, suggest_uniform, suggest_int, suggest_categorical, or fixed_value
         2. Include "low" and "high" for numeric parameters
         3. Include "choices" for categorical parameters  
         4. Include "value" for fixed_value parameters
         5. Focus on anti-overfitting: lower learning rates, higher regularization, reasonable depth
+        6. Avoid high R² Train with much lower R² Test → strong overfitting will be penalized heavily (R² Gap > 0.12).
+        
+
 
         OUTPUT FORMAT:
         {{
@@ -540,11 +580,12 @@ def suggest_param_space(request: SuggestionRequest):
         Only output valid JSON. No markdown, no explanations, no additional text.
         """
     
+
     elif model_name.lower() == "xgboost":
         prompt = f"""
         You are an expert in hyperparameter tuning using Optuna for XGBoost regression models.
 
-        You are optimizing an XGBRegressor for real estate price prediction. The model uses CPU processing for stability (tree_method='auto') and we want to reduce overfitting while maintaining good performance.
+        You are optimizing an XGBRegressor for real estate price prediction. The model uses CPU processing for stability (tree_method='auto') and we want to maximize the Smart Model Ranking Score, by reducing overfitting, improving generalization, and achieving production-readiness (R² Test ≥ 0.85).
 
         Here are previous trials for the model '{model_name}':
 
@@ -568,6 +609,21 @@ def suggest_param_space(request: SuggestionRequest):
         - grow_policy (suggest_categorical: ["depthwise", "lossguide"])
         - max_leaves (suggest_int: 0-256) - ONLY if grow_policy == "lossguide"
 
+        SMART RANKING SYSTEM OVERVIEW:
+        The model score is computed as follows:
+        Ranking Score = R² Test - (R² Gap × 2) + (Generalization Index / 100 × 0.2) - Overfitting Penalty + Production Bonus
+
+        Where:
+        - R² Gap = R² Train - R² Test
+        - Generalization Index = 100 - (R² Gap × 1000)
+        - Overfitting Penalty: from 0.0 to 0.07 depending on overfitting risk
+        - Production Bonus: up to +0.18 based on:
+            - R² Test ≥ 0.85 → +0.1
+            - Gen Index ≥ 90 → +0.05
+            - Low/Moderate Risk → +0.03
+
+        Optimize hyperparameters to reduce R² Gap and RMSE/MAE discrepancy between train and test. Penalize any configuration with strong overfitting (R² Gap > 0.12).
+
         IMPORTANT RULES:
         1. Use "method" field to specify suggest_float, suggest_int, or suggest_categorical
         2. Include "low" and "high" for numeric parameters
@@ -575,6 +631,7 @@ def suggest_param_space(request: SuggestionRequest):
         4. Focus on anti-overfitting: lower learning rates, higher regularization, reasonable depth
         5. Tree method will be set to 'auto' (CPU) for stability
         6. ALWAYS include n_estimators parameter - it's required!
+        7. Avoid high R² Train with much lower R² Test → strong overfitting will be penalized heavily (R² Gap > 0.12).
 
         OUTPUT FORMAT (MUST include n_estimators):
         {{
@@ -598,6 +655,8 @@ def suggest_param_space(request: SuggestionRequest):
 
         Only output valid JSON. No markdown, no explanations, no additional text.
         """
+
+
     
     else:
         raise HTTPException(
