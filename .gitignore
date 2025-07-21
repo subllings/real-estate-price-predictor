@@ -98,3 +98,5 @@ logs/
 // App frontend
 app/frontend-react/node_modules/
 
+.env.backup
+*.backup
