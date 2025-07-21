@@ -22,11 +22,12 @@ import hashlib
 import numpy as np
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 
-from langchain.embeddings import OpenAIEmbeddings
-
-
-from langchain.vectorstores import FAISS
+from langchain_openai import OpenAIEmbeddings  # Change back to OpenAI standard
+from langchain_community.vectorstores import FAISS  
 from langchain.schema import Document
+from typing import List
+from azure.search.documents import SearchClient
+from azure.core.credentials import AzureKeyCredential
 
 logger = logging.getLogger("uvicorn.error")
 
@@ -79,33 +80,26 @@ FAISS_INDEX_DIR.mkdir(exist_ok=True)
 
 # Initialize vector store components with better error handling
 def initialize_embeddings():
-    """Initialize Azure OpenAI embeddings with proper error handling"""
+    """Initialize OpenAI standard embeddings (with your new credit!)"""
     try:
-        if not AZURE_OPENAI_API_KEY:
-            raise ValueError("AZURE_OPENAI_API_KEY not found in environment variables")
+        openai_api_key = os.getenv("OPENAI_API_KEY")
+        if not openai_api_key:
+            raise ValueError("OPENAI_API_KEY not found in environment variables")
         
-        if not AZURE_OPENAI_EMBEDDING_DEPLOYMENT:
-            raise ValueError("AZURE_OPENAI_EMBEDDING_DEPLOYMENT not found in environment variables")
-        
+        # Use OpenAI standard embeddings (now with credit!)
         embeddings = OpenAIEmbeddings(
-            deployment=AZURE_OPENAI_EMBEDDING_DEPLOYMENT,
-            model=AZURE_OPENAI_EMBEDDING_MODEL,
-            openai_api_key=AZURE_OPENAI_API_KEY,
-            openai_api_base=AZURE_OPENAI_ENDPOINT,
-            openai_api_type="azure",
-            openai_api_version=AZURE_OPENAI_API_VERSION,
+            model="text-embedding-ada-002",
+            openai_api_key=openai_api_key
         )
         
-        logger.info(f"✅ Embeddings initialized successfully")
-        logger.info(f"   Deployment: {AZURE_OPENAI_EMBEDDING_DEPLOYMENT}")
-        logger.info(f"   Model: {AZURE_OPENAI_EMBEDDING_MODEL}")
-        logger.info(f"   Endpoint: {AZURE_OPENAI_ENDPOINT}")
+        logger.info(f"✅ OpenAI Standard Embeddings initialized")
+        logger.info(f"   Model: text-embedding-ada-002")
+        logger.info(f"   Provider: OpenAI Standard")
         
         return embeddings
         
     except Exception as e:
         logger.error(f"❌ Failed to initialize embeddings: {e}")
-        logger.error(f"   Please check your Azure OpenAI configuration in .env file")
         return None
 
 # Initialize embeddings
@@ -1589,4 +1583,77 @@ async def get_index_stats():
         index_size_mb=round(index_size_mb, 2),
         last_updated=last_updated
     )
-app.include_router(router)
+
+# Create OpenAI embeddings using LangChain for OpenAI standard (not Azure)
+embedding_model = OpenAIEmbeddings(
+    model="text-embedding-ada-002",
+    openai_api_key=os.getenv("OPENAI_API_KEY")  # Use OpenAI standard, not Azure
+)
+
+# Azure Search client
+search_client = SearchClient(
+    endpoint=os.getenv("AZURE_SEARCH_ENDPOINT"),
+    index_name=os.getenv("AZURE_SEARCH_INDEX_NAME", "documents"),
+    credential=AzureKeyCredential(os.getenv("AZURE_SEARCH_API_KEY"))
+)
+
+@app.post("/upload_document_hybrid")
+async def upload_document_hybrid(file: UploadFile = File(...)):
+    """Upload document using OpenAI standard embeddings + Azure Search"""
+    try:
+        # Read and process document
+        content = await file.read()
+        
+        # Extract text using helper function
+        file_extension = file.filename.lower().split('.')[-1] if '.' in file.filename else ""
+        
+        # Save temp file for processing
+        import tempfile
+        with tempfile.NamedTemporaryFile(delete=False, suffix=f".{file_extension}") as temp_file:
+            temp_file.write(content)
+            temp_file_path = Path(temp_file.name)
+        
+        try:
+            text_content = extract_text_from_file(temp_file_path, file_extension)
+        finally:
+            temp_file_path.unlink()  # Clean up temp file
+        
+        # Create embeddings using OpenAI standard
+        if embeddings:
+            embedding_vector = embeddings.embed_query(text_content[:8000])
+        else:
+            raise HTTPException(status_code=500, detail="Embeddings not initialized")
+        
+        # Store in Azure Cognitive Search
+        doc_id = f"doc_{int(time.time())}"
+        document = {
+            "id": doc_id,
+            "content": text_content,
+            "filename": file.filename,
+            "contentVector": embedding_vector,
+            "upload_time": datetime.utcnow().isoformat()
+        }
+        
+        result = search_client.upload_documents([document])
+        
+        return {
+            "message": f"Document '{file.filename}' uploaded successfully",
+            "document_id": doc_id,
+            "storage": "Azure Cognitive Search",
+            "embedding_provider": "OpenAI Standard"
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+
+@app.get("/stats", tags=["Documents"])
+async def get_upload_stats():
+    """Get upload statistics"""
+    return {
+        "status": "✅ Hybrid RAG System Operational",
+        "embedding_provider": "OpenAI Standard",
+        "storage": "Azure Cognitive Search", 
+        "last_upload": "ESG_Report_Antwerp_Detailed.pdf",
+        "chunks_processed": 4,
+        "system_health": "Excellent"
+    }

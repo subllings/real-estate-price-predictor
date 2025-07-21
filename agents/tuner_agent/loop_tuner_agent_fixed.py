@@ -17,7 +17,6 @@ try:
     configure_azure_logging()
     cosmos_logger = CosmosDbLogger()
     print("✅ Azure logging configured")
-    print(f"✅ CosmosDbLogger methods: {[m for m in dir(cosmos_logger) if not m.startswith('_')]}")
 except Exception as e:
     print(f"❌ Azure logging error: {e}")
     cosmos_logger = None
@@ -42,7 +41,6 @@ class TunerLoopRunner:
         self.end_time = end_time
         self.max_trials = max_trials
         self.start_time = datetime.datetime.now()
-
         self._validate_config()
 
     def _validate_config(self):
@@ -64,7 +62,7 @@ class TunerLoopRunner:
     def run(self):
         print(f">>> Starting tuner loop for model: {self.model_name}")
         
-        # Create training job in Cosmos DB using the correct method
+        # Create training job in Cosmos DB
         training_job_id = None
         if cosmos_logger:
             try:
@@ -80,7 +78,6 @@ class TunerLoopRunner:
                 training_job_id = job.get("id")
                 print(f"✅ Training job created in Cosmos DB: {training_job_id}")
                 
-                # Start the job
                 cosmos_logger.update_training_job(training_job_id, {
                     "status": "running",
                     "progress": 0
@@ -89,6 +86,7 @@ class TunerLoopRunner:
             except Exception as e:
                 print(f"❌ Failed to create training job: {e}")
         
+        # Display termination info
         if self.no_time_limit:
             print("🕒 No time limit enabled: the loop will run indefinitely.")
         elif self.duration_hours:
@@ -103,66 +101,36 @@ class TunerLoopRunner:
 
         trial_count = 0
         while True:
-            # Check job status in Cosmos DB
-            if cosmos_logger and training_job_id:
-                job_status = cosmos_logger.get_training_job_by_id(training_job_id)
-                if job_status and job_status.get("status") == "stop_requested":
-                    print("🛑 Stop requested from interface, terminating training job.")
-                    cosmos_logger.update_training_job(training_job_id, {
-                        "status": "stopped",
-                        "progress": 100
-                    })
-                    break
-            
             trial_count += 1
             print(f"[{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Running tuning cycle #{trial_count}...")
             
-            # Update progress in Cosmos DB
+            # Update progress
             if cosmos_logger and training_job_id:
                 try:
-                    progress = (trial_count / self.max_trials * 100) if self.max_trials else (trial_count * 2)  # Estimate for unlimited
-                    
+                    progress = (trial_count / self.max_trials * 100) if self.max_trials else (trial_count * 2)
                     cosmos_logger.update_training_job(training_job_id, {
                         "status": "running",
-                        "progress": min(progress, 99),  # Never show 100% until actually done
+                        "progress": min(progress, 99),
                         "current_trial": trial_count,
-                        "eta_minutes": max(1, 20 - trial_count)  # Estimate decreasing ETA
+                        "eta_minutes": max(1, 20 - trial_count)
                     })
                 except Exception as e:
                     print(f"❌ Failed to update training progress: {e}")
             
-            # Adjust trials per cycle based on max_trials
+            # Adjust trials per cycle
             trials_this_cycle = 1 if self.max_trials and self.max_trials <= 10 else 50
             if self.max_trials and trial_count >= self.max_trials:
-                trials_this_cycle = 1  # Last trial
+                trials_this_cycle = 1
             
             orchestrator = TunerAgentOrchestrator(self.model_name, n_trials=trials_this_cycle)
             best_trial, is_perfect = orchestrator.run()
 
-            # Log trial completion
-            if cosmos_logger and best_trial:
-                try:
-                    trial_data = {
-                        "model_name": self.model_name,
-                        "trial_number": trial_count,
-                        "r2_score": getattr(best_trial, 'value', None),
-                        "params": getattr(best_trial, 'params', {}),
-                        "is_perfect": is_perfect,
-                        "timestamp": datetime.datetime.now().isoformat()
-                    }
-                    cosmos_logger.log_trial_result(trial_data)
-                except Exception as e:
-                    print(f"❌ Failed to log trial result: {e}")
-
             print(f"[DEBUG] is_perfect = {is_perfect}, trial #{trial_count}")
             if is_perfect:
                 print(f"🎯 Perfect model found (R² >= {PERFECT_R2_THRESHOLD}). Stopping tuning loop.")
-                print("Best trial parameters:")
-                for k, v in best_trial.params.items():
-                    print(f"  {k}: {v}")
                 break
 
-            # Check termination conditions and mark as completed
+            # Check termination conditions
             if self.max_trials and trial_count >= self.max_trials:
                 print(f"🎯 Maximum trials ({self.max_trials}) reached, stopping tuning loop.")
                 if cosmos_logger and training_job_id:
@@ -173,33 +141,12 @@ class TunerLoopRunner:
                 break
             elif self.duration_hours and self.is_duration_exceeded():
                 print(f"⏱️ Duration limit ({self.duration_hours} hours) reached, stopping tuning loop.")
-                if cosmos_logger:
-                    cosmos_logger.update_training_job({
-                        "model_name": self.model_name,
-                        "status": "COMPLETED",
-                        "progress": 100,
-                        "end_time": datetime.datetime.now().isoformat()
-                    })
                 break
             elif self.end_time and self.is_end_time_reached():
                 print(f"⏰ End time ({self.end_time}) reached, stopping tuning loop.")
-                if cosmos_logger:
-                    cosmos_logger.update_training_job({
-                        "model_name": self.model_name,
-                        "status": "COMPLETED",
-                        "progress": 100,
-                        "end_time": datetime.datetime.now().isoformat()
-                    })
                 break
             elif not self.no_time_limit and self.stop_hour is not None and self.is_time_to_stop():
                 print(f"⏰ Stop time reached ({self.stop_hour:02d}:{self.stop_minute:02d}), stopping tuning loop.")
-                if cosmos_logger:
-                    cosmos_logger.update_training_job({
-                        "model_name": self.model_name,
-                        "status": "COMPLETED",
-                        "progress": 100,
-                        "end_time": datetime.datetime.now().isoformat()
-                    })
                 break
 
             print("[LOOP] Sleeping 5s before next tuning cycle...\n")
@@ -221,17 +168,16 @@ class TunerLoopRunner:
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Tuner loop runner")
-    parser.add_argument("model_name", type=str, help="Name of the model (xgboost, catboost, lightgbm, random_forest, stack_ensemble...)")
+    parser.add_argument("model_name", type=str, help="Name of the model")
     
-    # Termination options (mutually exclusive)
     termination_group = parser.add_mutually_exclusive_group()
-    termination_group.add_argument("--no-time-limit", action="store_true", help="Run indefinitely (disables time-based stop)")
-    termination_group.add_argument("--stop-hour", type=int, help="Hour (0-23) at which to stop the loop")
-    termination_group.add_argument("--duration-hours", type=float, help="Duration in hours to run (e.g., 2.5 for 2h30m)")
-    termination_group.add_argument("--end-time", type=str, help="End time in HH:MM format (e.g., 07:00)")
-    termination_group.add_argument("--max-trials", type=int, help="Maximum number of trials to run")
+    termination_group.add_argument("--no-time-limit", action="store_true", help="Run indefinitely")
+    termination_group.add_argument("--stop-hour", type=int, help="Hour to stop")
+    termination_group.add_argument("--duration-hours", type=float, help="Duration in hours")
+    termination_group.add_argument("--end-time", type=str, help="End time HH:MM")
+    termination_group.add_argument("--max-trials", type=int, help="Maximum trials")
     
-    parser.add_argument("--stop-minute", type=int, default=0, help="Minute at which to stop the loop (used with --stop-hour)")
+    parser.add_argument("--stop-minute", type=int, default=0, help="Stop minute")
     return parser.parse_args()
 
 
@@ -246,5 +192,4 @@ if __name__ == "__main__":
         end_time=args.end_time,
         max_trials=args.max_trials,
     )
-
     loop_runner.run()

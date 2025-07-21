@@ -2,35 +2,35 @@
 
 # cd e:/_SoftEng/_BeCode/real-estate-price-predictor/app/backend-api-price-prediction
 # chmod +x start-api-price-prediction.sh
-# il 
+# ./start-api-price-prediction.sh
 
-echo "🤖 Starting Price Prediction API..."
-
-if [ ! -d "./conda-env" ]; then
-    echo "❌ Conda environment not found. Run ./setup-conda-env-api-price-prediction.sh first"
-    exit 1
-fi
-
-echo "🔍 Testing environment..."
-./conda-env/python --version || exit 1
+echo "🤖 Starting Price Prediction API (using base environment)..."
 
 echo "🔍 Testing dependencies..."
-./conda-env/python -c "import fastapi, uvicorn; print('✅ FastAPI OK')" || {
-    echo "❌ FastAPI not installed correctly"
-    echo "💡 Please run ./setup-conda-env-api-price-prediction.sh again"
+python -c "import fastapi, uvicorn; print('✅ FastAPI OK')" || {
+    echo "❌ FastAPI not installed. Run ./setup-conda-env-api-price-prediction.sh first"
     exit 1
 }
 
 echo "🔍 Testing ML dependencies..."
-./conda-env/python -c "import pandas, numpy, sklearn; print('✅ Basic ML OK')" || {
-    echo "❌ Basic ML dependencies missing"
-    echo "💡 Please run ./setup-conda-env-api-price-prediction.sh again"
+python -c "import pandas, sklearn, catboost; print('✅ ML OK')" || {
+    echo "❌ ML dependencies missing. Run ./setup-conda-env-api-price-prediction.sh first"
     exit 1
 }
 
-echo "🔍 Testing boosting libraries..."
-./conda-env/python -c "import catboost, xgboost, lightgbm, joblib; print('✅ Boosting libraries OK')" || {
-    echo "❌ Boosting libraries missing"
+echo "🔍 Testing Azure Cosmos DB..."
+python -c "import azure.cosmos; print('✅ Azure Cosmos DB OK')" || {
+    echo "❌ Azure Cosmos DB missing. Install with: pip install azure-cosmos"
+    exit 1
+}
+
+echo "🌟 Starting server at http://127.0.0.1:8000"
+echo "📖 Documentation: http://127.0.0.1:8000/docs"
+echo "❤️  Health check: http://127.0.0.1:8000/health"
+echo ""
+echo "Press Ctrl+C to stop..."
+
+python -m uvicorn main:app --host 127.0.0.1 --port 8000 --reload
     echo "💡 Please run ./setup-conda-env-api-price-prediction.sh again"
     exit 1
 }

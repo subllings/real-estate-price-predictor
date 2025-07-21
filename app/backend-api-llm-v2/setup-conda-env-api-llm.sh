@@ -15,21 +15,21 @@ rm -rf "${ENV_PATH}"
 # Create new environment
 conda create -p "${ENV_PATH}" python="$PYTHON_VERSION" -y
 
-# Install packages
-"${ENV_PATH}/python.exe" -m pip install fastapi uvicorn openai langchain langchain-openai langchain-community faiss-cpu numpy PyMuPDF python-docx python-dotenv requests pydantic
+# Force use environment python directly
+PYTHON_EXE="${ENV_PATH}/python"
+if [[ "$OSTYPE" == "msys" ]] || [[ "$OSTYPE" == "win32" ]]; then
+    PYTHON_EXE="${ENV_PATH}/python.exe"
+fi
+
+# Install everything directly with the environment python
+echo ">>> Installing all packages directly..."
+"$PYTHON_EXE" -m pip install --upgrade pip --no-warn-script-location
+"$PYTHON_EXE" -m pip install fastapi uvicorn python-multipart openai langchain langchain-openai langchain-community faiss-cpu numpy PyMuPDF python-docx python-dotenv requests pydantic azure-search-documents azure-identity azure-cosmos azure-core --no-warn-script-location
 
 # Test
-"${ENV_PATH}/python.exe" -c "import fastapi, langchain, openai; print('✅ Setup OK')"
+"$PYTHON_EXE" -c "import fastapi, langchain, openai; print('✅ Setup OK')"
 
 echo "✅ Done! Run: ./start-api-llm-v2.sh"
-# Create the environment locally using the -p option
-echo -e "\033[33m>>> Creating local conda environment with Python $PYTHON_VERSION...\033[0m"
-conda create -p "${ENV_PATH}" python="$PYTHON_VERSION" -y
-
-# Activate the environment (ignore all errors)
-echo -e "\033[33m>>> Activating environment: $ENV_PATH...\033[0m"
-source "$(conda info --base)/etc/profile.d/conda.sh" 2>/dev/null || true
-conda activate "${ENV_PATH}" 2>/dev/null || true
 
 # Force use environment python directly
 PYTHON_EXE="${ENV_PATH}/python"
@@ -88,5 +88,8 @@ echo -e "\033[33m💡 Environment info:\033[0m"
 echo -e "\033[33m   Path: $ENV_PATH\033[0m"
 echo -e "\033[33m   Python: $PYTHON_VERSION\033[0m"
 echo -e "\033[33m   Location: $(realpath $ENV_PATH 2>/dev/null || echo $ENV_PATH)\033[0m"
+
+# Install additional packages via pip
+pip install fastapi uvicorn python-multipart python-dotenv requests pydantic langchain langchain-community langchain-openai azure-search-documents azure-identity pymupdf python-docx azure-cosmos azure-core --no-warn-script-location
 
 

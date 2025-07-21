@@ -46,12 +46,12 @@ LEAK_FEATURES = ["price_per_m2"]
 METRICS_DB_PATH = os.path.join(DB_DIR, "metrics.db")
 
 # === Dev mode ===
-TEST_MODE = False
+TEST_MODE = True
 
 RUN_ON_AZURE = True  # Set to True if running on Azure ML
 
 LOG_COSMOS_DB = True  # Set to True if you want to log metrics to Cosmos DB
-ERASE_COSMOS_DB = True  # Set to True if you want to erase Cosmos DB before logging new metrics
+ERASE_COSMOS_DB = False  # Set to False to keep existing data for testing
 
 PERFECT_R2_THRESHOLD = 0.95
 PERFECT_MAE_THRESHOLD = 50000

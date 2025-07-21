@@ -1,8 +1,14 @@
 #!/bin/bash
 
+# cd e:/_SoftEng/_BeCode/real-estate-price-predictor
+# chmod +x scripts/run_loop_tuner_agent.sh
+# ./scripts/run_loop_tuner_agent.sh catboost --max-trials 5
+
 # This script assumes it was already made executable with: chmod +x scripts/run_loop_tuner_agent.sh
 # Run with: ./scripts/run_loop_tuner_agent.sh <model_name> [--no-time-limit | --stop-hour <H> --stop-minute <M> | --duration-hours <H> | --end-time <HH:MM>]
+
 # Run with: ./scripts/run_loop_tuner_agent.sh catboost --no-time-limit
+
 # Run with: ./scripts/run_loop_tuner_agent.sh xgboost --duration-hours 2.5
 # Run with: ./scripts/run_loop_tuner_agent.sh lightgbm --end-time 07:00
 # Run with: ./scripts/run_loop_tuner_agent.sh random_forest --max-trials 100
@@ -11,11 +17,15 @@
 clear
 set -e
 
+# Navigate to project root
+cd "e:\_SoftEng\_BeCode\real-estate-price-predictor" || exit 1
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 cd "$PROJECT_ROOT" || exit 1
 
-PYTHON_EXEC="$PROJECT_ROOT/.venv/Scripts/python.exe"
+# Use conda base environment instead of .venv
+PYTHON_EXEC="python"
 
 if [ $# -lt 1 ]; then
   echo "[Shell] ❌ Missing model name. Usage: ./scripts/run_loop_tuner_agent.sh <model_name> [--no-time-limit | --stop-hour <H> --stop-minute <M>]"
