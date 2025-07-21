@@ -100,3 +100,5 @@ app/frontend-react/node_modules/
 
 .env.backup
 *.backup
+.env.backup
+*.backup
