@@ -494,6 +494,14 @@ import json
 router = APIRouter()
 app.include_router(router)
 
+
+
+
+
+
+
+
+
 @router.post("/suggest-space", tags=["LLM Tuner"])
 def suggest_param_space(request: SuggestionRequest):
     model_name = request.model_name
@@ -512,159 +520,149 @@ def suggest_param_space(request: SuggestionRequest):
     # Construct model-specific prompts
     if model_name.lower() == "catboost":
         prompt = f"""
-        You are an expert in hyperparameter tuning using Optuna for CatBoost regression models.
+        You are an expert in Optuna hyperparameter tuning for CatBoost regression models, working on real estate price prediction in production environments.
 
-        You are optimizing a CatBoostRegressor for real estate price prediction. The model uses CPU processing for stability and we want to maximize the Smart Model Ranking Score, by reducing overfitting, improving generalization, and achieving production-readiness (R² Test ≥ 0.85).
+        Your objective is to generate a high-quality Optuna search space that will help optimize the **Smart Model Ranking Score**, based on the following key criteria:
 
-        Here are previous trials for the model '{model_name}':
+        - Maximize **R² Test** (ideally ≥ 0.85 for production readiness)
+        - Minimize **R² Gap** between Train and Test (ideally ≤ 0.10)
+        - Maximize **Generalization Index** (calculated as: 100 - R² Gap × 1000)
+        - Minimize **Overfitting Risk** (defined by consistency in train/test metrics)
+        - Balance **MAE / RMSE** to ensure stable and reliable error distribution
 
+        ---
+
+        Here are previous tuning trials for '{model_name}':
         {trial_summary}
 
-        Based on this, suggest a comprehensive Optuna parameter space in JSON format that includes ALL important CatBoost parameters:
+        Now suggest a full Optuna-compatible JSON search space for **CatBoostRegressor**, ensuring all important parameters are included.
 
-        REQUIRED PARAMETERS TO INCLUDE:
-        - learning_rate (suggest_loguniform: 0.01-0.3)
-        - depth (suggest_int: 4-10) 
-        - iterations (suggest_int: 100-2000)
-        - l2_leaf_reg (suggest_loguniform: 1.0-10.0)
-        - border_count (suggest_int: 32-255)
-        - random_strength (suggest_uniform: 0.1-10.0)
-        - min_data_in_leaf (suggest_int: 1-20)
+         Prioritize **anti-overfitting and generalization** by:
+        - Using lower learning rates
+        - Regularization (l2_leaf_reg, random_strength)
+        - Limiting depth and overgrown trees
+        - Selecting proper grow_policy and bootstrap_type
+
+        ---
+
+        REQUIRED PARAMETERS:
+        - learning_rate (suggest_loguniform: 0.01–0.3)
+        - depth (suggest_int: 4–10)
+        - iterations (suggest_int: 500–2000)
+        - l2_leaf_reg (suggest_loguniform: 1.0–10.0)
+        - border_count (suggest_int: 32–255)
+        - random_strength (suggest_uniform: 0.1–10.0)
+        - min_data_in_leaf (suggest_int: 1–20)
         - bootstrap_type (suggest_categorical: ["Bayesian", "Bernoulli", "MVS"])
-        - subsample (suggest_uniform: 0.6-1.0) - ONLY if bootstrap_type != "Bayesian"
+        - subsample (suggest_uniform: 0.6–1.0) → only if bootstrap_type != "Bayesian"
         - grow_policy (suggest_categorical: ["SymmetricTree", "Depthwise", "Lossguide"])
         - leaf_estimation_method (suggest_categorical: ["Newton", "Gradient"])
-        - leaf_estimation_iterations (suggest_int: 1-10)
-        - bagging_temperature (suggest_uniform: 0.0-1.0)
-        - colsample_bylevel (suggest_uniform: 0.5-1.0)
+        - leaf_estimation_iterations (suggest_int: 1–10)
+        - bagging_temperature (suggest_uniform: 0.0–1.0)
+        - colsample_bylevel (suggest_uniform: 0.5–1.0)
         - od_type (suggest_categorical: ["IncToDec", "Iter"])
-        - od_wait (suggest_int: 10-50)
+        - od_wait (suggest_int: 10–50)
         - task_type (fixed_value: "CPU")
 
-        SMART RANKING SYSTEM OVERVIEW:
-        The model score is computed as follows:
-        Ranking Score = R² Test - (R² Gap × 2) + (Generalization Index / 100 × 0.2) - Overfitting Penalty + Production Bonus
+        ---
 
-        Where:
-        - R² Gap = R² Train - R² Test
-        - Generalization Index = 100 - (R² Gap × 1000)
-        - Overfitting Penalty: from 0.0 to 0.07 depending on overfitting risk
-        - Production Bonus: up to +0.18 based on:
-            - R² Test ≥ 0.85 → +0.1
-            - Gen Index ≥ 90 → +0.05
-            - Low/Moderate Risk → +0.03
+        RULES:
+        1. Use JSON only (no markdown, no comments)
+        2. Use "method": one of suggest_loguniform, suggest_uniform, suggest_int, suggest_categorical, fixed_value
+        3. Use "low"/"high" for numeric ranges, "choices" for categorical, and "value" for fixed
+        4. Output format must be:
 
-        Optimize hyperparameters to reduce R² Gap and RMSE/MAE discrepancy between train and test. Penalize any configuration with strong overfitting (R² Gap > 0.12).
-
-
-        
-        IMPORTANT RULES:
-        1. Use "method" field to specify suggest_loguniform, suggest_uniform, suggest_int, suggest_categorical, or fixed_value
-        2. Include "low" and "high" for numeric parameters
-        3. Include "choices" for categorical parameters  
-        4. Include "value" for fixed_value parameters
-        5. Focus on anti-overfitting: lower learning rates, higher regularization, reasonable depth
-        6. Avoid high R² Train with much lower R² Test → strong overfitting will be penalized heavily (R² Gap > 0.12).
-        
-
-
-        OUTPUT FORMAT:
         {{
-            "model": "{model_name}",
-            "param_space": {{
-                "parameter_name": {{"method": "suggest_type", "low": X, "high": Y}},
-                "categorical_param": {{"method": "suggest_categorical", "choices": [...]}}
-            }}
+        "model": "{model_name}",
+        "param_space": {{
+            "parameter_name": {{
+            "method": "suggest_type",
+            "low": X,
+            "high": Y
+            }},
+            ...
+        }}
         }}
 
-        Only output valid JSON. No markdown, no explanations, no additional text.
+        5. Ensure diversity in trials and robustness across features.
+        6. Do NOT propose extreme depths, unbounded iterations, or aggressive learning rates.
+
+        Only output the valid JSON, with no explanations.
         """
-    
 
     elif model_name.lower() == "xgboost":
         prompt = f"""
-        You are an expert in hyperparameter tuning using Optuna for XGBoost regression models.
+        You are an expert in Optuna hyperparameter tuning for XGBoost regression models.
 
-        You are optimizing an XGBRegressor for real estate price prediction. The model uses CPU processing for stability (tree_method='auto') and we want to maximize the Smart Model Ranking Score, by reducing overfitting, improving generalization, and achieving production-readiness (R² Test ≥ 0.85).
+        You are optimizing an **XGBRegressor** for real estate price prediction. Your goal is to maximize a custom Smart Model Ranking Score based on generalization, stability, and production-readiness.
+
+        Key optimization goals:
+        - Maximize **R² Test** (≥ 0.85 for production)
+        - Minimize **R² Gap** (≤ 0.10 ideal)
+        - Maximize **Generalization Index** = 100 - (R² Gap × 1000)
+        - Reduce **Overfitting Risk**
+        - Ensure consistent and stable **MAE / RMSE** across train/test
+        - Avoid overly deep trees or unstable parameter combinations
 
         Here are previous trials for the model '{model_name}':
 
         {trial_summary}
 
-        Based on this, suggest a comprehensive Optuna parameter space in JSON format that includes ALL important XGBoost parameters:
+        Now suggest a complete Optuna parameter space for XGBRegressor, in valid JSON format, using all relevant parameters.
 
-        REQUIRED PARAMETERS TO INCLUDE:
-        - learning_rate (suggest_float: 0.01-0.3)
-        - max_depth (suggest_int: 3-10)
-        - min_child_weight (suggest_float: 1.0-10.0)
-        - subsample (suggest_float: 0.5-1.0)
-        - colsample_bytree (suggest_float: 0.5-1.0)
-        - colsample_bylevel (suggest_float: 0.5-1.0)
-        - colsample_bynode (suggest_float: 0.5-1.0)
-        - gamma (suggest_float: 0.0-5.0)
-        - reg_alpha (suggest_float: 0.0-1.0)
-        - reg_lambda (suggest_float: 0.0-2.0)
-        - n_estimators (suggest_int: 100-2000)
-        - max_delta_step (suggest_int: 0-10)
+        REQUIRED PARAMETERS:
+        - learning_rate (suggest_float: 0.01–0.3)
+        - max_depth (suggest_int: 3–10)
+        - min_child_weight (suggest_float: 1.0–10.0)
+        - subsample (suggest_float: 0.5–1.0)
+        - colsample_bytree (suggest_float: 0.5–1.0)
+        - colsample_bylevel (suggest_float: 0.5–1.0)
+        - colsample_bynode (suggest_float: 0.5–1.0)
+        - gamma (suggest_float: 0.0–5.0)
+        - reg_alpha (suggest_float: 0.0–1.0)
+        - reg_lambda (suggest_float: 0.0–2.0)
+        - n_estimators (suggest_int: 100–2000)
+        - max_delta_step (suggest_int: 0–10)
         - grow_policy (suggest_categorical: ["depthwise", "lossguide"])
-        - max_leaves (suggest_int: 0-256) - ONLY if grow_policy == "lossguide"
+        - max_leaves (suggest_int: 0–256) → only if grow_policy == "lossguide"
+        - tree_method (fixed_value: "auto")
 
-        SMART RANKING SYSTEM OVERVIEW:
-        The model score is computed as follows:
-        Ranking Score = R² Test - (R² Gap × 2) + (Generalization Index / 100 × 0.2) - Overfitting Penalty + Production Bonus
+        FORMAT RULES:
+        1. Output must be valid JSON only (no markdown, no comments)
+        2. Use "method": one of `suggest_float`, `suggest_int`, `suggest_categorical`, `fixed_value`
+        3. Use "low"/"high" for ranges, "choices" for categorical values, "value" for fixed
+        4. Output must be structured as:
 
-        Where:
-        - R² Gap = R² Train - R² Test
-        - Generalization Index = 100 - (R² Gap × 1000)
-        - Overfitting Penalty: from 0.0 to 0.07 depending on overfitting risk
-        - Production Bonus: up to +0.18 based on:
-            - R² Test ≥ 0.85 → +0.1
-            - Gen Index ≥ 90 → +0.05
-            - Low/Moderate Risk → +0.03
-
-        Optimize hyperparameters to reduce R² Gap and RMSE/MAE discrepancy between train and test. Penalize any configuration with strong overfitting (R² Gap > 0.12).
-
-        IMPORTANT RULES:
-        1. Use "method" field to specify suggest_float, suggest_int, or suggest_categorical
-        2. Include "low" and "high" for numeric parameters
-        3. Include "choices" for categorical parameters
-        4. Focus on anti-overfitting: lower learning rates, higher regularization, reasonable depth
-        5. Tree method will be set to 'auto' (CPU) for stability
-        6. ALWAYS include n_estimators parameter - it's required!
-        7. Avoid high R² Train with much lower R² Test → strong overfitting will be penalized heavily (R² Gap > 0.12).
-
-        OUTPUT FORMAT (MUST include n_estimators):
-        {{
-            "model": "{model_name}",
-            "param_space": {{
-                "learning_rate": {{"method": "suggest_float", "low": 0.01, "high": 0.3}},
-                "max_depth": {{"method": "suggest_int", "low": 3, "high": 10}},
-                "n_estimators": {{"method": "suggest_int", "low": 100, "high": 2000}},
-                "min_child_weight": {{"method": "suggest_float", "low": 1.0, "high": 10.0}},
-                "subsample": {{"method": "suggest_float", "low": 0.5, "high": 1.0}},
-                "colsample_bytree": {{"method": "suggest_float", "low": 0.5, "high": 1.0}},
-                "colsample_bylevel": {{"method": "suggest_float", "low": 0.5, "high": 1.0}},
-                "colsample_bynode": {{"method": "suggest_float", "low": 0.5, "high": 1.0}},
-                "gamma": {{"method": "suggest_float", "low": 0.0, "high": 5.0}},
-                "reg_alpha": {{"method": "suggest_float", "low": 0.0, "high": 1.0}},
-                "reg_lambda": {{"method": "suggest_float", "low": 0.0, "high": 2.0}},
-                "max_delta_step": {{"method": "suggest_int", "low": 0, "high": 10}},
-                "grow_policy": {{"method": "suggest_categorical", "choices": ["depthwise", "lossguide"]}}
-            }}
+    {{
+      "model": "{model_name}",
+      "param_space": {{
+        "parameter_name": {{
+          "method": "suggest_type",
+          "low": X,
+          "high": Y
+        }},
+        "categorical_parameter": {{
+          "method": "suggest_categorical",
+          "choices": [...]
+        }},
+        "fixed_parameter": {{
+          "method": "fixed_value",
+          "value": "..."
         }}
+      }}
+    }}
 
-        Only output valid JSON. No markdown, no explanations, no additional text.
-        """
+    Output only valid JSON. No explanation, no extra text.
+    """
 
 
-    
     else:
         raise HTTPException(
             status_code=400,
             detail=f"Unsupported model: {model_name}. Supported models: catboost, xgboost"
         )
 
-    logger.info("=== Prompt reveived by the API & to be sent to GPT-4.1 ===")
+    logger.info("=== Prompt received by the API & to be sent to GPT-4.1 ===")
     logger.info(prompt)
 
     # Call Azure OpenAI chat endpoint
@@ -677,10 +675,10 @@ def suggest_param_space(request: SuggestionRequest):
         max_tokens=700
     )
 
-    logger.info("=== Response received from from GPT-4.1 ===")
+    logger.info("=== Response received from GPT-4.1 ===")
     logger.info(response_text)
 
-    cleaned = re.sub(r"^```json\s*|\s*```$", "", response_text.strip(), flags=re.IGNORECASE)
+    cleaned = re.sub(r"^```(?:json)?\s*|\s*```$", "", response_text.strip(), flags=re.IGNORECASE)
 
     # Attempt to parse JSON response
     try:
@@ -691,6 +689,56 @@ def suggest_param_space(request: SuggestionRequest):
             status_code=500,
             detail=f"Invalid JSON returned by LLM:\n{response_text}"
         )
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 # ESG Analysis endpoint
 @app.post("/esg_analysis")
