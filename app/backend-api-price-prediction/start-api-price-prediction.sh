@@ -18,12 +18,15 @@ python -c "import pandas, sklearn, catboost; print('✅ ML OK')" || {
     exit 1
 }
 
+<<<<<<< HEAD
 echo "🔍 Testing Azure Cosmos DB..."
 python -c "import azure.cosmos; print('✅ Azure Cosmos DB OK')" || {
     echo "❌ Azure Cosmos DB missing. Install with: pip install azure-cosmos"
     exit 1
 }
 
+=======
+>>>>>>> 915073c6775d41e055b58716734b8e21e488a33f
 echo "🌟 Starting server at http://127.0.0.1:8000"
 echo "📖 Documentation: http://127.0.0.1:8000/docs"
 echo "❤️  Health check: http://127.0.0.1:8000/health"
@@ -31,6 +34,14 @@ echo ""
 echo "Press Ctrl+C to stop..."
 
 python -m uvicorn main:app --host 127.0.0.1 --port 8000 --reload
+<<<<<<< HEAD
+=======
+}
+
+echo "🔍 Testing boosting libraries..."
+python -c "import catboost, xgboost, lightgbm, joblib; print('✅ Boosting libraries OK')" || {
+    echo "❌ Boosting libraries missing"
+>>>>>>> 915073c6775d41e055b58716734b8e21e488a33f
     echo "💡 Please run ./setup-conda-env-api-price-prediction.sh again"
     exit 1
 }
@@ -50,7 +61,7 @@ echo ""
 echo "ℹ️  Note: Dependency warnings are normal and can be ignored"
 echo "Press Ctrl+C to stop..."
 
-./conda-env/python -m uvicorn main:app --host 127.0.0.1 --port 8020 --reload
+python -m uvicorn main:app --host 127.0.0.1 --port 8020 --reload
 echo "🌟 Starting server at http://127.0.0.1:8020"
 echo "📖 Documentation: http://127.0.0.1:8020/docs"
 echo "❤️  Health check: http://127.0.0.1:8020/health"
@@ -59,4 +70,5 @@ echo ""
 echo "ℹ️  Note: Dependency warnings are normal and can be ignored"
 echo "Press Ctrl+C to stop..."
 
+python -m uvicorn main:app --host 127.0.0.1 --port 8020 --reload
 ./conda-env/python -m uvicorn main:app --host 127.0.0.1 --port 8020 --reload

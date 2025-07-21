@@ -40,9 +40,12 @@ atomicwrites==1.4.0
 attrs @ file:///C:/Users/dev-admin/perseverance-python-buildout/croot/attrs_1699473735254/work
 Automat @ file:///tmp/build/80754af9/automat_1600298431173/work
 autopep8 @ file:///croot/autopep8_1708962882016/work
+<<<<<<< HEAD
 azure-core==1.35.0
 azure-cosmos==4.9.0
 azure-identity==1.23.1
+=======
+>>>>>>> 915073c6775d41e055b58716734b8e21e488a33f
 Babel @ file:///C:/Users/dev-admin/perseverance-python-buildout/croot/babel_1699475785740/work
 bcrypt @ file:///C:/Users/dev-admin/perseverance-python-buildout/croot/bcrypt_1699483842258/work
 beautifulsoup4 @ file:///C:/b/abs_d5wytg_p0w/croot/beautifulsoup4-split_1718029833749/work
@@ -65,7 +68,10 @@ click @ file:///C:/Users/dev-admin/perseverance-python-buildout/croot/click_1699
 cloudpickle @ file:///C:/b/abs_8abv3sva4p/croot/cloudpickle_1721657372632/work
 colorama==0.4.6
 colorcet @ file:///C:/b/abs_7ep0mfawez/croot/colorcet_1709758405232/work
+<<<<<<< HEAD
 colorlog==6.9.0
+=======
+>>>>>>> 915073c6775d41e055b58716734b8e21e488a33f
 comm==0.2.2
 conda @ file:///C:/b/abs_25de2vb5u7/croot/conda_1736277836976/work
 conda-build @ file:///C:/b/abs_afd1hjce19/croot/conda-build_1726839930400/work
@@ -207,8 +213,11 @@ mkl_fft @ file:///C:/b/abs_f55mv94vyg/croot/mkl_fft_1725370278455/work
 mkl_random @ file:///C:/b/abs_21ydbzdu8d/croot/mkl_random_1725370276095/work
 more-itertools @ file:///C:/b/abs_a2n4mhb8gn/croot/more-itertools_1727185463826/work
 mpmath @ file:///C:/Users/dev-admin/perseverance-python-buildout/croot/mpmath_1699484863771/work
+<<<<<<< HEAD
 msal==1.32.3
 msal-extensions==1.3.1
+=======
+>>>>>>> 915073c6775d41e055b58716734b8e21e488a33f
 msgpack @ file:///C:/Users/dev-admin/perseverance-python-buildout/croot/msgpack-python_1699473924872/work
 multidict @ file:///C:/b/abs_44ido987fv/croot/multidict_1701097803486/work
 multipledispatch @ file:///C:/Users/dev-admin/perseverance-python-buildout/croot/multipledispatch_1699473951974/work
@@ -230,7 +239,10 @@ numpy @ file:///C:/b/abs_c1ywpu18ar/croot/numpy_and_numpy_base_1708638681471/wor
 numpydoc @ file:///C:/b/abs_bbspp5l8vu/croot/numpydoc_1718279185573/work
 openai==1.97.0
 openpyxl @ file:///C:/b/abs_0e6ca21lac/croot/openpyxl_1721752965859/work
+<<<<<<< HEAD
 optuna==4.4.0
+=======
+>>>>>>> 915073c6775d41e055b58716734b8e21e488a33f
 orjson==3.11.0
 overrides @ file:///C:/Users/dev-admin/perseverance-python-buildout/croot/overrides_1701806336503/work
 packaging @ file:///C:/b/abs_c3vlh0z4jw/croot/packaging_1720101866539/work
@@ -400,7 +412,11 @@ ujson @ file:///C:/b/abs_c93a278xy4/croot/ujson_1717598062082/work
 unicodedata2 @ file:///C:/b/abs_b6apldlg7y/croot/unicodedata2_1713212998255/work
 Unidecode @ file:///C:/b/abs_4cczv71djp/croot/unidecode_1724790062151/work
 urllib3 @ file:///C:/b/abs_9a_f8h_bn2/croot/urllib3_1727769836930/work
+<<<<<<< HEAD
 uvicorn==0.29.0
+=======
+uvicorn==0.24.0
+>>>>>>> 915073c6775d41e055b58716734b8e21e488a33f
 w3lib @ file:///C:/Users/dev-admin/perseverance-python-buildout/croot/w3lib_1709162573908/work
 watchdog @ file:///C:/b/abs_b3l_3s276z/croot/watchdog_1717166538403/work
 watchfiles==1.1.0
@@ -415,7 +431,11 @@ widgetsnbextension @ file:///C:/b/abs_538o2crz7f/croot/widgetsnbextension_171096
 win-inet-pton @ file:///C:/Users/dev-admin/perseverance-python-buildout/croot/win_inet_pton_1699472992992/work
 wrapt @ file:///C:/Users/dev-admin/perseverance-python-buildout/croot/wrapt_1699480231633/work
 xarray @ file:///C:/Users/dev-admin/perseverance-python-buildout/croot/xarray_1699480274069/work
+<<<<<<< HEAD
 xgboost==3.0.2
+=======
+xgboost==2.0.2
+>>>>>>> 915073c6775d41e055b58716734b8e21e488a33f
 xlwings @ file:///C:/b/abs_bc7ro1xk70/croot/xlwings_1725400109105/work
 xyzservices @ file:///C:/Users/dev-admin/perseverance-python-buildout/croot/xyzservices_1699548906163/work
 yapf @ file:///C:/b/abs_8aidayep18/croot/yapf_1708964372649/work

@@ -38,7 +38,25 @@ echo ""
 echo "ℹ️  Note: Pydantic warnings about 'model_name' are normal and can be ignored"
 echo "Press Ctrl+C to stop..."
 
+<<<<<<< HEAD
 ./conda-env/python -m uvicorn main:app --host 127.0.0.1 --port 8010 --reload
+=======
+python -m uvicorn main:app --host 127.0.0.1 --port 8010 --reload
+echo "Press Ctrl+C to stop..."
+
+python -m uvicorn main:app --host 127.0.0.1 --port 8010 --reload
+echo "🔍 Testing document processing..."
+python -c "import fitz, docx, faiss; print('✅ Document processing OK')" || {
+    echo "❌ Document processing dependencies missing"
+    echo "💡 Please run ./setup-conda-env-api-llm.sh again"
+    exit 1
+}
+
+echo "🔍 Testing .env configuration..."
+if [ ! -f ".env" ]; then
+    echo "⚠️  .env file not found - API will start but Azure OpenAI won't work"
+else
+>>>>>>> 915073c6775d41e055b58716734b8e21e488a33f
     echo "✅ .env file found"
 fi
 
@@ -49,4 +67,11 @@ echo ""
 echo "ℹ️  Note: Pydantic warnings about 'model_name' are normal and can be ignored"
 echo "Press Ctrl+C to stop..."
 
+<<<<<<< HEAD
 ./conda-env/python -m uvicorn main:app --host 127.0.0.1 --port 8010 --reload
+=======
+python -m uvicorn main:app --host 127.0.0.1 --port 8010 --reload
+echo "Press Ctrl+C to stop..."
+
+python -m uvicorn main:app --host 127.0.0.1 --port 8010 --reload
+>>>>>>> 915073c6775d41e055b58716734b8e21e488a33f

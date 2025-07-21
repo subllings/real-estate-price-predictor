@@ -1,0 +1,1138 @@
+{
+  "build": "h3a9ed07_0_cpu",
+  "build_number": 0,
+  "channel": "https://conda.anaconda.org/conda-forge/win-64",
+  "constrains": [
+    "faiss-proc * cpu",
+    "faiss-gpu <0.0a0"
+  ],
+  "depends": [
+    "ucrt >=10.0.20348.0",
+    "vc >=14.2,<15",
+    "vc14_runtime >=14.29.30139",
+    "libblas >=3.9.0,<4.0a0",
+    "liblapack >=3.9.0,<4.0a0"
+  ],
+  "extracted_package_dir": "C:\\Users\\Neo\\.conda\\pkgs\\libfaiss-1.9.0-h3a9ed07_0_cpu",
+  "files": [
+    "Library/bin/faiss.dll",
+    "Library/include/faiss/AutoTune.h",
+    "Library/include/faiss/Clustering.h",
+    "Library/include/faiss/IVFlib.h",
+    "Library/include/faiss/Index.h",
+    "Library/include/faiss/Index2Layer.h",
+    "Library/include/faiss/IndexAdditiveQuantizer.h",
+    "Library/include/faiss/IndexAdditiveQuantizerFastScan.h",
+    "Library/include/faiss/IndexBinary.h",
+    "Library/include/faiss/IndexBinaryFlat.h",
+    "Library/include/faiss/IndexBinaryFromFloat.h",
+    "Library/include/faiss/IndexBinaryHNSW.h",
+    "Library/include/faiss/IndexBinaryHash.h",
+    "Library/include/faiss/IndexBinaryIVF.h",
+    "Library/include/faiss/IndexFastScan.h",
+    "Library/include/faiss/IndexFlat.h",
+    "Library/include/faiss/IndexFlatCodes.h",
+    "Library/include/faiss/IndexHNSW.h",
+    "Library/include/faiss/IndexIDMap.h",
+    "Library/include/faiss/IndexIVF.h",
+    "Library/include/faiss/IndexIVFAdditiveQuantizer.h",
+    "Library/include/faiss/IndexIVFAdditiveQuantizerFastScan.h",
+    "Library/include/faiss/IndexIVFFastScan.h",
+    "Library/include/faiss/IndexIVFFlat.h",
+    "Library/include/faiss/IndexIVFIndependentQuantizer.h",
+    "Library/include/faiss/IndexIVFPQ.h",
+    "Library/include/faiss/IndexIVFPQFastScan.h",
+    "Library/include/faiss/IndexIVFPQR.h",
+    "Library/include/faiss/IndexIVFSpectralHash.h",
+    "Library/include/faiss/IndexLSH.h",
+    "Library/include/faiss/IndexLattice.h",
+    "Library/include/faiss/IndexNNDescent.h",
+    "Library/include/faiss/IndexNSG.h",
+    "Library/include/faiss/IndexNeuralNetCodec.h",
+    "Library/include/faiss/IndexPQ.h",
+    "Library/include/faiss/IndexPQFastScan.h",
+    "Library/include/faiss/IndexPreTransform.h",
+    "Library/include/faiss/IndexRefine.h",
+    "Library/include/faiss/IndexReplicas.h",
+    "Library/include/faiss/IndexRowwiseMinMax.h",
+    "Library/include/faiss/IndexScalarQuantizer.h",
+    "Library/include/faiss/IndexShards.h",
+    "Library/include/faiss/IndexShardsIVF.h",
+    "Library/include/faiss/MatrixStats.h",
+    "Library/include/faiss/MetaIndexes.h",
+    "Library/include/faiss/MetricType.h",
+    "Library/include/faiss/VectorTransform.h",
+    "Library/include/faiss/clone_index.h",
+    "Library/include/faiss/impl/AdditiveQuantizer.h",
+    "Library/include/faiss/impl/AuxIndexStructures.h",
+    "Library/include/faiss/impl/CodePacker.h",
+    "Library/include/faiss/impl/DistanceComputer.h",
+    "Library/include/faiss/impl/FaissAssert.h",
+    "Library/include/faiss/impl/FaissException.h",
+    "Library/include/faiss/impl/HNSW.h",
+    "Library/include/faiss/impl/IDSelector.h",
+    "Library/include/faiss/impl/LocalSearchQuantizer.h",
+    "Library/include/faiss/impl/LookupTableScaler.h",
+    "Library/include/faiss/impl/NNDescent.h",
+    "Library/include/faiss/impl/NSG.h",
+    "Library/include/faiss/impl/PolysemousTraining.h",
+    "Library/include/faiss/impl/ProductAdditiveQuantizer.h",
+    "Library/include/faiss/impl/ProductQuantizer-inl.h",
+    "Library/include/faiss/impl/ProductQuantizer.h",
+    "Library/include/faiss/impl/Quantizer.h",
+    "Library/include/faiss/impl/ResidualQuantizer.h",
+    "Library/include/faiss/impl/ResultHandler.h",
+    "Library/include/faiss/impl/ScalarQuantizer.h",
+    "Library/include/faiss/impl/ThreadedIndex-inl.h",
+    "Library/include/faiss/impl/ThreadedIndex.h",
+    "Library/include/faiss/impl/code_distance/code_distance-avx2.h",
+    "Library/include/faiss/impl/code_distance/code_distance-avx512.h",
+    "Library/include/faiss/impl/code_distance/code_distance-generic.h",
+    "Library/include/faiss/impl/code_distance/code_distance.h",
+    "Library/include/faiss/impl/index_read_utils.h",
+    "Library/include/faiss/impl/io.h",
+    "Library/include/faiss/impl/io_macros.h",
+    "Library/include/faiss/impl/kmeans1d.h",
+    "Library/include/faiss/impl/lattice_Zn.h",
+    "Library/include/faiss/impl/platform_macros.h",
+    "Library/include/faiss/impl/pq4_fast_scan.h",
+    "Library/include/faiss/impl/residual_quantizer_encode_steps.h",
+    "Library/include/faiss/impl/simd_result_handlers.h",
+    "Library/include/faiss/index_factory.h",
+    "Library/include/faiss/index_io.h",
+    "Library/include/faiss/invlists/BlockInvertedLists.h",
+    "Library/include/faiss/invlists/DirectMap.h",
+    "Library/include/faiss/invlists/InvertedLists.h",
+    "Library/include/faiss/invlists/InvertedListsIOHook.h",
+    "Library/include/faiss/invlists/OnDiskInvertedLists.h",
+    "Library/include/faiss/utils/AlignedTable.h",
+    "Library/include/faiss/utils/Heap.h",
+    "Library/include/faiss/utils/NeuralNet.h",
+    "Library/include/faiss/utils/WorkerThread.h",
+    "Library/include/faiss/utils/approx_topk/approx_topk.h",
+    "Library/include/faiss/utils/approx_topk/avx2-inl.h",
+    "Library/include/faiss/utils/approx_topk/generic.h",
+    "Library/include/faiss/utils/approx_topk/mode.h",
+    "Library/include/faiss/utils/approx_topk_hamming/approx_topk_hamming.h",
+    "Library/include/faiss/utils/bf16.h",
+    "Library/include/faiss/utils/distances.h",
+    "Library/include/faiss/utils/distances_fused/avx512.h",
+    "Library/include/faiss/utils/distances_fused/distances_fused.h",
+    "Library/include/faiss/utils/distances_fused/simdlib_based.h",
+    "Library/include/faiss/utils/extra_distances-inl.h",
+    "Library/include/faiss/utils/extra_distances.h",
+    "Library/include/faiss/utils/fp16-arm.h",
+    "Library/include/faiss/utils/fp16-fp16c.h",
+    "Library/include/faiss/utils/fp16-inl.h",
+    "Library/include/faiss/utils/fp16.h",
+    "Library/include/faiss/utils/hamming-inl.h",
+    "Library/include/faiss/utils/hamming.h",
+    "Library/include/faiss/utils/hamming_distance/avx2-inl.h",
+    "Library/include/faiss/utils/hamming_distance/common.h",
+    "Library/include/faiss/utils/hamming_distance/generic-inl.h",
+    "Library/include/faiss/utils/hamming_distance/hamdis-inl.h",
+    "Library/include/faiss/utils/hamming_distance/neon-inl.h",
+    "Library/include/faiss/utils/ordered_key_value.h",
+    "Library/include/faiss/utils/partitioning.h",
+    "Library/include/faiss/utils/prefetch.h",
+    "Library/include/faiss/utils/quantize_lut.h",
+    "Library/include/faiss/utils/random.h",
+    "Library/include/faiss/utils/simdlib.h",
+    "Library/include/faiss/utils/simdlib_avx2.h",
+    "Library/include/faiss/utils/simdlib_avx512.h",
+    "Library/include/faiss/utils/simdlib_emulated.h",
+    "Library/include/faiss/utils/simdlib_neon.h",
+    "Library/include/faiss/utils/simdlib_ppc64.h",
+    "Library/include/faiss/utils/sorting.h",
+    "Library/include/faiss/utils/transpose/transpose-avx2-inl.h",
+    "Library/include/faiss/utils/transpose/transpose-avx512-inl.h",
+    "Library/include/faiss/utils/utils.h",
+    "Library/lib/cmake/faiss/faiss-config-version.cmake",
+    "Library/lib/cmake/faiss/faiss-config.cmake",
+    "Library/lib/cmake/faiss/faiss-targets-release.cmake",
+    "Library/lib/cmake/faiss/faiss-targets.cmake",
+    "Library/lib/faiss.lib"
+  ],
+  "fn": "libfaiss-1.9.0-h3a9ed07_0_cpu.conda",
+  "license": "MIT",
+  "link": {
+    "source": "C:\\Users\\Neo\\.conda\\pkgs\\libfaiss-1.9.0-h3a9ed07_0_cpu",
+    "type": 1
+  },
+  "md5": "810f57081314c7bd4efa53007b1a3ccc",
+  "name": "libfaiss",
+  "package_tarball_full_path": "C:\\Users\\Neo\\.conda\\pkgs\\libfaiss-1.9.0-h3a9ed07_0_cpu.conda",
+  "paths_data": {
+    "paths": [
+      {
+        "_path": "Library/bin/faiss.dll",
+        "path_type": "hardlink",
+        "sha256": "ae08b158f907149771b7df4fae52d2df308e8dc65a51989144bdcaf706ecab38",
+        "sha256_in_prefix": "ae08b158f907149771b7df4fae52d2df308e8dc65a51989144bdcaf706ecab38",
+        "size_in_bytes": 7404544
+      },
+      {
+        "_path": "Library/include/faiss/AutoTune.h",
+        "path_type": "hardlink",
+        "sha256": "a918c202c95c7c675fe4eb61d8e5d7cc4c09413df8300c94103e820eb9243ac9",
+        "sha256_in_prefix": "a918c202c95c7c675fe4eb61d8e5d7cc4c09413df8300c94103e820eb9243ac9",
+        "size_in_bytes": 6223
+      },
+      {
+        "_path": "Library/include/faiss/Clustering.h",
+        "path_type": "hardlink",
+        "sha256": "10aecdf10d7afefa67f6b341e5441091dea33d0e0b843a082deb908bd38c961b",
+        "sha256_in_prefix": "10aecdf10d7afefa67f6b341e5441091dea33d0e0b843a082deb908bd38c961b",
+        "size_in_bytes": 6653
+      },
+      {
+        "_path": "Library/include/faiss/IVFlib.h",
+        "path_type": "hardlink",
+        "sha256": "ddc1c99497fb13e318e94e5fc03d32e25c9405e84ca37663f28c16049cde4b42",
+        "sha256_in_prefix": "ddc1c99497fb13e318e94e5fc03d32e25c9405e84ca37663f28c16049cde4b42",
+        "size_in_bytes": 5661
+      },
+      {
+        "_path": "Library/include/faiss/Index.h",
+        "path_type": "hardlink",
+        "sha256": "d9fcd0d4dbb6466c7e3c1646692215aec77a86f9cf0b702c5817577c5a61bce8",
+        "sha256_in_prefix": "d9fcd0d4dbb6466c7e3c1646692215aec77a86f9cf0b702c5817577c5a61bce8",
+        "size_in_bytes": 11002
+      },
+      {
+        "_path": "Library/include/faiss/Index2Layer.h",
+        "path_type": "hardlink",
+        "sha256": "bc25b165e5da8f6bed764031f94fa37e752381c12cdd5e6cfb16a737bdc7c0f3",
+        "sha256_in_prefix": "bc25b165e5da8f6bed764031f94fa37e752381c12cdd5e6cfb16a737bdc7c0f3",
+        "size_in_bytes": 1932
+      },
+      {
+        "_path": "Library/include/faiss/IndexAdditiveQuantizer.h",
+        "path_type": "hardlink",
+        "sha256": "af876ea7506d2835ae04f55f1fa38c3f29a453015f2a2711426bb9b03443557c",
+        "sha256_in_prefix": "af876ea7506d2835ae04f55f1fa38c3f29a453015f2a2711426bb9b03443557c",
+        "size_in_bytes": 8668
+      },
+      {
+        "_path": "Library/include/faiss/IndexAdditiveQuantizerFastScan.h",
+        "path_type": "hardlink",
+        "sha256": "e6bb67dc6cc7313efb289becaf1b35bfe9b95f753e6f2baa9ef076cf5e198d83",
+        "sha256_in_prefix": "e6bb67dc6cc7313efb289becaf1b35bfe9b95f753e6f2baa9ef076cf5e198d83",
+        "size_in_bytes": 6909
+      },
+      {
+        "_path": "Library/include/faiss/IndexBinary.h",
+        "path_type": "hardlink",
+        "sha256": "7916f3f17cb5b623e61f75faa2e77646417866f5e6e65d1b935ead8b5ebeb037",
+        "sha256_in_prefix": "7916f3f17cb5b623e61f75faa2e77646417866f5e6e65d1b935ead8b5ebeb037",
+        "size_in_bytes": 5953
+      },
+      {
+        "_path": "Library/include/faiss/IndexBinaryFlat.h",
+        "path_type": "hardlink",
+        "sha256": "786a2808052fb502e76120f1ee9d0828f5fdb09739ae294ef713a29ce1447e32",
+        "sha256_in_prefix": "786a2808052fb502e76120f1ee9d0828f5fdb09739ae294ef713a29ce1447e32",
+        "size_in_bytes": 1753
+      },
+      {
+        "_path": "Library/include/faiss/IndexBinaryFromFloat.h",
+        "path_type": "hardlink",
+        "sha256": "49d39ec22446bb10605f0de9441d85cfe6d0e3538d61c8bd9cfd4ba2c0fea61a",
+        "sha256_in_prefix": "49d39ec22446bb10605f0de9441d85cfe6d0e3538d61c8bd9cfd4ba2c0fea61a",
+        "size_in_bytes": 1217
+      },
+      {
+        "_path": "Library/include/faiss/IndexBinaryHNSW.h",
+        "path_type": "hardlink",
+        "sha256": "e7eb68656563ebf325a0aef26546334bf0c73a65083fedf22fba60768423fa24",
+        "sha256_in_prefix": "e7eb68656563ebf325a0aef26546334bf0c73a65083fedf22fba60768423fa24",
+        "size_in_bytes": 1383
+      },
+      {
+        "_path": "Library/include/faiss/IndexBinaryHash.h",
+        "path_type": "hardlink",
+        "sha256": "715b81440b4e0171df88e97741ae4962ab4d6884774b7ea1a305b3f73d2f8a84",
+        "sha256_in_prefix": "715b81440b4e0171df88e97741ae4962ab4d6884774b7ea1a305b3f73d2f8a84",
+        "size_in_bytes": 3121
+      },
+      {
+        "_path": "Library/include/faiss/IndexBinaryIVF.h",
+        "path_type": "hardlink",
+        "sha256": "7a95ed9301d1520aa0445745af12a57123dc662e81aca6814a4e9840f04a7404",
+        "sha256_in_prefix": "7a95ed9301d1520aa0445745af12a57123dc662e81aca6814a4e9840f04a7404",
+        "size_in_bytes": 8418
+      },
+      {
+        "_path": "Library/include/faiss/IndexFastScan.h",
+        "path_type": "hardlink",
+        "sha256": "cb7d79fecaaaf50991eb4da95f260cb2ec1cf2a00df0b1ed1befc45d45c16ba0",
+        "sha256_in_prefix": "cb7d79fecaaaf50991eb4da95f260cb2ec1cf2a00df0b1ed1befc45d45c16ba0",
+        "size_in_bytes": 3835
+      },
+      {
+        "_path": "Library/include/faiss/IndexFlat.h",
+        "path_type": "hardlink",
+        "sha256": "0c376c6db55a328e620dcda8fbf8e62ea12d7236bf038807534c7ab1825dff52",
+        "sha256_in_prefix": "0c376c6db55a328e620dcda8fbf8e62ea12d7236bf038807534c7ab1825dff52",
+        "size_in_bytes": 3617
+      },
+      {
+        "_path": "Library/include/faiss/IndexFlatCodes.h",
+        "path_type": "hardlink",
+        "sha256": "2457f95e7f68bd521fd13c5f644f7872b62bb48e966b35661f0dd915cf0c5be1",
+        "sha256_in_prefix": "2457f95e7f68bd521fd13c5f644f7872b62bb48e966b35661f0dd915cf0c5be1",
+        "size_in_bytes": 2414
+      },
+      {
+        "_path": "Library/include/faiss/IndexHNSW.h",
+        "path_type": "hardlink",
+        "sha256": "8e9e3647d71377332ff2124948ff9a410c93de423d7b494a299c87fba68954c8",
+        "sha256_in_prefix": "8e9e3647d71377332ff2124948ff9a410c93de423d7b494a299c87fba68954c8",
+        "size_in_bytes": 5663
+      },
+      {
+        "_path": "Library/include/faiss/IndexIDMap.h",
+        "path_type": "hardlink",
+        "sha256": "87a48b4ac776b044d32ed830ecc39be3d70c1ed113ab95d5d068c03ab6bdb301",
+        "sha256_in_prefix": "87a48b4ac776b044d32ed830ecc39be3d70c1ed113ab95d5d068c03ab6bdb301",
+        "size_in_bytes": 3783
+      },
+      {
+        "_path": "Library/include/faiss/IndexIVF.h",
+        "path_type": "hardlink",
+        "sha256": "ab59c8bf75758e6438d4a09541cc5cc22f32301be8e1c395bf627061ee67f9dc",
+        "sha256_in_prefix": "ab59c8bf75758e6438d4a09541cc5cc22f32301be8e1c395bf627061ee67f9dc",
+        "size_in_bytes": 19183
+      },
+      {
+        "_path": "Library/include/faiss/IndexIVFAdditiveQuantizer.h",
+        "path_type": "hardlink",
+        "sha256": "be4ca29b3c4032c8a85f94ccfbe6442f2227d97e6684aba9f20cd7ee36cec690",
+        "sha256_in_prefix": "be4ca29b3c4032c8a85f94ccfbe6442f2227d97e6684aba9f20cd7ee36cec690",
+        "size_in_bytes": 5878
+      },
+      {
+        "_path": "Library/include/faiss/IndexIVFAdditiveQuantizerFastScan.h",
+        "path_type": "hardlink",
+        "sha256": "e5c761bf64992d617b71e14fd9157aec548242006c00e22bf4648c656b92582c",
+        "sha256_in_prefix": "e5c761bf64992d617b71e14fd9157aec548242006c00e22bf4648c656b92582c",
+        "size_in_bytes": 5020
+      },
+      {
+        "_path": "Library/include/faiss/IndexIVFFastScan.h",
+        "path_type": "hardlink",
+        "sha256": "665733df3bd20e9672f2dfc5047d35bcf522b74358f46af1e7570ad8cac45f73",
+        "sha256_in_prefix": "665733df3bd20e9672f2dfc5047d35bcf522b74358f46af1e7570ad8cac45f73",
+        "size_in_bytes": 7271
+      },
+      {
+        "_path": "Library/include/faiss/IndexIVFFlat.h",
+        "path_type": "hardlink",
+        "sha256": "320d071b28b17a00f81a16398f75b36caac1e69fa7fce5d0ab4d29e3abdd1ed2",
+        "sha256_in_prefix": "320d071b28b17a00f81a16398f75b36caac1e69fa7fce5d0ab4d29e3abdd1ed2",
+        "size_in_bytes": 3041
+      },
+      {
+        "_path": "Library/include/faiss/IndexIVFIndependentQuantizer.h",
+        "path_type": "hardlink",
+        "sha256": "cd43f992630400389237d83310810300a7ac285360d065b96e94088beaab18b7",
+        "sha256_in_prefix": "cd43f992630400389237d83310810300a7ac285360d065b96e94088beaab18b7",
+        "size_in_bytes": 1446
+      },
+      {
+        "_path": "Library/include/faiss/IndexIVFPQ.h",
+        "path_type": "hardlink",
+        "sha256": "30c5606883844ced0016902065bb184be5726ae53869334b9d24bf0104258424",
+        "sha256_in_prefix": "30c5606883844ced0016902065bb184be5726ae53869334b9d24bf0104258424",
+        "size_in_bytes": 5936
+      },
+      {
+        "_path": "Library/include/faiss/IndexIVFPQFastScan.h",
+        "path_type": "hardlink",
+        "sha256": "f0145375d5550b0fa8e3d126964f639509673defeb3c619b94e0e4aadfb99886",
+        "sha256_in_prefix": "f0145375d5550b0fa8e3d126964f639509673defeb3c619b94e0e4aadfb99886",
+        "size_in_bytes": 2563
+      },
+      {
+        "_path": "Library/include/faiss/IndexIVFPQR.h",
+        "path_type": "hardlink",
+        "sha256": "ac174ac877ec64297631ffc9b9ffd7d60c441c6816b5e53d0447cda338d29be6",
+        "sha256_in_prefix": "ac174ac877ec64297631ffc9b9ffd7d60c441c6816b5e53d0447cda338d29be6",
+        "size_in_bytes": 2040
+      },
+      {
+        "_path": "Library/include/faiss/IndexIVFSpectralHash.h",
+        "path_type": "hardlink",
+        "sha256": "01427cade328631c49788e0886912ff14903e796d46433eb50da4478f023340d",
+        "sha256_in_prefix": "01427cade328631c49788e0886912ff14903e796d46433eb50da4478f023340d",
+        "size_in_bytes": 2480
+      },
+      {
+        "_path": "Library/include/faiss/IndexLSH.h",
+        "path_type": "hardlink",
+        "sha256": "cfddfbb7d70a375294d5195d072d5bd34289fe92fb2b036a02f080bc0939fe4e",
+        "sha256_in_prefix": "cfddfbb7d70a375294d5195d072d5bd34289fe92fb2b036a02f080bc0939fe4e",
+        "size_in_bytes": 2023
+      },
+      {
+        "_path": "Library/include/faiss/IndexLattice.h",
+        "path_type": "hardlink",
+        "sha256": "b528852210e44f494f66a9b3243532f79a02ab29cf8ffc5e3de6a8d0c6ea54bd",
+        "sha256_in_prefix": "b528852210e44f494f66a9b3243532f79a02ab29cf8ffc5e3de6a8d0c6ea54bd",
+        "size_in_bytes": 1147
+      },
+      {
+        "_path": "Library/include/faiss/IndexNNDescent.h",
+        "path_type": "hardlink",
+        "sha256": "6b7403adf7244a382690ee6641e3700e4f10259312432410ddc53ca2e482749a",
+        "sha256_in_prefix": "6b7403adf7244a382690ee6641e3700e4f10259312432410ddc53ca2e482749a",
+        "size_in_bytes": 1704
+      },
+      {
+        "_path": "Library/include/faiss/IndexNSG.h",
+        "path_type": "hardlink",
+        "sha256": "96011bb70747024548a90e8c6f61417cac08adcc16cfc891654e48e89595b74a",
+        "sha256_in_prefix": "96011bb70747024548a90e8c6f61417cac08adcc16cfc891654e48e89595b74a",
+        "size_in_bytes": 2680
+      },
+      {
+        "_path": "Library/include/faiss/IndexNeuralNetCodec.h",
+        "path_type": "hardlink",
+        "sha256": "afdd15c545c0d3ca8c9e22a226d795fb6db3285e9ef27ee938f7888744a0e464",
+        "sha256_in_prefix": "afdd15c545c0d3ca8c9e22a226d795fb6db3285e9ef27ee938f7888744a0e464",
+        "size_in_bytes": 1071
+      },
+      {
+        "_path": "Library/include/faiss/IndexPQ.h",
+        "path_type": "hardlink",
+        "sha256": "f2aa782f5d1e2e57120552b271e7b1e9914c7af0d74e4a8687d266f9df70ab95",
+        "sha256_in_prefix": "f2aa782f5d1e2e57120552b271e7b1e9914c7af0d74e4a8687d266f9df70ab95",
+        "size_in_bytes": 5806
+      },
+      {
+        "_path": "Library/include/faiss/IndexPQFastScan.h",
+        "path_type": "hardlink",
+        "sha256": "a4161fd10ba73c17ab060f87d25e000111a711eacb6e64db60e51249f565c85c",
+        "sha256_in_prefix": "a4161fd10ba73c17ab060f87d25e000111a711eacb6e64db60e51249f565c85c",
+        "size_in_bytes": 1826
+      },
+      {
+        "_path": "Library/include/faiss/IndexPreTransform.h",
+        "path_type": "hardlink",
+        "sha256": "b135ecc2e12b38a0501b48ed608310c211d1696bcd5a18ecf5bb46ceac63a40b",
+        "sha256_in_prefix": "b135ecc2e12b38a0501b48ed608310c211d1696bcd5a18ecf5bb46ceac63a40b",
+        "size_in_bytes": 3209
+      },
+      {
+        "_path": "Library/include/faiss/IndexRefine.h",
+        "path_type": "hardlink",
+        "sha256": "7352f597ef3fd77e81454afd9eb99c62b517eed4b7f43e3239136a8e1d75ca77",
+        "sha256_in_prefix": "7352f597ef3fd77e81454afd9eb99c62b517eed4b7f43e3239136a8e1d75ca77",
+        "size_in_bytes": 2618
+      },
+      {
+        "_path": "Library/include/faiss/IndexReplicas.h",
+        "path_type": "hardlink",
+        "sha256": "9434bc611d9e538854c1c240a9bd913c287ffa8ed3cd9ccc449ffee6e2f62c0d",
+        "sha256_in_prefix": "9434bc611d9e538854c1c240a9bd913c287ffa8ed3cd9ccc449ffee6e2f62c0d",
+        "size_in_bytes": 2788
+      },
+      {
+        "_path": "Library/include/faiss/IndexRowwiseMinMax.h",
+        "path_type": "hardlink",
+        "sha256": "2ee57802f12a112e9662b58d9ac8ad30064a45ae73bfd2aa7b3abd9692f5aa6c",
+        "sha256_in_prefix": "2ee57802f12a112e9662b58d9ac8ad30064a45ae73bfd2aa7b3abd9692f5aa6c",
+        "size_in_bytes": 3354
+      },
+      {
+        "_path": "Library/include/faiss/IndexScalarQuantizer.h",
+        "path_type": "hardlink",
+        "sha256": "438dfd2dc31b7789abd8d0e3a1457507b77306935d6c41510701d80d987e02ed",
+        "sha256_in_prefix": "438dfd2dc31b7789abd8d0e3a1457507b77306935d6c41510701d80d987e02ed",
+        "size_in_bytes": 3000
+      },
+      {
+        "_path": "Library/include/faiss/IndexShards.h",
+        "path_type": "hardlink",
+        "sha256": "3f43651562476bf1a9ec144778142fe97f59d02de8c47f1f6e8d4e41f6f7ec3e",
+        "sha256_in_prefix": "3f43651562476bf1a9ec144778142fe97f59d02de8c47f1f6e8d4e41f6f7ec3e",
+        "size_in_bytes": 3569
+      },
+      {
+        "_path": "Library/include/faiss/IndexShardsIVF.h",
+        "path_type": "hardlink",
+        "sha256": "ec153cbb382bf114d3217acc841aa1681ee7879d06a2f61f4840c5864a87a754",
+        "sha256_in_prefix": "ec153cbb382bf114d3217acc841aa1681ee7879d06a2f61f4840c5864a87a754",
+        "size_in_bytes": 1114
+      },
+      {
+        "_path": "Library/include/faiss/MatrixStats.h",
+        "path_type": "hardlink",
+        "sha256": "3a3ef7d92e5e460c3fcc67d0b7638c256f73cd87bc993aea57429ac31bf2132f",
+        "sha256_in_prefix": "3a3ef7d92e5e460c3fcc67d0b7638c256f73cd87bc993aea57429ac31bf2132f",
+        "size_in_bytes": 1567
+      },
+      {
+        "_path": "Library/include/faiss/MetaIndexes.h",
+        "path_type": "hardlink",
+        "sha256": "15ec6a119c26b38830b89bf3fcf1987138447df37bc9aada0928fa506ae630a1",
+        "sha256_in_prefix": "15ec6a119c26b38830b89bf3fcf1987138447df37bc9aada0928fa506ae630a1",
+        "size_in_bytes": 1908
+      },
+      {
+        "_path": "Library/include/faiss/MetricType.h",
+        "path_type": "hardlink",
+        "sha256": "85626a88d1e79a39de00354785d68ee33229d758e55766f5b28459bb145f85ef",
+        "sha256_in_prefix": "85626a88d1e79a39de00354785d68ee33229d758e55766f5b28459bb145f85ef",
+        "size_in_bytes": 1725
+      },
+      {
+        "_path": "Library/include/faiss/VectorTransform.h",
+        "path_type": "hardlink",
+        "sha256": "7d289b441c702f70523139d37f577faaae1cefc5fc9949a2fcae2508bcc7959c",
+        "sha256_in_prefix": "7d289b441c702f70523139d37f577faaae1cefc5fc9949a2fcae2508bcc7959c",
+        "size_in_bytes": 9640
+      },
+      {
+        "_path": "Library/include/faiss/clone_index.h",
+        "path_type": "hardlink",
+        "sha256": "4a2d97f64cd97dd9cebc2e9b5e60d92fa00374230c6dd12abdaeab439b85e4a3",
+        "sha256_in_prefix": "4a2d97f64cd97dd9cebc2e9b5e60d92fa00374230c6dd12abdaeab439b85e4a3",
+        "size_in_bytes": 916
+      },
+      {
+        "_path": "Library/include/faiss/impl/AdditiveQuantizer.h",
+        "path_type": "hardlink",
+        "sha256": "010fcbfb7a2ab5b7b01cc57046bad564a19bba9180bd7b8b7cb0b2c9fcdd79b3",
+        "sha256_in_prefix": "010fcbfb7a2ab5b7b01cc57046bad564a19bba9180bd7b8b7cb0b2c9fcdd79b3",
+        "size_in_bytes": 7208
+      },
+      {
+        "_path": "Library/include/faiss/impl/AuxIndexStructures.h",
+        "path_type": "hardlink",
+        "sha256": "679c657e53303f8ed70ccf0fcb2ca382a7d6487af932bc9a1416b32d582742bf",
+        "sha256_in_prefix": "679c657e53303f8ed70ccf0fcb2ca382a7d6487af932bc9a1416b32d582742bf",
+        "size_in_bytes": 5950
+      },
+      {
+        "_path": "Library/include/faiss/impl/CodePacker.h",
+        "path_type": "hardlink",
+        "sha256": "85b95704c5ef8084f9e591b5885c59bf5d3169fd9347fc1ce5d8c8790d1f46c6",
+        "sha256_in_prefix": "85b95704c5ef8084f9e591b5885c59bf5d3169fd9347fc1ce5d8c8790d1f46c6",
+        "size_in_bytes": 2566
+      },
+      {
+        "_path": "Library/include/faiss/impl/DistanceComputer.h",
+        "path_type": "hardlink",
+        "sha256": "cd42ed87e664e8f8d80bbb6fda0cc29da0a2b901034a1b7c60dc4ae1def979fe",
+        "sha256_in_prefix": "cd42ed87e664e8f8d80bbb6fda0cc29da0a2b901034a1b7c60dc4ae1def979fe",
+        "size_in_bytes": 3988
+      },
+      {
+        "_path": "Library/include/faiss/impl/FaissAssert.h",
+        "path_type": "hardlink",
+        "sha256": "b23a66b7bade08f7d39b7db99bfdd59f6c5b885536028322399bda6cf48f11e5",
+        "sha256_in_prefix": "b23a66b7bade08f7d39b7db99bfdd59f6c5b885536028322399bda6cf48f11e5",
+        "size_in_bytes": 4722
+      },
+      {
+        "_path": "Library/include/faiss/impl/FaissException.h",
+        "path_type": "hardlink",
+        "sha256": "9803de62414f3f6f9790893af443f61636faa65cc3be84170077670752a25508",
+        "sha256_in_prefix": "9803de62414f3f6f9790893af443f61636faa65cc3be84170077670752a25508",
+        "size_in_bytes": 1529
+      },
+      {
+        "_path": "Library/include/faiss/impl/HNSW.h",
+        "path_type": "hardlink",
+        "sha256": "971f6cb33b0fe5e6b2d3c0f374ee1b0ae259a9b90f21c649cd58e9d2777f35a2",
+        "sha256_in_prefix": "971f6cb33b0fe5e6b2d3c0f374ee1b0ae259a9b90f21c649cd58e9d2777f35a2",
+        "size_in_bytes": 7955
+      },
+      {
+        "_path": "Library/include/faiss/impl/IDSelector.h",
+        "path_type": "hardlink",
+        "sha256": "5dd7f7629bce6582957fb47f5dbcd506c1b7e38468020fe436a19ca024174d26",
+        "sha256_in_prefix": "5dd7f7629bce6582957fb47f5dbcd506c1b7e38468020fe436a19ca024174d26",
+        "size_in_bytes": 4965
+      },
+      {
+        "_path": "Library/include/faiss/impl/LocalSearchQuantizer.h",
+        "path_type": "hardlink",
+        "sha256": "54e05b595981fdc5fcf0ea025984bfd10f6730e0c48cd91557341c92fd447e0c",
+        "sha256_in_prefix": "54e05b595981fdc5fcf0ea025984bfd10f6730e0c48cd91557341c92fd447e0c",
+        "size_in_bytes": 6998
+      },
+      {
+        "_path": "Library/include/faiss/impl/LookupTableScaler.h",
+        "path_type": "hardlink",
+        "sha256": "7d5b7c70446036f7008766bc7578cbf11fb85143744fa9092b6b4afe37684583",
+        "sha256_in_prefix": "7d5b7c70446036f7008766bc7578cbf11fb85143744fa9092b6b4afe37684583",
+        "size_in_bytes": 3308
+      },
+      {
+        "_path": "Library/include/faiss/impl/NNDescent.h",
+        "path_type": "hardlink",
+        "sha256": "794733ac9c8232000a9ea7e0eebeda10ad75f923ceef2b675e95c67c0b689f5a",
+        "sha256_in_prefix": "794733ac9c8232000a9ea7e0eebeda10ad75f923ceef2b675e95c67c0b689f5a",
+        "size_in_bytes": 3953
+      },
+      {
+        "_path": "Library/include/faiss/impl/NSG.h",
+        "path_type": "hardlink",
+        "sha256": "b94e0846edf465dcf380903946a27f17572909bbb02da9d00d2737bd09954916",
+        "sha256_in_prefix": "b94e0846edf465dcf380903946a27f17572909bbb02da9d00d2737bd09954916",
+        "size_in_bytes": 5297
+      },
+      {
+        "_path": "Library/include/faiss/impl/PolysemousTraining.h",
+        "path_type": "hardlink",
+        "sha256": "67ba9cdd27e6446bb7d61491062728869a4003e3b1eb720ee83718e6cc9742e7",
+        "sha256_in_prefix": "67ba9cdd27e6446bb7d61491062728869a4003e3b1eb720ee83718e6cc9742e7",
+        "size_in_bytes": 5175
+      },
+      {
+        "_path": "Library/include/faiss/impl/ProductAdditiveQuantizer.h",
+        "path_type": "hardlink",
+        "sha256": "0e7bddc7823d45a88a20ad5c9d633fd2d2a9d81f74ea74a86ac29c3b4be18489",
+        "sha256_in_prefix": "0e7bddc7823d45a88a20ad5c9d633fd2d2a9d81f74ea74a86ac29c3b4be18489",
+        "size_in_bytes": 4610
+      },
+      {
+        "_path": "Library/include/faiss/impl/ProductQuantizer-inl.h",
+        "path_type": "hardlink",
+        "sha256": "2c9f2af922f6e799ae12edaa08c68ab16c9a438c46ea5f0308fd0d2077a945d3",
+        "sha256_in_prefix": "2c9f2af922f6e799ae12edaa08c68ab16c9a438c46ea5f0308fd0d2077a945d3",
+        "size_in_bytes": 2561
+      },
+      {
+        "_path": "Library/include/faiss/impl/ProductQuantizer.h",
+        "path_type": "hardlink",
+        "sha256": "07c6c472b8726d9a4db0b55e20b6282e13ca631c293d7e1e3f056d30fc2ac508",
+        "sha256_in_prefix": "07c6c472b8726d9a4db0b55e20b6282e13ca631c293d7e1e3f056d30fc2ac508",
+        "size_in_bytes": 7721
+      },
+      {
+        "_path": "Library/include/faiss/impl/Quantizer.h",
+        "path_type": "hardlink",
+        "sha256": "a51a104fb8d33c6d9bac320bafdc78211882e869cf67b8d50e9aeef63ba5a09e",
+        "sha256_in_prefix": "a51a104fb8d33c6d9bac320bafdc78211882e869cf67b8d50e9aeef63ba5a09e",
+        "size_in_bytes": 1202
+      },
+      {
+        "_path": "Library/include/faiss/impl/ResidualQuantizer.h",
+        "path_type": "hardlink",
+        "sha256": "7f0b7b1f082f0323353107a839dc044510454fbac91cdb52b94692c8555fe6d9",
+        "sha256_in_prefix": "7f0b7b1f082f0323353107a839dc044510454fbac91cdb52b94692c8555fe6d9",
+        "size_in_bytes": 5336
+      },
+      {
+        "_path": "Library/include/faiss/impl/ResultHandler.h",
+        "path_type": "hardlink",
+        "sha256": "7fdb7bc7697cb5a7ac09974dc50ff8fbd34c8aeeb882fae76d67538d2d523036",
+        "sha256_in_prefix": "7fdb7bc7697cb5a7ac09974dc50ff8fbd34c8aeeb882fae76d67538d2d523036",
+        "size_in_bytes": 21483
+      },
+      {
+        "_path": "Library/include/faiss/impl/ScalarQuantizer.h",
+        "path_type": "hardlink",
+        "sha256": "d2f04be31ca565d6d65a142e39609eb99f9d32b035f4af8c0fffd3cd9866f95c",
+        "sha256_in_prefix": "d2f04be31ca565d6d65a142e39609eb99f9d32b035f4af8c0fffd3cd9866f95c",
+        "size_in_bytes": 3682
+      },
+      {
+        "_path": "Library/include/faiss/impl/ThreadedIndex-inl.h",
+        "path_type": "hardlink",
+        "sha256": "e3beba17c3549ada34a2d32d8d2439520dce5b66d33b87f2ad5160e74c68aad9",
+        "sha256_in_prefix": "e3beba17c3549ada34a2d32d8d2439520dce5b66d33b87f2ad5160e74c68aad9",
+        "size_in_bytes": 5636
+      },
+      {
+        "_path": "Library/include/faiss/impl/ThreadedIndex.h",
+        "path_type": "hardlink",
+        "sha256": "0f56d1282c060a9651ed0d0c05f619a4ce130e1ae6bac8c840d51a913ec41874",
+        "sha256_in_prefix": "0f56d1282c060a9651ed0d0c05f619a4ce130e1ae6bac8c840d51a913ec41874",
+        "size_in_bytes": 2612
+      },
+      {
+        "_path": "Library/include/faiss/impl/code_distance/code_distance-avx2.h",
+        "path_type": "hardlink",
+        "sha256": "b8c62a51d8dbd64061b3c143fa353ba35b63f9413bd640508cd9cef7c55034a9",
+        "sha256_in_prefix": "b8c62a51d8dbd64061b3c143fa353ba35b63f9413bd640508cd9cef7c55034a9",
+        "size_in_bytes": 16878
+      },
+      {
+        "_path": "Library/include/faiss/impl/code_distance/code_distance-avx512.h",
+        "path_type": "hardlink",
+        "sha256": "e2f786172f5275376a3e1e3b781245dc8534b9b433cb8786322e77bce494f570",
+        "sha256_in_prefix": "e2f786172f5275376a3e1e3b781245dc8534b9b433cb8786322e77bce494f570",
+        "size_in_bytes": 7866
+      },
+      {
+        "_path": "Library/include/faiss/impl/code_distance/code_distance-generic.h",
+        "path_type": "hardlink",
+        "sha256": "f4f2b53b188561d67823b3d719244c5d652357a091479ebe122941cc05733bf9",
+        "sha256_in_prefix": "f4f2b53b188561d67823b3d719244c5d652357a091479ebe122941cc05733bf9",
+        "size_in_bytes": 2145
+      },
+      {
+        "_path": "Library/include/faiss/impl/code_distance/code_distance.h",
+        "path_type": "hardlink",
+        "sha256": "01ce073ed9d8f4cff2bb0de83049170bf90fb3e749a4f77bce9eabf37ad30c55",
+        "sha256_in_prefix": "01ce073ed9d8f4cff2bb0de83049170bf90fb3e749a4f77bce9eabf37ad30c55",
+        "size_in_bytes": 3711
+      },
+      {
+        "_path": "Library/include/faiss/impl/index_read_utils.h",
+        "path_type": "hardlink",
+        "sha256": "2ba25fba06e22bc8147485298b550fd9b3c3bdebe4acca4d7600675968bc0438",
+        "sha256_in_prefix": "2ba25fba06e22bc8147485298b550fd9b3c3bdebe4acca4d7600675968bc0438",
+        "size_in_bytes": 974
+      },
+      {
+        "_path": "Library/include/faiss/impl/io.h",
+        "path_type": "hardlink",
+        "sha256": "5dab7fa403b516ad5494be0b7bc9ebe9099165a3a799db234f39dbd536f9a111",
+        "sha256_in_prefix": "5dab7fa403b516ad5494be0b7bc9ebe9099165a3a799db234f39dbd536f9a111",
+        "size_in_bytes": 3894
+      },
+      {
+        "_path": "Library/include/faiss/impl/io_macros.h",
+        "path_type": "hardlink",
+        "sha256": "76f4dfeb4f3eac500d9598e219d194116945b881ab29196d1f38d8ca70803c79",
+        "sha256_in_prefix": "76f4dfeb4f3eac500d9598e219d194116945b881ab29196d1f38d8ca70803c79",
+        "size_in_bytes": 3863
+      },
+      {
+        "_path": "Library/include/faiss/impl/kmeans1d.h",
+        "path_type": "hardlink",
+        "sha256": "c2eccbead220b6e8d1b643b5cf0f02878b9c7a44181e823fe1440cd680533ca9",
+        "sha256_in_prefix": "c2eccbead220b6e8d1b643b5cf0f02878b9c7a44181e823fe1440cd680533ca9",
+        "size_in_bytes": 1274
+      },
+      {
+        "_path": "Library/include/faiss/impl/lattice_Zn.h",
+        "path_type": "hardlink",
+        "sha256": "eb39d3d4b4bb4ca12101cee45933fdc2e2066f8ecf9241dcbf1bfbf50574c165",
+        "sha256_in_prefix": "eb39d3d4b4bb4ca12101cee45933fdc2e2066f8ecf9241dcbf1bfbf50574c165",
+        "size_in_bytes": 5004
+      },
+      {
+        "_path": "Library/include/faiss/impl/platform_macros.h",
+        "path_type": "hardlink",
+        "sha256": "00f4847e522be9c070c011614eab028ac13dd9f9f029d5b0056a15947d2b237d",
+        "sha256_in_prefix": "00f4847e522be9c070c011614eab028ac13dd9f9f029d5b0056a15947d2b237d",
+        "size_in_bytes": 5590
+      },
+      {
+        "_path": "Library/include/faiss/impl/pq4_fast_scan.h",
+        "path_type": "hardlink",
+        "sha256": "599cb5cd10d683da83eb5f61bb2933a772f9d414f19de94b18e8e23b51bf58a8",
+        "sha256_in_prefix": "599cb5cd10d683da83eb5f61bb2933a772f9d414f19de94b18e8e23b51bf58a8",
+        "size_in_bytes": 5942
+      },
+      {
+        "_path": "Library/include/faiss/impl/residual_quantizer_encode_steps.h",
+        "path_type": "hardlink",
+        "sha256": "c43226711cb6331d36bb6ad84ba33dac9239ce0392fea8b1495707408b85b425",
+        "sha256_in_prefix": "c43226711cb6331d36bb6ad84ba33dac9239ce0392fea8b1495707408b85b425",
+        "size_in_bytes": 5916
+      },
+      {
+        "_path": "Library/include/faiss/impl/simd_result_handlers.h",
+        "path_type": "hardlink",
+        "sha256": "baf3f4b73c0eb87280af90e7361b991a98d8a7e334efa80b268435be3d889a5e",
+        "sha256_in_prefix": "baf3f4b73c0eb87280af90e7361b991a98d8a7e334efa80b268435be3d889a5e",
+        "size_in_bytes": 24071
+      },
+      {
+        "_path": "Library/include/faiss/index_factory.h",
+        "path_type": "hardlink",
+        "sha256": "df5a6b27832828fa4be66c38d5004e94cfed143969b0a644be48330dc3b095cf",
+        "sha256_in_prefix": "df5a6b27832828fa4be66c38d5004e94cfed143969b0a644be48330dc3b095cf",
+        "size_in_bytes": 666
+      },
+      {
+        "_path": "Library/include/faiss/index_io.h",
+        "path_type": "hardlink",
+        "sha256": "1a67be685f717941da0a0b363437099348bfeb1cdb025cb876c9097f4aeba1eb",
+        "sha256_in_prefix": "1a67be685f717941da0a0b363437099348bfeb1cdb025cb876c9097f4aeba1eb",
+        "size_in_bytes": 3182
+      },
+      {
+        "_path": "Library/include/faiss/invlists/BlockInvertedLists.h",
+        "path_type": "hardlink",
+        "sha256": "ee3b8936a40f229f4b4649c6772b330057fdce6a16db40bd11046730b26878a0",
+        "sha256_in_prefix": "ee3b8936a40f229f4b4649c6772b330057fdce6a16db40bd11046730b26878a0",
+        "size_in_bytes": 2697
+      },
+      {
+        "_path": "Library/include/faiss/invlists/DirectMap.h",
+        "path_type": "hardlink",
+        "sha256": "54526e282134a745f8ed5978ec0723ba8e6be256778b57fb496d20b2fe2cdc05",
+        "sha256_in_prefix": "54526e282134a745f8ed5978ec0723ba8e6be256778b57fb496d20b2fe2cdc05",
+        "size_in_bytes": 2623
+      },
+      {
+        "_path": "Library/include/faiss/invlists/InvertedLists.h",
+        "path_type": "hardlink",
+        "sha256": "9ff06dca28810c2d19764b176760fc5d93a83b5cdce189331cd485b2f7f4976d",
+        "sha256_in_prefix": "9ff06dca28810c2d19764b176760fc5d93a83b5cdce189331cd485b2f7f4976d",
+        "size_in_bytes": 13461
+      },
+      {
+        "_path": "Library/include/faiss/invlists/InvertedListsIOHook.h",
+        "path_type": "hardlink",
+        "sha256": "cdfd42655029e063723441900e469301053a5ae3763f7e31a99cbd5926c57f30",
+        "sha256_in_prefix": "cdfd42655029e063723441900e469301053a5ae3763f7e31a99cbd5926c57f30",
+        "size_in_bytes": 2048
+      },
+      {
+        "_path": "Library/include/faiss/invlists/OnDiskInvertedLists.h",
+        "path_type": "hardlink",
+        "sha256": "b3017ae2164e503d81deb0d1c974d32b90d96ed7acb0e68d51ea15d5e9d36e43",
+        "sha256_in_prefix": "b3017ae2164e503d81deb0d1c974d32b90d96ed7acb0e68d51ea15d5e9d36e43",
+        "size_in_bytes": 4568
+      },
+      {
+        "_path": "Library/include/faiss/utils/AlignedTable.h",
+        "path_type": "hardlink",
+        "sha256": "12cf2785b09817a643da0807bcf7a2ac161c69525afed0d5d21afb55e93bd41b",
+        "sha256_in_prefix": "12cf2785b09817a643da0807bcf7a2ac161c69525afed0d5d21afb55e93bd41b",
+        "size_in_bytes": 3743
+      },
+      {
+        "_path": "Library/include/faiss/utils/Heap.h",
+        "path_type": "hardlink",
+        "sha256": "86d9c164713f866efedcd402b24fab30a4a1a2e3a52b97cada5ce2e6c98095e6",
+        "sha256_in_prefix": "86d9c164713f866efedcd402b24fab30a4a1a2e3a52b97cada5ce2e6c98095e6",
+        "size_in_bytes": 18369
+      },
+      {
+        "_path": "Library/include/faiss/utils/NeuralNet.h",
+        "path_type": "hardlink",
+        "sha256": "90e6c1fa818d54fc8bf1ec1b132b17a04720d88018ff08ef9c4a3f2166b6e7ee",
+        "sha256_in_prefix": "90e6c1fa818d54fc8bf1ec1b132b17a04720d88018ff08ef9c4a3f2166b6e7ee",
+        "size_in_bytes": 3600
+      },
+      {
+        "_path": "Library/include/faiss/utils/WorkerThread.h",
+        "path_type": "hardlink",
+        "sha256": "753e9dbf6ae318bfc1cfc68bbe41af5b1cbcdd21b4ccc2a686ccaffd7d9f9ef2",
+        "sha256_in_prefix": "753e9dbf6ae318bfc1cfc68bbe41af5b1cbcdd21b4ccc2a686ccaffd7d9f9ef2",
+        "size_in_bytes": 1554
+      },
+      {
+        "_path": "Library/include/faiss/utils/approx_topk/approx_topk.h",
+        "path_type": "hardlink",
+        "sha256": "721ed3a5cfe939e49ef03cd326f672559063594a83baabf140897bccd0a996b8",
+        "sha256_in_prefix": "721ed3a5cfe939e49ef03cd326f672559063594a83baabf140897bccd0a996b8",
+        "size_in_bytes": 3141
+      },
+      {
+        "_path": "Library/include/faiss/utils/approx_topk/avx2-inl.h",
+        "path_type": "hardlink",
+        "sha256": "d9831e80f5c4c8c26654f1ec4ab7887a6f125c5720880476ba49e819c6912bb2",
+        "sha256_in_prefix": "d9831e80f5c4c8c26654f1ec4ab7887a6f125c5720880476ba49e819c6912bb2",
+        "size_in_bytes": 8191
+      },
+      {
+        "_path": "Library/include/faiss/utils/approx_topk/generic.h",
+        "path_type": "hardlink",
+        "sha256": "11211e0b024df857afc792dfd6283c51a5a15ffe1bdae159e061d6b28c9cc661",
+        "sha256_in_prefix": "11211e0b024df857afc792dfd6283c51a5a15ffe1bdae159e061d6b28c9cc661",
+        "size_in_bytes": 5108
+      },
+      {
+        "_path": "Library/include/faiss/utils/approx_topk/mode.h",
+        "path_type": "hardlink",
+        "sha256": "9101322acbe949776b818eebaa627a9338218d8fb54aab019b067a618df74013",
+        "sha256_in_prefix": "9101322acbe949776b818eebaa627a9338218d8fb54aab019b067a618df74013",
+        "size_in_bytes": 1132
+      },
+      {
+        "_path": "Library/include/faiss/utils/approx_topk_hamming/approx_topk_hamming.h",
+        "path_type": "hardlink",
+        "sha256": "c761798bde8e09bca42eda1c0dde4e4d180429716034e565e4055159fd656995",
+        "sha256_in_prefix": "c761798bde8e09bca42eda1c0dde4e4d180429716034e565e4055159fd656995",
+        "size_in_bytes": 14149
+      },
+      {
+        "_path": "Library/include/faiss/utils/bf16.h",
+        "path_type": "hardlink",
+        "sha256": "8379d9b68c5ee6fdedb3b365939515d00e2f5f840573a7bb452ce00395f4b7f1",
+        "sha256_in_prefix": "8379d9b68c5ee6fdedb3b365939515d00e2f5f840573a7bb452ce00395f4b7f1",
+        "size_in_bytes": 643
+      },
+      {
+        "_path": "Library/include/faiss/utils/distances.h",
+        "path_type": "hardlink",
+        "sha256": "412cebff2870b1a02f6c472f20b63293f215ebfb37ac9b7322926186f38527e7",
+        "sha256_in_prefix": "412cebff2870b1a02f6c472f20b63293f215ebfb37ac9b7322926186f38527e7",
+        "size_in_bytes": 14540
+      },
+      {
+        "_path": "Library/include/faiss/utils/distances_fused/avx512.h",
+        "path_type": "hardlink",
+        "sha256": "c5dc24202ebba21e88730c2779d913e5e9c16e2e3f736ac391f8185dd50b0025",
+        "sha256_in_prefix": "c5dc24202ebba21e88730c2779d913e5e9c16e2e3f736ac391f8185dd50b0025",
+        "size_in_bytes": 937
+      },
+      {
+        "_path": "Library/include/faiss/utils/distances_fused/distances_fused.h",
+        "path_type": "hardlink",
+        "sha256": "3858a15ad89492509057727f63930462ba6086c9416fac619dfec4cf7fcde530",
+        "sha256_in_prefix": "3858a15ad89492509057727f63930462ba6086c9416fac619dfec4cf7fcde530",
+        "size_in_bytes": 1286
+      },
+      {
+        "_path": "Library/include/faiss/utils/distances_fused/simdlib_based.h",
+        "path_type": "hardlink",
+        "sha256": "1a6e20cf50f93b8da1751b5e3f1f104b22e18cb6ef6d4beba4f3f39096bc7b0a",
+        "sha256_in_prefix": "1a6e20cf50f93b8da1751b5e3f1f104b22e18cb6ef6d4beba4f3f39096bc7b0a",
+        "size_in_bytes": 778
+      },
+      {
+        "_path": "Library/include/faiss/utils/extra_distances-inl.h",
+        "path_type": "hardlink",
+        "sha256": "6b3a2c89e67e5246b6ed81e8ae761c99731dcd336f3a0d7ef864523f3ac4760d",
+        "sha256_in_prefix": "6b3a2c89e67e5246b6ed81e8ae761c99731dcd336f3a0d7ef864523f3ac4760d",
+        "size_in_bytes": 5869
+      },
+      {
+        "_path": "Library/include/faiss/utils/extra_distances.h",
+        "path_type": "hardlink",
+        "sha256": "3711a9828ddd34d22647e91c89abeb18cd4b825c7e42cd449098f2cfd2b93fc7",
+        "sha256_in_prefix": "3711a9828ddd34d22647e91c89abeb18cd4b825c7e42cd449098f2cfd2b93fc7",
+        "size_in_bytes": 1311
+      },
+      {
+        "_path": "Library/include/faiss/utils/fp16-arm.h",
+        "path_type": "hardlink",
+        "sha256": "3128b4adef0da5fde219c6532c0ef4092b55519c6d82b9b9cdb9c94f7dda8a5a",
+        "sha256_in_prefix": "3128b4adef0da5fde219c6532c0ef4092b55519c6d82b9b9cdb9c94f7dda8a5a",
+        "size_in_bytes": 714
+      },
+      {
+        "_path": "Library/include/faiss/utils/fp16-fp16c.h",
+        "path_type": "hardlink",
+        "sha256": "ace09997c5a9df190f90b4e86715df19b43493f38e19de2ba7dd036ca772ae60",
+        "sha256_in_prefix": "ace09997c5a9df190f90b4e86715df19b43493f38e19de2ba7dd036ca772ae60",
+        "size_in_bytes": 640
+      },
+      {
+        "_path": "Library/include/faiss/utils/fp16-inl.h",
+        "path_type": "hardlink",
+        "sha256": "2dc13894d6e13d58d5c44f0474e1cf4b45da2751c5167e38fe5d92f1c3ff501d",
+        "sha256_in_prefix": "2dc13894d6e13d58d5c44f0474e1cf4b45da2751c5167e38fe5d92f1c3ff501d",
+        "size_in_bytes": 3790
+      },
+      {
+        "_path": "Library/include/faiss/utils/fp16.h",
+        "path_type": "hardlink",
+        "sha256": "b1ca7c0b5f60c2546e03bb9369579a21e01689c461e0b3adf822f1ee40363522",
+        "sha256_in_prefix": "b1ca7c0b5f60c2546e03bb9369579a21e01689c461e0b3adf822f1ee40363522",
+        "size_in_bytes": 431
+      },
+      {
+        "_path": "Library/include/faiss/utils/hamming-inl.h",
+        "path_type": "hardlink",
+        "sha256": "75f81b4888f07e708ad75f5baa064a8efc10555486daccc315ab9a7cbe1813f1",
+        "sha256_in_prefix": "75f81b4888f07e708ad75f5baa064a8efc10555486daccc315ab9a7cbe1813f1",
+        "size_in_bytes": 3184
+      },
+      {
+        "_path": "Library/include/faiss/utils/hamming.h",
+        "path_type": "hardlink",
+        "sha256": "5c93a949b20929992ab109049fa9b4a15aa6b9147704c793b0a3cf5335dd930e",
+        "sha256_in_prefix": "5c93a949b20929992ab109049fa9b4a15aa6b9147704c793b0a3cf5335dd930e",
+        "size_in_bytes": 8457
+      },
+      {
+        "_path": "Library/include/faiss/utils/hamming_distance/avx2-inl.h",
+        "path_type": "hardlink",
+        "sha256": "c2cab70fb7fd05352fd91685e9b3503a6db7fa09b0b3407ac7842440faba7d9a",
+        "sha256_in_prefix": "c2cab70fb7fd05352fd91685e9b3503a6db7fa09b0b3407ac7842440faba7d9a",
+        "size_in_bytes": 12610
+      },
+      {
+        "_path": "Library/include/faiss/utils/hamming_distance/common.h",
+        "path_type": "hardlink",
+        "sha256": "730980b3cad33842fc3aa1b352340df2c376a8f3b1e06d797e307579779d4699",
+        "sha256_in_prefix": "730980b3cad33842fc3aa1b352340df2c376a8f3b1e06d797e307579779d4699",
+        "size_in_bytes": 1762
+      },
+      {
+        "_path": "Library/include/faiss/utils/hamming_distance/generic-inl.h",
+        "path_type": "hardlink",
+        "sha256": "8e7175e245aa8d8ea10cbd55c8ffe548a08c4f80bf0a3937556db10e6d8cdb5e",
+        "sha256_in_prefix": "8e7175e245aa8d8ea10cbd55c8ffe548a08c4f80bf0a3937556db10e6d8cdb5e",
+        "size_in_bytes": 12144
+      },
+      {
+        "_path": "Library/include/faiss/utils/hamming_distance/hamdis-inl.h",
+        "path_type": "hardlink",
+        "sha256": "195c4c5c40fa677619df688935b33dafef9187f7b5b087ea25ad7c1d870ef41e",
+        "sha256_in_prefix": "195c4c5c40fa677619df688935b33dafef9187f7b5b087ea25ad7c1d870ef41e",
+        "size_in_bytes": 2705
+      },
+      {
+        "_path": "Library/include/faiss/utils/hamming_distance/neon-inl.h",
+        "path_type": "hardlink",
+        "sha256": "fb6ecc1d04c13c24634e4c339d7495fca79e58c169aa5c772e93e1fd2dfb9d82",
+        "sha256_in_prefix": "fb6ecc1d04c13c24634e4c339d7495fca79e58c169aa5c772e93e1fd2dfb9d82",
+        "size_in_bytes": 13766
+      },
+      {
+        "_path": "Library/include/faiss/utils/ordered_key_value.h",
+        "path_type": "hardlink",
+        "sha256": "93e0f9354af85ca3ccecc5620ebb338e58ec5aa47f682aa4aea0c9f470b36846",
+        "sha256_in_prefix": "93e0f9354af85ca3ccecc5620ebb338e58ec5aa47f682aa4aea0c9f470b36846",
+        "size_in_bytes": 2729
+      },
+      {
+        "_path": "Library/include/faiss/utils/partitioning.h",
+        "path_type": "hardlink",
+        "sha256": "40559fdb7c3f06bf4463e9911d7ee9c909421541ecac33f6e377c5cca92b6265",
+        "sha256_in_prefix": "40559fdb7c3f06bf4463e9911d7ee9c909421541ecac33f6e377c5cca92b6265",
+        "size_in_bytes": 1742
+      },
+      {
+        "_path": "Library/include/faiss/utils/prefetch.h",
+        "path_type": "hardlink",
+        "sha256": "f3786724ee14e11105cf88e9bf9e430ac970ca55b9c1674af11b5c996ee12390",
+        "sha256_in_prefix": "f3786724ee14e11105cf88e9bf9e430ac970ca55b9c1674af11b5c996ee12390",
+        "size_in_bytes": 1572
+      },
+      {
+        "_path": "Library/include/faiss/utils/quantize_lut.h",
+        "path_type": "hardlink",
+        "sha256": "b6539ec295b41994ab2ebfa9ae853a624f6a0ced1b8e476121deb64a2d184aa7",
+        "sha256_in_prefix": "b6539ec295b41994ab2ebfa9ae853a624f6a0ced1b8e476121deb64a2d184aa7",
+        "size_in_bytes": 2633
+      },
+      {
+        "_path": "Library/include/faiss/utils/random.h",
+        "path_type": "hardlink",
+        "sha256": "1e4065bdc9cb1b669be9c1a9b2b5d3f9a9a20bf95c51368b776a2c32cbdb1777",
+        "sha256_in_prefix": "1e4065bdc9cb1b669be9c1a9b2b5d3f9a9a20bf95c51368b776a2c32cbdb1777",
+        "size_in_bytes": 2246
+      },
+      {
+        "_path": "Library/include/faiss/utils/simdlib.h",
+        "path_type": "hardlink",
+        "sha256": "12e2520ff63d4e9a1152550dfa05fe54f9ab2dd46baaa4694dd28dfcf36c2928",
+        "sha256_in_prefix": "12e2520ff63d4e9a1152550dfa05fe54f9ab2dd46baaa4694dd28dfcf36c2928",
+        "size_in_bytes": 933
+      },
+      {
+        "_path": "Library/include/faiss/utils/simdlib_avx2.h",
+        "path_type": "hardlink",
+        "sha256": "f8e5fbd742ca1e96c76bd73a7c4742b0c07c85d23d48b6eda36f73a3ade3b928",
+        "sha256_in_prefix": "f8e5fbd742ca1e96c76bd73a7c4742b0c07c85d23d48b6eda36f73a3ade3b928",
+        "size_in_bytes": 24604
+      },
+      {
+        "_path": "Library/include/faiss/utils/simdlib_avx512.h",
+        "path_type": "hardlink",
+        "sha256": "01e58fd7996be02224fb31890f529d638e6886aad93f95bb4a79854188eae61e",
+        "sha256_in_prefix": "01e58fd7996be02224fb31890f529d638e6886aad93f95bb4a79854188eae61e",
+        "size_in_bytes": 8030
+      },
+      {
+        "_path": "Library/include/faiss/utils/simdlib_emulated.h",
+        "path_type": "hardlink",
+        "sha256": "db0664a39309524aa032c48b12eaab86b5fdd4a674dac344c3b5832e2aa93519",
+        "sha256_in_prefix": "db0664a39309524aa032c48b12eaab86b5fdd4a674dac344c3b5832e2aa93519",
+        "size_in_bytes": 28071
+      },
+      {
+        "_path": "Library/include/faiss/utils/simdlib_neon.h",
+        "path_type": "hardlink",
+        "sha256": "21bfcc86395eb0d6fdcf4944f5af93f5c1fcdfb49c7a242d1172cb06b9dbd9e1",
+        "sha256_in_prefix": "21bfcc86395eb0d6fdcf4944f5af93f5c1fcdfb49c7a242d1172cb06b9dbd9e1",
+        "size_in_bytes": 46170
+      },
+      {
+        "_path": "Library/include/faiss/utils/simdlib_ppc64.h",
+        "path_type": "hardlink",
+        "sha256": "f71b5f8397764d64330a980441bc2f6777fbb5258dbb276a0e2593c65c706121",
+        "sha256_in_prefix": "f71b5f8397764d64330a980441bc2f6777fbb5258dbb276a0e2593c65c706121",
+        "size_in_bytes": 29473
+      },
+      {
+        "_path": "Library/include/faiss/utils/sorting.h",
+        "path_type": "hardlink",
+        "sha256": "3a962d392929d34ca1eadd354c0a543d17e9ff8d39ee1e3f32571dc1e2750dbf",
+        "sha256_in_prefix": "3a962d392929d34ca1eadd354c0a543d17e9ff8d39ee1e3f32571dc1e2750dbf",
+        "size_in_bytes": 2845
+      },
+      {
+        "_path": "Library/include/faiss/utils/transpose/transpose-avx2-inl.h",
+        "path_type": "hardlink",
+        "sha256": "f5a23ac3c901bc0cb3b11a6c950042f18499e49e9ce63ba1c5d5df32e72e2395",
+        "sha256_in_prefix": "f5a23ac3c901bc0cb3b11a6c950042f18499e49e9ce63ba1c5d5df32e72e2395",
+        "size_in_bytes": 5567
+      },
+      {
+        "_path": "Library/include/faiss/utils/transpose/transpose-avx512-inl.h",
+        "path_type": "hardlink",
+        "sha256": "9f05a3c8f2f659ef916cf4d6c6b9c88624bda09f9388ed6b718ed1cf6ac7dab1",
+        "sha256_in_prefix": "9f05a3c8f2f659ef916cf4d6c6b9c88624bda09f9388ed6b718ed1cf6ac7dab1",
+        "size_in_bytes": 7735
+      },
+      {
+        "_path": "Library/include/faiss/utils/utils.h",
+        "path_type": "hardlink",
+        "sha256": "3bbad1cff92c113b04d16d83dff5fcaa5e3e1baa8457fc3c2127df995f57ed7a",
+        "sha256_in_prefix": "3bbad1cff92c113b04d16d83dff5fcaa5e3e1baa8457fc3c2127df995f57ed7a",
+        "size_in_bytes": 6653
+      },
+      {
+        "_path": "Library/lib/cmake/faiss/faiss-config-version.cmake",
+        "path_type": "hardlink",
+        "sha256": "332342ca4ea7b5bfa84e0d85cf89fe11d031d3db825d1c32b1f65a0f3faf7ef5",
+        "sha256_in_prefix": "332342ca4ea7b5bfa84e0d85cf89fe11d031d3db825d1c32b1f65a0f3faf7ef5",
+        "size_in_bytes": 1904
+      },
+      {
+        "_path": "Library/lib/cmake/faiss/faiss-config.cmake",
+        "path_type": "hardlink",
+        "sha256": "b974f6cd20f67d7bcd36fb5b213d83653a97084ed9356e891df4b4b379fd0977",
+        "sha256_in_prefix": "b974f6cd20f67d7bcd36fb5b213d83653a97084ed9356e891df4b4b379fd0977",
+        "size_in_bytes": 264
+      },
+      {
+        "_path": "Library/lib/cmake/faiss/faiss-targets-release.cmake",
+        "path_type": "hardlink",
+        "sha256": "5d30a248cebaa076b632f76c76dc9822c88d0e4467f231d944fe1c5798a3b8fd",
+        "sha256_in_prefix": "5d30a248cebaa076b632f76c76dc9822c88d0e4467f231d944fe1c5798a3b8fd",
+        "size_in_bytes": 857
+      },
+      {
+        "_path": "Library/lib/cmake/faiss/faiss-targets.cmake",
+        "file_mode": "text",
+        "path_type": "hardlink",
+        "prefix_placeholder": "D:/bld/faiss-split_1734665136683/_h_env",
+        "sha256": "be51ec443a167cea7c841a73c327563c2a28b915483dd5670ac27e7bfbdd3ba6",
+        "sha256_in_prefix": "d7443a9f87921628e23b3245f6a3e6b66f75a67b72a2f53665a9c640b534624d",
+        "size_in_bytes": 3917
+      },
+      {
+        "_path": "Library/lib/faiss.lib",
+        "path_type": "hardlink",
+        "sha256": "49beb6d393c61a2cb5024425ee045fd3c0fdd6f33764a803a706c9219eac0026",
+        "sha256_in_prefix": "49beb6d393c61a2cb5024425ee045fd3c0fdd6f33764a803a706c9219eac0026",
+        "size_in_bytes": 9481610
+      }
+    ],
+    "paths_version": 1
+  },
+  "requested_spec": "None",
+  "sha256": "8f6e8e63606c0c148a3b03e014ea253ab356879b2fc984ef56842aad8eac7912",
+  "size": 1689193,
+  "subdir": "win-64",
+  "timestamp": 1734666193000,
+  "url": "https://conda.anaconda.org/conda-forge/win-64/libfaiss-1.9.0-h3a9ed07_0_cpu.conda",
+  "version": "1.9.0"
+}

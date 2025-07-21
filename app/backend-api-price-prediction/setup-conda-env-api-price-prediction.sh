@@ -4,32 +4,32 @@
 # chmod +x setup-conda-env-api-price-prediction.sh
 # ./setup-conda-env-api-price-prediction.sh
 
-ENV_PATH="./conda-env"
+ENV_NAME="real-estate-price-api"
 PYTHON_VERSION="3.11"
 
-echo -e "\033[34m>>> Setting up Price Prediction API conda environment at: $ENV_PATH\033[0m"
-echo -e "\033[33m🔧 This API will use its own isolated price prediction environment\033[0m"
+echo "🚀 Setting up Price Prediction API environment: $ENV_NAME"
 
-# Check if conda is available
-if ! command -v conda &> /dev/null; then
-    echo -e "\033[31m❌ Conda is not installed or not in PATH\033[0m"
-    exit 1
-fi
+# Initialize conda for bash
+eval "$(conda shell.bash hook)"
 
-# Force cleanup - always remove existing environment
-echo -e "\033[33m>>> Force cleanup: removing any existing environment...\033[0m"
-rm -rf "${ENV_PATH}"
+# Remove old environment
+conda env remove -n "${ENV_NAME}" -y 2>/dev/null || true
 
-# Create the environment locally using the -p option
-echo -e "\033[33m>>> Creating local conda environment with Python $PYTHON_VERSION...\033[0m"
-conda create -p "${ENV_PATH}" python="$PYTHON_VERSION" -y
+# Create new environment
+conda create -n "${ENV_NAME}" python="$PYTHON_VERSION" -y
 
-# Activate the environment (ignore errors)
-echo -e "\033[33m>>> Activating environment: $ENV_PATH...\033[0m"
-source "$(conda info --base)/etc/profile.d/conda.sh" 2>/dev/null || true
-conda activate "${ENV_PATH}" 2>/dev/null || true
+# Activate environment
+conda activate "${ENV_NAME}"
 
-# Install everything in one go to avoid activation issues
+# Install packages
+conda install -c conda-forge fastapi uvicorn pandas numpy scikit-learn xgboost lightgbm joblib -y
+pip install catboost python-multipart python-dotenv requests pydantic
+
+# Test
+python -c "import fastapi, pandas, sklearn, catboost; print('✅ Setup OK')"
+
+echo "✅ Done! Activate with: conda activate ${ENV_NAME}"
+echo "✅ Done! Run: ./start-api-price-prediction.sh"
 echo -e "\033[33m>>> Installing all dependencies...\033[0m"
 conda install -c conda-forge fastapi uvicorn python-multipart pandas numpy scikit-learn xgboost lightgbm joblib requests python-dotenv pydantic -y
 

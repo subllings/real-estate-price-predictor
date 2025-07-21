@@ -4,17 +4,30 @@
 # chmod +x setup-conda-env-api-llm.sh
 # ./setup-conda-env-api-llm.sh
 
-ENV_PATH="./conda-env"
-PYTHON_VERSION="3.11"
+echo "🚀 Installing packages in base environment for Azure OpenAI LLM API..."
 
-echo "🚀 Setting up Azure OpenAI LLM API environment..."
+# Install FastAPI if not already installed
+conda install -c conda-forge fastapi uvicorn -y
+
+# Install other packages via pip
+pip install openai langchain langchain-openai langchain-community faiss-cpu PyMuPDF python-docx python-dotenv requests pydantic
+
+# Test
+python -c "import fastapi, langchain, openai; print('✅ Setup OK - using base environment')"
+
+echo "✅ Done! All packages installed in base environment"
+echo "✅ Run: ./start-api-llm-v2.sh"
 
 # Remove old environment
-rm -rf "${ENV_PATH}"
+conda env remove -n "${ENV_NAME}" -y 2>/dev/null || true
 
 # Create new environment
-conda create -p "${ENV_PATH}" python="$PYTHON_VERSION" -y
+conda create -n "${ENV_NAME}" python="$PYTHON_VERSION" -y
 
+# Activate environment
+conda activate "${ENV_NAME}"
+
+<<<<<<< HEAD
 # Force use environment python directly
 PYTHON_EXE="${ENV_PATH}/python"
 if [[ "$OSTYPE" == "msys" ]] || [[ "$OSTYPE" == "win32" ]]; then
@@ -28,8 +41,18 @@ echo ">>> Installing all packages directly..."
 
 # Test
 "$PYTHON_EXE" -c "import fastapi, langchain, openai; print('✅ Setup OK')"
+=======
+# Install packages
+conda install -c conda-forge fastapi uvicorn -y
+pip install openai langchain langchain-openai langchain-community faiss-cpu numpy PyMuPDF python-docx python-dotenv requests pydantic
 
+# Test
+python -c "import fastapi, langchain, openai; print('✅ Setup OK')"
+>>>>>>> 915073c6775d41e055b58716734b8e21e488a33f
+
+echo "✅ Done! Activate with: conda activate ${ENV_NAME}"
 echo "✅ Done! Run: ./start-api-llm-v2.sh"
+<<<<<<< HEAD
 
 # Force use environment python directly
 PYTHON_EXE="${ENV_PATH}/python"
@@ -88,6 +111,8 @@ echo -e "\033[33m💡 Environment info:\033[0m"
 echo -e "\033[33m   Path: $ENV_PATH\033[0m"
 echo -e "\033[33m   Python: $PYTHON_VERSION\033[0m"
 echo -e "\033[33m   Location: $(realpath $ENV_PATH 2>/dev/null || echo $ENV_PATH)\033[0m"
+=======
+>>>>>>> 915073c6775d41e055b58716734b8e21e488a33f
 
 # Install additional packages via pip
 pip install fastapi uvicorn python-multipart python-dotenv requests pydantic langchain langchain-community langchain-openai azure-search-documents azure-identity pymupdf python-docx azure-cosmos azure-core --no-warn-script-location

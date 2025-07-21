@@ -1,6 +1,6 @@
-# === Conda environments ===
-conda-env/
-**/conda-env/
+# === NO MORE LOCAL CONDA ENVIRONMENTS ===
+# conda-env/ (removed - we use global conda envs now)
+# **/conda-env/ (removed)
 
 # === Old virtual environments (to be removed) ===
 .venv/
@@ -32,9 +32,16 @@ wheels/
 .ipynb_checkpoints/
 *.ipynb_checkpoints
 
-# === Environment files (optional) ===
+# === Environment files (STRICT PROTECTION) ===
 .env
-*.env
+.env.*
+!.env.template
+!.env.example
+*.env.backup
+app/*/.env
+app/*/.env.*
+app/backend-api-*/.env
+app/backend-api-*/.env.*
 
 # === IDE specific files ===
 .vscode/
@@ -95,10 +102,13 @@ catboost_info/
 logs/
 *.log
 
-// App frontend
+# App frontend
 app/frontend-react/node_modules/
 
-.env.backup
-*.backup
-.env.backup
-*.backup
+# Azure secrets
+*.key
+azure.json
+**/secrets/
+**/*secret*
+**/*credential*
+AZURE_*
