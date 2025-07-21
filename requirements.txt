@@ -23,6 +23,7 @@ nbformat==5.10.3
 papermill==2.4.0
 ansiwrap==0.8.4
 ipywidgets==8.0.6
+nbclient>=0.2.0
 
 # -------------------------------
 # Machine learning
@@ -31,7 +32,7 @@ scikit-learn==1.4.2
 joblib==1.4.2
 xgboost==2.0.3
 lightgbm==4.3.0
-catboost==1.2.8 
+catboost==1.2.8
 optuna==3.6.1
 shap==0.45.1
 
@@ -39,27 +40,60 @@ shap==0.45.1
 # API backend
 # -------------------------------
 fastapi==0.110.0
-pydantic==2.7.1
+starlette>=0.36.3,<0.37.0
+pydantic==1.10.12
 uvicorn[standard]==0.29.0
 
 # -------------------------------
 # MLOps & Tracking
 # -------------------------------
 mlflow==2.12.1
-optuna-integration>=3.5.0
+alembic!=1.10.0,<2
+cloudpickle<4
+docker>=4.0.0,<8
+entrypoints<1
+Flask<4
+gitpython>=3.1.9,<4
+graphene<4
+importlib-metadata>=3.7.0,<8,!=4.7.0
+Jinja2>=3.0,<4
+markdown>=3.3,<4
+protobuf>=3.12.0,<6
+pyarrow>=4.0.0,<16
+pytz<2025
+querystring-parser<2
+requests>=2.17.3,<3
+scipy<2
+sqlalchemy>=1.4.0,<3
+sqlparse>=0.4.0,<1
+waitress<4; platform_system == "Windows"
 
 # -------------------------------
 # Streamlit UI
 # -------------------------------
 streamlit==1.35.0
+altair>=4.0,<6
+blinker>=1.0.0,<2
+cachetools>=4.0,<6
+gitpython!=3.1.19,<4,>=3.0.7
+pillow>=7.1.0,<11
+protobuf>=3.20,<5
+pyarrow>=7.0
+pydeck>=0.8.0b4,<1
+requests>=2.27,<3
+tenacity>=8.1.0,<9
+toml>=0.10.1,<2
+watchdog>=2.1.5; platform_system != "Darwin"
 
 # -------------------------------
 # Dev & formatting
 # -------------------------------
 black==24.4.2
+mypy==1.10.0
+mypy-extensions>=1.0.0
+pathspec>=0.9.0
 isort==5.13.2
 flake8==7.0.0
-mypy==1.10.0
 
 # -------------------------------
 # Testing
@@ -74,6 +108,9 @@ pytest-cov==5.0.0
 azureml-core==1.55.0
 azure-identity==1.16.0
 azure-storage-blob>=12.19.0
+azure-core>=1.30.0
+cryptography>=2.1.4
+isodate>=0.6.1
 azure-cosmos==4.6.0
 
 # -------------------------------
@@ -90,22 +127,25 @@ python-dotenv>=1.0.0
 PyMuPDF==1.24.1
 python-docx==1.1.0
 python-multipart==0.0.9
+lxml>=3.1.0
 
 # -------------------------------
 # LangChain Modular (post-0.1.x)
 # -------------------------------
-langchain-core==0.1.52
-langchain-community==0.0.28
-langchain-openai==0.1.7
+langchain==0.0.170
 
 # -------------------------------
 # LLM, Embeddings & Tokenizer
 # -------------------------------
 openai>=1.12.0,<2.0.0
-faiss-cpu==1.7.4
+distro>=1.7.0,<2
+httpx>=0.23.0,<1
+jiter>=0.4.0,<1
 tiktoken>=0.7.0,<1.0.0
 
 # -------------------------------
 # Terminal output / UX
 # -------------------------------
 rich==13.7.1
+annotated-types>=0.4.0
+

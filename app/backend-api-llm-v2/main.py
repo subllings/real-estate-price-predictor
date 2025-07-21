@@ -21,7 +21,10 @@ from fastapi.responses import JSONResponse
 import hashlib
 import numpy as np
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain.embeddings import AzureOpenAIEmbeddings
+
+from langchain.embeddings import OpenAIEmbeddings
+
+
 from langchain.vectorstores import FAISS
 from langchain.schema import Document
 
@@ -64,19 +67,49 @@ AZURE_OPENAI_DEPLOYMENT = os.getenv("AZURE_OPENAI_DEPLOYMENT_NAME")
 AZURE_OPENAI_API_VERSION = os.getenv("AZURE_OPENAI_API_VERSION")
 AZURE_OPENAI_API_KEY = os.getenv("AZURE_OPENAI_API_KEY")
 
+# Add embedding-specific configuration
+AZURE_OPENAI_EMBEDDING_DEPLOYMENT = os.getenv("AZURE_OPENAI_EMBEDDING_DEPLOYMENT", AZURE_OPENAI_DEPLOYMENT)
+AZURE_OPENAI_EMBEDDING_MODEL = os.getenv("AZURE_OPENAI_EMBEDDING_MODEL", "text-embedding-ada-002")
+
 # Document processing configuration
 UPLOAD_DIR = Path("uploaded_documents")
 FAISS_INDEX_DIR = Path("faiss_indexes")
 UPLOAD_DIR.mkdir(exist_ok=True)
 FAISS_INDEX_DIR.mkdir(exist_ok=True)
 
-# Initialize vector store components
-embeddings = AzureOpenAIEmbeddings(
-    azure_endpoint=AZURE_OPENAI_ENDPOINT,
-    azure_deployment="text-embedding-ada-002",
-    api_key=AZURE_OPENAI_API_KEY,
-    api_version=AZURE_OPENAI_API_VERSION
-)
+# Initialize vector store components with better error handling
+def initialize_embeddings():
+    """Initialize Azure OpenAI embeddings with proper error handling"""
+    try:
+        if not AZURE_OPENAI_API_KEY:
+            raise ValueError("AZURE_OPENAI_API_KEY not found in environment variables")
+        
+        if not AZURE_OPENAI_EMBEDDING_DEPLOYMENT:
+            raise ValueError("AZURE_OPENAI_EMBEDDING_DEPLOYMENT not found in environment variables")
+        
+        embeddings = OpenAIEmbeddings(
+            deployment=AZURE_OPENAI_EMBEDDING_DEPLOYMENT,
+            model=AZURE_OPENAI_EMBEDDING_MODEL,
+            openai_api_key=AZURE_OPENAI_API_KEY,
+            openai_api_base=AZURE_OPENAI_ENDPOINT,
+            openai_api_type="azure",
+            openai_api_version=AZURE_OPENAI_API_VERSION,
+        )
+        
+        logger.info(f"✅ Embeddings initialized successfully")
+        logger.info(f"   Deployment: {AZURE_OPENAI_EMBEDDING_DEPLOYMENT}")
+        logger.info(f"   Model: {AZURE_OPENAI_EMBEDDING_MODEL}")
+        logger.info(f"   Endpoint: {AZURE_OPENAI_ENDPOINT}")
+        
+        return embeddings
+        
+    except Exception as e:
+        logger.error(f"❌ Failed to initialize embeddings: {e}")
+        logger.error(f"   Please check your Azure OpenAI configuration in .env file")
+        return None
+
+# Initialize embeddings
+embeddings = initialize_embeddings()
 
 # Text splitter for document chunking
 text_splitter = RecursiveCharacterTextSplitter(

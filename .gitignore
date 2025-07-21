@@ -1,48 +1,65 @@
-# === Virtual environment ===
+# === Conda environments ===
+conda-env/
+**/conda-env/
+
+# === Old virtual environments (to be removed) ===
 .venv/
-env/
-venv/
+**/.venv/
 
 # === Python bytecode & cache ===
 __pycache__/
 *.py[cod]
-*.pyo
-*.pyd
-
-# === VS Code settings ===
-.vscode/
-
-# === Test coverage and reports ===
-.coverage
-htmlcov/
-.cache/
-pytest_cache/
-coverage.xml
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
 
 # === Jupyter & notebooks (if any) ===
 .ipynb_checkpoints/
-
-# === Logs and temporary files ===
-*.log
-*.tmp
-*.bak
-*.swp
-.DS_Store
+*.ipynb_checkpoints
 
 # === Environment files (optional) ===
 .env
-.env.*
-
-# === Compiled or package artifacts ===
-dist/
-build/
-*.egg-info/
+*.env
 
 # === IDE specific files ===
-.idea/  
+.vscode/
+.idea/
+*.swp
+*.swo
 
-# === Miscellaneous ===
-*.orig
+# === Model files ===
+*.pkl
+*.joblib
+models/
+
+# === Data files ===
+data/raw/
+data/processed/
+*.csv
+*.xlsx
+
+# === Logs and temporary files ===
+logs/
+*.log
+
+# === FAISS indexes ===
+faiss_indexes/
+uploaded_documents/
 
 # === Docker files ===
 docker-compose.override.yml 
@@ -52,23 +69,6 @@ docker-compose.override.yml
 
 # === Windows specific files ===
 Thumbs.db
-
-# === Python packaging ===
-*.egg
-
-# === PyInstaller ===
-*.spec
-
-# === Coverage reports ===
-.coverage.*
-
-# === Pytest cache ===
-.cache/
-
-
-# === docs-pdoc ===
-docs-pdoc/
-
 # === Data files ===
 data/ml_ready/
 data/ml_pre_study/
